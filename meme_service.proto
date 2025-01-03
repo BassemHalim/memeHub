@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+package meme_service;
+option go_package = "github.com/BassemHalim/memeDB/protobuff";
+
+// Service definition for meme upload and management
+service MemeService {
+  // Upload a new meme with tags
+  rpc UploadMeme(UploadMemeRequest) returns (UploadMemeResponse);
+}
+
+// Request message for uploading a meme
+message UploadMemeRequest {
+  // Binary content of the image
+  bytes image_data = 1;
+  
+  // Image metadata
+  string image_name = 2;
+  string mime_type = 3;
+  
+  // List of tags associated with the meme
+  repeated string tags = 4;
+}
+
+// Response message after uploading a meme
+message UploadMemeResponse {
+  // Unique identifier for the uploaded meme
+  string meme_id = 1;
+  
+  // URL where the meme can be accessed
+  string url = 2;
+  
+  // Timestamp of when the meme was uploaded
+  int64 upload_timestamp = 3;
+}
+
+// Error handling
+enum ErrorCode {
+  ERROR_UNSPECIFIED = 0;
+  ERROR_INVALID_IMAGE = 1;
+  ERROR_IMAGE_TOO_LARGE = 2;
+  ERROR_INVALID_TAGS = 3;
+}
+
+message Error {
+  ErrorCode code = 1;
+  string message = 2;
+}
