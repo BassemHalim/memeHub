@@ -1,0 +1,52 @@
+syntax = "proto3";
+package meme;
+option go_package = "./proto";
+
+service MemeService {
+  rpc UploadMeme (UploadMemeRequest) returns (MemeResponse);
+  rpc GetMeme (GetMemeRequest) returns (MemeResponse);
+  rpc FilterMemesByTags(FilterMemesByTagsRequest) returns (FilterMemesByTagsResponse);
+}
+
+message UploadMemeRequest {
+  bytes image = 1;
+  string media_type = 2;
+  repeated string tags = 3;
+}
+
+message GetMemeRequest {
+  int64 id = 1;
+}
+
+message MemeResponse {
+  int64 id = 1;
+  string media_url = 2;
+  string media_type = 3;
+  repeated string tags = 4;
+}
+
+message FilterMemesByTagsRequest {
+  repeated string tags = 1;
+  TagMatchType match_type = 2;
+  int32 page = 3;
+  int32 page_size = 4;
+  SortOrder sort_order = 5;
+}
+
+message FilterMemesByTagsResponse {
+  repeated MemeResponse memes = 1;
+  int32 total_count = 2;
+  int32 page = 3;
+  int32 total_pages = 4;
+}
+
+enum TagMatchType {
+  ANY = 0;  // Match memes that have any of the specified tags
+  ALL = 1;  // Match memes that have all of the specified tags
+}
+
+enum SortOrder {
+  NEWEST = 0;
+  OLDEST = 1;
+  MOST_TAGGED = 2;
+}
