@@ -82,6 +82,7 @@ func (db *DB) SaveTag(tag_name string, imageID int64) error {
 	if err != nil {
 		return err
 	}
+	defer tx.Rollback()
 	var tagID int64
 	// 1. First check if tag exists
 	err = tx.QueryRow(`
