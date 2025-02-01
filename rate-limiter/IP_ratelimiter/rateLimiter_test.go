@@ -1,4 +1,4 @@
-package rateLimiter
+package main
 
 import (
 	"testing"
@@ -19,7 +19,7 @@ func TestRateLimit(t *testing.T) {
 	ip := "123"
 	client_limiter := limiter.getClientLimiter(ip)
 	client_limiter.Allow()
-	
+
 	if client_limiter.Allow() {
 		t.Errorf("This request should have been rejected")
 	}
@@ -31,7 +31,7 @@ func TestLimitThenAccept(t *testing.T) {
 	ip := "123"
 	client_limiter := limiter.getClientLimiter(ip)
 	client_limiter.Allow()
-	
+
 	if client_limiter.Allow() {
 		t.Errorf("This request should have been rejected")
 	}
@@ -49,13 +49,11 @@ func TestMultipleClients(t *testing.T) {
 	client_limiter1 := limiter.getClientLimiter(ip1)
 	client_limiter2 := limiter.getClientLimiter(ip2)
 
-	
 	if !client_limiter1.Allow() {
 		t.Errorf("This request should have been accepted")
 	}
 	if !client_limiter2.Allow() {
 		t.Errorf("This request should have been accepted")
 	}
-	
 
 }
