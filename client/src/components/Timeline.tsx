@@ -8,6 +8,14 @@ string media_url = 2;
 string media_type = 3;
 repeated string tags = 4;
 */
+
+type Meme = {
+    id: number;
+    media_url: string;
+    media_type: string;
+    tags: string[];
+};
+
 const sampleMemes = [
     {
         id: 1,
@@ -68,12 +76,16 @@ export default function Timeline() {
     useEffect(() => {
         // fetch memes from the server
         function fetchMemes() {
-            fetch(process.env.NEXT_PUBLIC_API_URL + '/memes')
+            const URL = process.env.NEXT_PUBLIC_API_HOST + "/memes";
+            console.log("fetching memes from", URL);
+            fetch(URL)
                 .then((response) => response.json())
                 .then((data) => {
-                    setMemes(data);
+                    setMemes(data );
+                })
+                .catch((error) => {
+                    console.error("failed to fetch memes", error);
                 });
-            setMemes(sampleMemes);
         }
         fetchMemes();
     }, []);
