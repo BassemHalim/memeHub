@@ -4,11 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log"
 	"mime"
 	"os"
 	"path/filepath"
 
-	pb "github.com/BassemHalim/meme-service/proto"
+	pb "github.com/BassemHalim/memeDB/proto/memeService"
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 )
@@ -18,6 +19,14 @@ type Server struct {
 	db *sql.DB
 }
 
+type Meme struct {
+	ID              int64
+	MediaURL        string
+	MediaType       string
+	MediaDimensions string
+	Tags            []string
+}
+
 func NewMemeServer(db *sql.DB) *Server {
 	return &Server{db: db}
 }
@@ -25,6 +34,8 @@ func NewMemeServer(db *sql.DB) *Server {
 func (s *Server) UploadMeme(ctx context.Context, req *pb.UploadMemeRequest) (*pb.MemeResponse, error) {
 	// save the image to disk
 	// uuid as filename
+	log.Default().Println("Uploading Meme")
+	log.Default().Println(req.MediaType)
 	ext, err := mime.ExtensionsByType(req.MediaType)
 	if err != nil {
 		return nil, fmt.Errorf("Invalid media mime type")

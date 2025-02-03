@@ -7,8 +7,8 @@ import (
 	"net"
 	"os"
 
-	pb "github.com/BassemHalim/meme-service/proto"
-	"github.com/BassemHalim/meme-service/src/server"
+	pb "github.com/BassemHalim/memeDB/proto/memeService"
+	"github.com/BassemHalim/memeDB/memeService/src/server"
 	_ "github.com/lib/pq"
 	"google.golang.org/grpc"
 )

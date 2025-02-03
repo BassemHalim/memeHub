@@ -1,6 +1,6 @@
 syntax = "proto3";
 package meme;
-option go_package = "./proto";
+option go_package = "github.com/BassemHalim/memeDB/proto/memeService";
 
 service MemeService {
   rpc UploadMeme (UploadMemeRequest) returns (MemeResponse);

@@ -2,100 +2,24 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"image"
 	_ "image/gif"
 	_ "image/jpeg"
 	_ "image/png"
+	"time"
+
 	"log"
-	"net"
 	"net/http"
 	"os"
 	"strings"
-	"sync"
-	"time"
 
-	"golang.org/x/time/rate"
+	pb "github.com/BassemHalim/memeDB/proto/memeService"
+	rateLimiter "github.com/BassemHalim/memeDB/rate-limiter/IP_ratelimiter"
+	"google.golang.org/grpc"
 )
-
-const CLEANUP_RATE time.Duration = time.Minute
-const STALE_CLIENT time.Duration = time.Minute * 3
-const REFILL_RATE = 1 // 1 token per second
-const BUCKET_SIZE = 10
-
-type ClientLimiter struct {
-	limiter  *rate.Limiter // token bucket rate limiter
-	lastSeen time.Time
-}
-
-type RateLimiter struct {
-	clients     map[string]*ClientLimiter
-	clientsLock sync.Mutex
-	rate        rate.Limit
-	burst       int
-}
-
-func NewRateLimiter(rate rate.Limit, burst int) *RateLimiter {
-	handler := RateLimiter{
-		clients: make(map[string]*ClientLimiter),
-		rate:    rate,
-		burst:   burst,
-	}
-
-	go handler.cleanUp()
-	return &handler
-
-}
-
-// Remove old clients to reduce memory
-func (l *RateLimiter) cleanUp() {
-	for {
-		time.Sleep(CLEANUP_RATE)
-		// lock clients
-		l.clientsLock.Lock()
-		remove := make([]string, len(l.clients))
-		for ip, client := range l.clients {
-			if time.Since(client.lastSeen) > STALE_CLIENT {
-				remove = append(remove, ip)
-			}
-		}
-		for _, ip := range remove {
-			delete(l.clients, ip)
-		}
-		l.clientsLock.Unlock()
-	}
-}
-
-func (h *RateLimiter) getClientLimiter(ip string) *rate.Limiter {
-	h.clientsLock.Lock()
-	defer h.clientsLock.Unlock()
-
-	client, ok := h.clients[ip]
-	if !ok {
-		client = &ClientLimiter{
-			limiter:  rate.NewLimiter(h.rate, h.burst),
-			lastSeen: time.Now(),
-		}
-		h.clients[ip] = client
-	}
-	client.lastSeen = time.Now()
-	return client.limiter
-}
-
-func (h *RateLimiter) RateLimit(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ip, _, _ := net.SplitHostPort(r.RemoteAddr)
-		limiter := h.getClientLimiter(ip)
-		log.Println("Received request from IP: ", ip, "Tokens available: ", limiter.Tokens())
-		if !limiter.Allow() {
-			http.Error(w, "Rate limit exceeded", http.StatusTooManyRequests)
-			return
-		}
-
-		next.ServeHTTP(w, r)
-	})
-}
 
 var sampleMemes = []struct {
 	ID        int      `json:"id"`
@@ -160,25 +84,9 @@ type MemeUpload struct {
 	ImageData []byte   `json:"image_data"`
 }
 
-func main() {
-	log := log.New(os.Stdout, "Meme-Gateway:", log.LstdFlags)
-	limiter := NewRateLimiter(REFILL_RATE, BUCKET_SIZE)
+func getMemes(memeClient pb.MemeServiceClient) func(w http.ResponseWriter, r *http.Request) {
 
-	// Enable CORS for all endpoints
-	corsHandler := func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Access-Control-Allow-Origin", "*")
-			w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-			if r.Method == http.MethodOptions {
-				w.WriteHeader(http.StatusOK)
-				return
-			}
-			next.ServeHTTP(w, r)
-		})
-	}
-
-	getMemes := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
@@ -188,9 +96,11 @@ func main() {
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(sampleMemes)
 
-	})
+	}
+}
+func uploadMeme(memeClient pb.MemeServiceClient) func(w http.ResponseWriter, r *http.Request) {
 
-	uploadMeme := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
@@ -262,14 +172,64 @@ func main() {
 		// verify image mime type
 		fmt.Println("Image dimensions: ", imgConfig.Width, imgConfig.Height)
 		fmt.Println(meme)
-
+		// call the memeService to upload the meme
+		memeUpload := &pb.UploadMemeRequest{
+			MediaType: meme.MimeType,
+			Image:     imgBytes,
+			Tags:      meme.Tags,
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		resp, err := memeClient.UploadMeme(ctx, memeUpload)
+		if err != nil {
+			log.Println("Error uploading the meme", err)
+			http.Error(w, "Error uploading the meme", http.StatusInternalServerError)
+			return
+		}
+		log.Println("Meme uploaded successfully", resp)
 		// return the meme ID
-		// return error if the media type is not supported or is too big
-		// return error if the image is not saved
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(resp)
 
-	})
+	}
+}
+func initGRPCClient() (pb.MemeServiceClient, error) {
+	// Set up a connection to the server.
+	conn, err := grpc.Dial("localhost:50051", grpc.WithInsecure())
+	if err != nil {
+		return nil, err
+	}
+	// create client
+	client := pb.NewMemeServiceClient(conn)
+	return client, nil
+}
 
+func main() {
+	log := log.New(os.Stdout, "Meme-Gateway:", log.LstdFlags)
+	limiter := rateLimiter.NewRateLimiter(rateLimiter.REFILL_RATE, rateLimiter.BUCKET_SIZE)
+	memeServiceClient, err := initGRPCClient()
 	
+	if err != nil {
+		log.Fatal("failed to connect to memeService", err)
+	}
+	// Enable CORS for all endpoints
+	corsHandler := func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+			if r.Method == http.MethodOptions {
+				w.WriteHeader(http.StatusOK)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+
+	getMemes := http.HandlerFunc(getMemes(memeServiceClient))
+	uploadMeme := http.HandlerFunc(uploadMeme(memeServiceClient))
+
 	http.Handle("/api/memes", corsHandler(limiter.RateLimit(getMemes)))
 	http.Handle("/api/meme", corsHandler(limiter.RateLimit(uploadMeme)))
 	// Start server
