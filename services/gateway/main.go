@@ -9,6 +9,7 @@ import (
 	_ "image/gif"
 	_ "image/jpeg"
 	_ "image/png"
+	"path/filepath"
 	"time"
 
 	"log"
@@ -251,8 +252,35 @@ func main() {
 		})
 	}
 
+	fs := http.FileServer(http.Dir("../memeService/uploads"))
+
+    // Handle all requests to /uploads/
+    http.HandleFunc("/uploads/", func(w http.ResponseWriter, r *http.Request) {
+        log.Println("serving image: ", r.URL.Path)
+		// Validate file extension
+        ext := strings.ToLower(filepath.Ext(r.URL.Path))
+        allowedExts := map[string]bool{
+            ".jpg":  true,
+            ".jpeg": true,
+            ".png":  true,
+            ".gif":  true,
+        }
+
+        if !allowedExts[ext] {
+            http.Error(w, "Forbidden file type", http.StatusForbidden)
+            return
+        }
+        // Remove /uploads/ prefix before serving
+        r.URL.Path = r.URL.Path[len("/uploads/"):]
+        
+        // Serve the file
+        fs.ServeHTTP(w, r)
+    })
+
 	getMemes := http.HandlerFunc(getMemes(memeServiceClient))
 	uploadMeme := http.HandlerFunc(uploadMeme(memeServiceClient, log))
+	
+
 
 	http.Handle("/api/memes", corsHandler(limiter.RateLimit(getMemes)))
 	http.Handle("/api/meme", corsHandler(limiter.RateLimit(requestLogger(uploadMeme))))

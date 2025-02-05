@@ -75,10 +75,7 @@ func main() {
 		log.Fatalf("Failed to connect to the database: %v", err)
 	}
 	defer db.Close()
-	// create "uploads" dir if it doesn't exist
-	if err := os.MkdirAll("uploads", 0755); err != nil {
-		log.Fatalf("Failed to create uploads directory: %v", err)
-	}
+
 
 	serverPort := getEnvOrDefault("SERVER_PORT", "50051")
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%s", serverPort))
