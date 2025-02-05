@@ -1,34 +1,42 @@
-import { Search } from "lucide-react";
 import Image from "next/image";
+
 const HeroSearch = () => {
     return (
-        <div className="relative w-full h-84 md:h-96">
-            {/* Hero Image Container */}
-            <div className="absolute inset-0">
-                <Image
-                    fill
-                    src="/hero_search.jpg"
-                    alt="Hero background"
-                    className="w-full h-full object-cover opacity-50"
-                />
-                {/* Gradient overlay for smooth transition */}
-                <div className="absolute inset-0 bg-black from-white to-slate-800 opacity-25 bg-cover" />
-            </div>
+        <section className="relative w-full min-h-[50vh] md:min-h-screen flex items-center justify-center py-4 px-4 md:px-6">
+            <div className="container mx-auto w-full md:w-4/5 relative">
+                {/* Image Container */}
+                <div className="relative  h-[300px] sm:h-[400px] md:h-[500px] lg:h-[600px]">
+                    <Image
+                        objectFit="fill"
+                        src="/hero_search.jpg"
+                        alt="Hero image"
+                        fill
+                        className="object-cover rounded-lg shadow-lg"
+                        priority
+                        sizes="(max-width: 768px) 100vw,
+                   (max-width: 1200px) 80vw,
+                   80vw"
+                    />
 
-            {/* Search Bar Container */}
-            <div className="absolute inset-0 flex items-end justify-center px-4">
-                <div className="w-full max-w-2xl m-6">
-                    <div className="relative">
+                    <div className="absolute inset-0 bg-black/30 rounded-lg"></div>
+                </div>
+
+                {/* Search Container */}
+                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full px-4 md:px-0">
+                    <div className="max-w-xs sm:max-w-sm md:max-w-md mx-auto">
+                        {/* Search Input */}
                         <input
                             type="text"
-                            placeholder="Search..."
-                            className="text-black w-full px-4 py-3 pl-12 rounded-2xl bg-white/90 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-lg"
+                            placeholder="Enter your text here"
+                            className="w-full px-4 sm:px-6 py-2 sm:py-3 rounded-lg border border-gray-300 
+                       focus:outline-none focus:ring-2 focus:ring-blue-500 
+                       shadow-lg text-sm sm:text-base
+                       placeholder-gray-500"
                         />
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5" />
                     </div>
                 </div>
             </div>
-        </div>
+        </section>
     );
 };
 
