@@ -16,7 +16,8 @@ import (
 
 type Server struct {
 	pb.UnimplementedMemeServiceServer
-	db *sql.DB
+	db  *sql.DB
+	log *log.Logger
 }
 
 type Meme struct {
@@ -27,8 +28,8 @@ type Meme struct {
 	Tags            []string
 }
 
-func NewMemeServer(db *sql.DB) *Server {
-	return &Server{db: db}
+func NewMemeServer(db *sql.DB, logger *log.Logger) *Server {
+	return &Server{db: db, log: logger}
 }
 
 func (s *Server) UploadMeme(ctx context.Context, req *pb.UploadMemeRequest) (*pb.MemeResponse, error) {
@@ -38,11 +39,18 @@ func (s *Server) UploadMeme(ctx context.Context, req *pb.UploadMemeRequest) (*pb
 	log.Default().Println(req.MediaType)
 	ext, err := mime.ExtensionsByType(req.MediaType)
 	if err != nil {
+		log.Println("Invalid mime type")
 		return nil, fmt.Errorf("Invalid media mime type")
 	}
 	filename := uuid.New().String() + ext[len(ext)-1]
-	filePath := filepath.Join("uploads", filename)
+	uploadDir := "./uploads"
+	filePath := filepath.Join(uploadDir, filename)
+	if err := os.MkdirAll(uploadDir, 0755); err != nil {
+		log.Printf("Failed to create uploads directory: %v", err)
+		return nil, fmt.Errorf("Error creating uploads directory")
+	}
 	if err := os.WriteFile(filePath, req.Image, 0666); err != nil {
+		log.Printf("Failed to save image to disk due to error: %v", err)
 		return nil, fmt.Errorf("Error saving image to disk")
 	}
 	tx, err := s.db.Begin()
@@ -153,9 +161,19 @@ func (s *Server) FilterMemesByTags(ctx context.Context, req *pb.FilterMemesByTag
 	var countQuery string
 	var rows *sql.Rows
 	var err error
+	var totalCount int32
 
-	// Build queries based on match type
-	if req.MatchType == pb.TagMatchType_ALL {
+	// If tags are empty, select all memes
+	if len(req.Tags) == 0 {
+		baseQuery = `
+			SELECT m.id, m.media_url, m.media_type
+			FROM meme m
+		`
+		countQuery = `
+			SELECT COUNT(*)
+			FROM meme
+		`
+	} else if req.MatchType == pb.TagMatchType_ALL {
 		baseQuery = `
 				SELECT m.id, m.media_url, m.media_type
 				FROM meme m
@@ -206,29 +224,29 @@ func (s *Server) FilterMemesByTags(ctx context.Context, req *pb.FilterMemesByTag
 	}
 
 	// Add pagination
-	if req.MatchType == pb.TagMatchType_ALL {
+	if len(req.Tags) == 0 {
+		baseQuery += " LIMIT $1 OFFSET $2"
+		err = s.db.QueryRow(countQuery).Scan(&totalCount)
+		if err != nil {
+			return nil, fmt.Errorf("error counting memes: %v", err)
+		}
+		rows, err = s.db.Query(baseQuery, req.PageSize, offset)
+	} else if req.MatchType == pb.TagMatchType_ALL {
 		baseQuery += " LIMIT $3 OFFSET $4"
-	} else {
-		baseQuery += " LIMIT $2 OFFSET $3"
-	}
-
-	// Get total count
-	var totalCount int32
-	if req.MatchType == pb.TagMatchType_ALL {
 		err = s.db.QueryRow(countQuery, pq.Array(req.Tags), len(req.Tags)).Scan(&totalCount)
-	} else {
-		err = s.db.QueryRow(countQuery, pq.Array(req.Tags)).Scan(&totalCount)
-	}
-	if err != nil {
-		return nil, fmt.Errorf("error counting memes: %v", err)
-	}
-
-	// Execute main query
-	if req.MatchType == pb.TagMatchType_ALL {
+		if err != nil {
+			return nil, fmt.Errorf("error counting memes: %v", err)
+		}
 		rows, err = s.db.Query(baseQuery, pq.Array(req.Tags), len(req.Tags), req.PageSize, offset)
 	} else {
+		baseQuery += " LIMIT $2 OFFSET $3"
+		err = s.db.QueryRow(countQuery, pq.Array(req.Tags)).Scan(&totalCount)
+		if err != nil {
+			return nil, fmt.Errorf("error counting memes: %v", err)
+		}
 		rows, err = s.db.Query(baseQuery, pq.Array(req.Tags), req.PageSize, offset)
 	}
+
 	if err != nil {
 		return nil, fmt.Errorf("error querying memes: %v", err)
 	}
@@ -275,5 +293,4 @@ func (s *Server) FilterMemesByTags(ctx context.Context, req *pb.FilterMemesByTag
 		Page:       req.Page,
 		TotalPages: totalPages,
 	}, nil
-
 }

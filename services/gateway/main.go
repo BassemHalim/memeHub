@@ -91,14 +91,29 @@ func getMemes(memeClient pb.MemeServiceClient) func(w http.ResponseWriter, r *ht
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
+		// get memes from memeService
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		resp, err := memeClient.FilterMemesByTags(ctx, &pb.FilterMemesByTagsRequest{
+			Tags:      []string{}, // TODO: get tags from query params
+			PageSize:  10,
+			Page:      1,
+			SortOrder: pb.SortOrder_NEWEST,
+			MatchType: pb.TagMatchType_ANY,
+		})
+		if err != nil {
+			log.Println("Error getting memes", err)
+			http.Error(w, "Error getting memes", http.StatusInternalServerError)
+			return
+		}
 		// return all the sampleMemes as JSON
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(sampleMemes)
+		json.NewEncoder(w).Encode(resp)
 
 	}
 }
-func uploadMeme(memeClient pb.MemeServiceClient) func(w http.ResponseWriter, r *http.Request) {
+func uploadMeme(memeClient pb.MemeServiceClient, log *log.Logger) func(w http.ResponseWriter, r *http.Request) {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -110,14 +125,13 @@ func uploadMeme(memeClient pb.MemeServiceClient) func(w http.ResponseWriter, r *
 
 		// get the json metadata
 		jsonData := r.FormValue("meme")
-		log.Println(jsonData)
+		log.Println("JSON Data:", jsonData)
 		var meme MemeUpload
 		if err := json.Unmarshal([]byte(jsonData), &meme); err != nil {
 			log.Println("Error parsing the meme data", err)
 			http.Error(w, "Error parsing the meme data", http.StatusBadRequest)
 			return
 		}
-		log.Println(meme)
 
 		// verify if mime type is for an image
 		if strings.Split(meme.MimeType, "/")[0] != "image" {
@@ -194,6 +208,7 @@ func uploadMeme(memeClient pb.MemeServiceClient) func(w http.ResponseWriter, r *
 
 	}
 }
+
 func initGRPCClient() (pb.MemeServiceClient, error) {
 	// Set up a connection to the server.
 	conn, err := grpc.Dial("localhost:50051", grpc.WithInsecure())
@@ -209,9 +224,18 @@ func main() {
 	log := log.New(os.Stdout, "Meme-Gateway:", log.LstdFlags)
 	limiter := rateLimiter.NewRateLimiter(rateLimiter.REFILL_RATE, rateLimiter.BUCKET_SIZE)
 	memeServiceClient, err := initGRPCClient()
-	
+
 	if err != nil {
 		log.Fatal("failed to connect to memeService", err)
+	}
+	// RequestLogger middleware logs all HTTP requests
+	requestLogger := func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			start := time.Now()
+			log.Printf("Started %s %s\n", r.Method, r.URL.Path)
+			next.ServeHTTP(w, r)
+			log.Printf("Completed %s %s in %v\n", r.Method, r.URL.Path, time.Since(start))
+		})
 	}
 	// Enable CORS for all endpoints
 	corsHandler := func(next http.Handler) http.Handler {
@@ -228,10 +252,10 @@ func main() {
 	}
 
 	getMemes := http.HandlerFunc(getMemes(memeServiceClient))
-	uploadMeme := http.HandlerFunc(uploadMeme(memeServiceClient))
+	uploadMeme := http.HandlerFunc(uploadMeme(memeServiceClient, log))
 
 	http.Handle("/api/memes", corsHandler(limiter.RateLimit(getMemes)))
-	http.Handle("/api/meme", corsHandler(limiter.RateLimit(uploadMeme)))
+	http.Handle("/api/meme", corsHandler(limiter.RateLimit(requestLogger(uploadMeme))))
 	// Start server
 	log.Println("Starting server on :8080")
 	if err := http.ListenAndServe(":8080", nil); err != nil {

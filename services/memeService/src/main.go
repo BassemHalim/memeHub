@@ -69,11 +69,16 @@ func initDB() (*sql.DB, error) {
 }
 
 func main() {
+	log := log.Default()
 	db, err := initDB()
 	if err != nil {
 		log.Fatalf("Failed to connect to the database: %v", err)
 	}
 	defer db.Close()
+	// create "uploads" dir if it doesn't exist
+	if err := os.MkdirAll("uploads", 0755); err != nil {
+		log.Fatalf("Failed to create uploads directory: %v", err)
+	}
 
 	serverPort := getEnvOrDefault("SERVER_PORT", "50051")
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%s", serverPort))
@@ -82,7 +87,7 @@ func main() {
 	}
 	fmt.Printf("Server started on port %s\n", serverPort)
 	s := grpc.NewServer()
-	pb.RegisterMemeServiceServer(s, server.NewMemeServer(db))
+	pb.RegisterMemeServiceServer(s, server.NewMemeServer(db, log))
 	if err := s.Serve(listener); err != nil {
 		log.Fatalf("Failed to serve: %v", err)
 	}
