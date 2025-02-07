@@ -116,7 +116,7 @@
 //     );
 // }
 
-'use client'
+"use client";
 
 import MemeCard from "@/components/MemeCard";
 import { Meme, MemesResponse } from "@/types/Meme";
@@ -125,9 +125,25 @@ import { useEffect, useState } from "react";
 
 // const memes: Meme[] = sampleMemes;
 const sizes = ["small", "medium", "large"];
+const placeholderMemes = [
+    {
+        id: 7,
+        media_url:
+            "https://images.unsplash.com/photo-1531747056595-07f6cbbe10ad?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80",
 
+        media_type: "image/jpeg",
+        tags: ["ha5a", "meme"],
+    },
+    {
+        id: 6,
+        media_url:
+            "https://i.pinimg.com/736x/2e/7e/9a/2e7e9a919d7537f884e7a777c9e7e589.jpg",
+        media_type: "image/jpeg",
+        tags: ["de7k", "meme"],
+    },
+];
 export default function Home() {
-    const [memes, setMemes] = useState<Meme[]>([]);
+    const [memes, setMemes] = useState<Meme[]>(placeholderMemes);
 
     useEffect(() => {
         // fetch memes from the server
@@ -135,13 +151,19 @@ export default function Home() {
             const URL = process.env.NEXT_PUBLIC_API_HOST + "/memes";
             console.log("fetching memes from", URL);
             fetch(URL)
-                .then((response) => response.json())
+                .then((response) => {
+                    if (!response.ok) {
+                        console.log("failed to fetch resource");
+                        throw new Error("failed to fetch memes");
+                    }
+                    return response.json();
+                })
                 .then((data) => {
                     const memeResp = data as MemesResponse;
                     setMemes(memeResp.memes);
                 })
                 .catch((error) => {
-                    console.error("failed to fetch memes", error);
+                    console.log("failed to fetch memes", error);
                 });
         }
         fetchMemes();
@@ -177,7 +199,8 @@ export default function Home() {
                         <div key={meme.id} className="mb-6 break-inside-avoid">
                             <MemeCard
                                 meme={meme}
-                                size={sizes[Math.floor(Math.random() * 3)]}
+                                // size={sizes[Math.floor(Math.random() * 3)]}
+                                size="medium"
                             />
                         </div>
                     ))}

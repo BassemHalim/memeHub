@@ -33,6 +33,7 @@ export default function DialogDemo({ className }: { className?: string }) {
                 body.append(
                     "meme",
                     JSON.stringify({
+                        name: values.name,
                         media_url: values.imageUrl,
                         mime_type: mimeType,
                         tags: values.tags,
@@ -43,13 +44,19 @@ export default function DialogDemo({ className }: { className?: string }) {
                     method: "POST",
                     body: body,
                 })
-                    .then(() => {
+                    .then((res) => {
+                        if (!res.ok) {
+                            throw new Error(
+                                "Failed to upload meme " + res.status
+                            );
+                        }
                         alert("Meme uploaded successfully!");
                         setIsModalOpen(false);
                         form.resetFields();
                     })
                     .catch((err) => {
-                        console.error(err);
+                        console.log(err);
+                        // update UI to mention failed upload
                     });
                 setLoading(false);
             })
