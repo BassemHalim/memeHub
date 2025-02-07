@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             v3.12.4
-// source: proto/memeService/meme.proto
+// source: meme.proto
 
 package memeService
 
@@ -193,5 +193,5 @@ var MemeService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "proto/memeService/meme.proto",
+	Metadata: "meme.proto",
 }

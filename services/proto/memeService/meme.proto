@@ -12,6 +12,8 @@ message UploadMemeRequest {
   bytes image = 1;
   string media_type = 2;
   repeated string tags = 3;
+  string name = 4;
+  repeated int32 dimensions = 5; 
 }
 
 message GetMemeRequest {
@@ -22,7 +24,9 @@ message MemeResponse {
   int64 id = 1;
   string media_url = 2;
   string media_type = 3;
-  repeated string tags = 4;
+  string name = 4;
+  repeated string tags = 5;
+  repeated int32 dimensions = 6;
 }
 
 message FilterMemesByTagsRequest {
