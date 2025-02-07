@@ -49,6 +49,8 @@ func initDB() (*sql.DB, error) {
         id SERIAL PRIMARY KEY,
         media_url TEXT NOT NULL,
         media_type TEXT NOT NULL,
+		name TEXT NOT NULL,
+		dimensions INTEGER[] NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );

@@ -33,21 +33,23 @@ func NewMemeServer(db *sql.DB, logger *log.Logger) *Server {
 }
 
 func (s *Server) UploadMeme(ctx context.Context, req *pb.UploadMemeRequest) (*pb.MemeResponse, error) {
-	// save the image to disk
-	// uuid as filename
-	log.Default().Println("Uploading Meme")
-	log.Default().Println(req.MediaType)
+
+	s.log.Println("Uploading Meme")
+	// TODO: update the meme table to include a name and dimensions
+	if len(req.Dimensions) != 2 {
+		return nil, fmt.Errorf("Invalid image dimensions")
+	}
 	ext, err := mime.ExtensionsByType(req.MediaType)
 	if err != nil {
 		log.Println("Invalid mime type")
 		return nil, fmt.Errorf("Invalid media mime type")
 	}
 	filename := uuid.New().String() + ext[len(ext)-1]
-	uploadDir := "./uploads"
+	uploadDir := "./imgs"
 	filePath := filepath.Join(uploadDir, filename)
 	if err := os.MkdirAll(uploadDir, 0755); err != nil {
-		log.Printf("Failed to create uploads directory: %v", err)
-		return nil, fmt.Errorf("Error creating uploads directory")
+		log.Printf("Failed to create memes directory: %v", err)
+		return nil, fmt.Errorf("Error creating memes directory")
 	}
 	if err := os.WriteFile(filePath, req.Image, 0666); err != nil {
 		log.Printf("Failed to save image to disk due to error: %v", err)
@@ -62,11 +64,12 @@ func (s *Server) UploadMeme(ctx context.Context, req *pb.UploadMemeRequest) (*pb
 	// save the meme in the database
 	var memeID int64
 	err = tx.QueryRow(`
-		INSERT INTO meme (media_url, media_type)
-		VALUES ($1, $2)
+		INSERT INTO meme (media_url, media_type, name, dimensions)
+		VALUES ($1, $2, $3, $4)
 		RETURNING id
-	`, filePath, req.MediaType).Scan(&memeID)
+	`, filePath, req.MediaType, req.Name, pq.Array(req.Dimensions)).Scan(&memeID)
 	if err != nil {
+		log.Println("Failed to insert meme ", err)
 		return nil, fmt.Errorf("Error saving the image metadata")
 	}
 

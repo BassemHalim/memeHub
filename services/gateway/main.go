@@ -9,21 +9,22 @@ import (
 	_ "image/gif"
 	_ "image/jpeg"
 	_ "image/png"
-	"path/filepath"
-	"time"
-
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
+	"time"
 
 	pb "github.com/BassemHalim/memeDB/proto/memeService"
 	rateLimiter "github.com/BassemHalim/memeDB/rate-limiter/IP_ratelimiter"
+	"github.com/go-playground/validator/v10"
 	"google.golang.org/grpc"
 )
 
 var sampleMemes = []struct {
 	ID        int      `json:"id"`
+	Name      string   `json:"name"`
 	MediaURL  string   `json:"media_url"`
 	MediaType string   `json:"media_type"`
 	Tags      []string `json:"tags"`
@@ -79,11 +80,14 @@ var sampleMemes = []struct {
 }
 
 type MemeUpload struct {
-	MediaURL  string   `json:"media_url"`
-	MimeType  string   `json:"mime_type"`
-	Tags      []string `json:"tags"`
-	ImageData []byte   `json:"image_data"`
+	Name      string   `json:"name" validate:"required"`
+	MediaURL  string   `json:"media_url,omitempty" validate:"omitempty,url"`
+	MimeType  string   `json:"mime_type,omitempty"`
+	Tags      []string `json:"tags" validate:"required"`
+	ImageData []byte   `json:"image,omitempty" validate:"omitempty,datauri"`
 }
+
+var validate *validator.Validate
 
 func getMemes(memeClient pb.MemeServiceClient) func(w http.ResponseWriter, r *http.Request) {
 
@@ -133,7 +137,14 @@ func uploadMeme(memeClient pb.MemeServiceClient, log *log.Logger) func(w http.Re
 			http.Error(w, "Error parsing the meme data", http.StatusBadRequest)
 			return
 		}
-
+		validate = validator.New(validator.WithRequiredStructEnabled())
+		err := validate.Struct(meme)
+		if err != nil {
+			log.Println("Invalid MemeResponse Struct :", err)
+			http.Error(w, "The meme data is invalid or missing required fields", http.StatusBadRequest)
+			return
+		}
+		log.Println("Parsed Meme: ", meme)
 		// verify if mime type is for an image
 		if strings.Split(meme.MimeType, "/")[0] != "image" {
 			log.Println("Invalid media type", meme.MimeType)
@@ -189,9 +200,11 @@ func uploadMeme(memeClient pb.MemeServiceClient, log *log.Logger) func(w http.Re
 		fmt.Println(meme)
 		// call the memeService to upload the meme
 		memeUpload := &pb.UploadMemeRequest{
-			MediaType: meme.MimeType,
-			Image:     imgBytes,
-			Tags:      meme.Tags,
+			MediaType:  meme.MimeType,
+			Image:      imgBytes,
+			Tags:       meme.Tags,
+			Name:       meme.Name,
+			Dimensions: []int32{int32(imgConfig.Width), int32(imgConfig.Height)},
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
@@ -210,9 +223,30 @@ func uploadMeme(memeClient pb.MemeServiceClient, log *log.Logger) func(w http.Re
 	}
 }
 
+func serveMedia(fs http.Handler) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		log.Println("serving image: ", r.URL.Path)
+		// Validate file extension
+		ext := strings.ToLower(filepath.Ext(r.URL.Path))
+		allowedExts := map[string]bool{
+			".jpg":  true,
+			".jpeg": true,
+			".png":  true,
+			".gif":  true,
+		}
+
+		if !allowedExts[ext] {
+			http.Error(w, "Forbidden file type", http.StatusForbidden)
+			return
+		}
+
+		// Serve the file
+		http.StripPrefix("/imgs/", fs).ServeHTTP(w, r)
+	}
+}
 func initGRPCClient() (pb.MemeServiceClient, error) {
 	// Set up a connection to the server.
-	conn, err := grpc.Dial("localhost:50051", grpc.WithInsecure())
+	conn, err := grpc.NewClient("localhost:50051", grpc.WithInsecure())
 	if err != nil {
 		return nil, err
 	}
@@ -252,38 +286,17 @@ func main() {
 		})
 	}
 
-	fs := http.FileServer(http.Dir("../memeService/uploads"))
+	fs := http.FileServer(http.Dir("../memeService/imgs"))
 
-    // Handle all requests to /uploads/
-    http.HandleFunc("/uploads/", func(w http.ResponseWriter, r *http.Request) {
-        log.Println("serving image: ", r.URL.Path)
-		// Validate file extension
-        ext := strings.ToLower(filepath.Ext(r.URL.Path))
-        allowedExts := map[string]bool{
-            ".jpg":  true,
-            ".jpeg": true,
-            ".png":  true,
-            ".gif":  true,
-        }
-
-        if !allowedExts[ext] {
-            http.Error(w, "Forbidden file type", http.StatusForbidden)
-            return
-        }
-        // Remove /uploads/ prefix before serving
-        r.URL.Path = r.URL.Path[len("/uploads/"):]
-        
-        // Serve the file
-        fs.ServeHTTP(w, r)
-    })
+	// Handle all requests to /imgs
 
 	getMemes := http.HandlerFunc(getMemes(memeServiceClient))
 	uploadMeme := http.HandlerFunc(uploadMeme(memeServiceClient, log))
-	
-
+	serveMedia := http.HandlerFunc(serveMedia(fs))
 
 	http.Handle("/api/memes", corsHandler(limiter.RateLimit(getMemes)))
-	http.Handle("/api/meme", corsHandler(limiter.RateLimit(requestLogger(uploadMeme))))
+	http.Handle("/api/meme", corsHandler(limiter.RateLimit(uploadMeme)))
+	http.Handle("/imgs/", limiter.RateLimit(serveMedia))
 	// Start server
 	log.Println("Starting server on :8080")
 	if err := http.ListenAndServe(":8080", nil); err != nil {
