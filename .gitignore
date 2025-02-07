@@ -1,3 +1,5 @@
 **/images/*
 
 **/*.db
+.vscode/** 
+/*.jpeg
