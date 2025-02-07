@@ -6,9 +6,10 @@ import (
 	"log"
 	"net"
 	"os"
+	"os/signal"
 
-	pb "github.com/BassemHalim/memeDB/proto/memeService"
 	"github.com/BassemHalim/memeDB/memeService/src/server"
+	pb "github.com/BassemHalim/memeDB/proto/memeService"
 	_ "github.com/lib/pq"
 	"google.golang.org/grpc"
 )
@@ -71,6 +72,7 @@ func initDB() (*sql.DB, error) {
 }
 
 func main() {
+	// TODO: add health check endpoint
 	log := log.Default()
 	db, err := initDB()
 	if err != nil {
@@ -87,7 +89,26 @@ func main() {
 	fmt.Printf("Server started on port %s\n", serverPort)
 	s := grpc.NewServer()
 	pb.RegisterMemeServiceServer(s, server.NewMemeServer(db, log))
-	if err := s.Serve(listener); err != nil {
-		log.Fatalf("Failed to serve: %v", err)
-	}
+
+	c := make(chan os.Signal, 1)
+	done := make(chan bool, 1)
+	signal.Notify(c, os.Interrupt)
+	go func() {
+		<-c
+		log.Println("Shutting down gracefully...")
+		s.GracefulStop()
+		done <- true
+	}()
+
+	go func() {
+		if err := s.Serve(listener); err != nil {
+			log.Printf("Failed to serve: %v", err)
+			done <- true
+		}
+	}()
+
+	<-done
+	fmt.Println("Server stopped")
+
+
 }

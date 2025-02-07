@@ -69,7 +69,7 @@ export default function DialogDemo({ className }: { className?: string }) {
     };
     return (
         <div className={className}>
-            <button onClick={showModal}> Upload Meme</button>
+            <button className='bg-gray-200 text-gray-800 p-1 px-2 py-1 rounded-full' onClick={showModal}>Upload <UploadOutlined className="text-lg"/> </button>
             <Modal
                 title="Basic Modal"
                 open={isModalOpen}

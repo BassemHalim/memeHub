@@ -118,10 +118,10 @@ func (s *Server) GetMeme(ctx context.Context, req *pb.GetMemeRequest) (*pb.MemeR
 	resp.Id = req.Id
 	// get meme details
 	err := s.db.QueryRow(`
-		SELECT media_url, media_type
+		SELECT media_url, media_type, name, dimensions
 		FROM meme
 		WHERE id = $1
-		`, req.Id).Scan(&resp.MediaUrl, &resp.MediaType)
+		`, req.Id).Scan(&resp.MediaUrl, &resp.MediaType, &resp.Name, &resp.Dimensions)
 	if err != nil {
 		return nil, fmt.Errorf("Error getting the meme")
 	}
@@ -148,6 +148,7 @@ func (s *Server) GetMeme(ctx context.Context, req *pb.GetMemeRequest) (*pb.MemeR
 	return &resp, nil
 }
 
+// This is a LLM generated function and is disposable
 func (s *Server) FilterMemesByTags(ctx context.Context, req *pb.FilterMemesByTagsRequest) (*pb.FilterMemesByTagsResponse, error) {
 	// Validate pagination parameters
 	if req.Page < 1 {
@@ -169,7 +170,7 @@ func (s *Server) FilterMemesByTags(ctx context.Context, req *pb.FilterMemesByTag
 	// If tags are empty, select all memes
 	if len(req.Tags) == 0 {
 		baseQuery = `
-			SELECT m.id, m.media_url, m.media_type
+			SELECT m.id, m.media_url, m.media_type, m.name, m.dimensions
 			FROM meme m
 		`
 		countQuery = `
@@ -178,7 +179,7 @@ func (s *Server) FilterMemesByTags(ctx context.Context, req *pb.FilterMemesByTag
 		`
 	} else if req.MatchType == pb.TagMatchType_ALL {
 		baseQuery = `
-				SELECT m.id, m.media_url, m.media_type
+				SELECT m.id, m.media_url, m.media_type, m.name, m.dimensions
 				FROM meme m
 				WHERE (
 					SELECT COUNT(DISTINCT t.name)
@@ -199,7 +200,7 @@ func (s *Server) FilterMemesByTags(ctx context.Context, req *pb.FilterMemesByTag
 			`
 	} else {
 		baseQuery = `
-				SELECT DISTINCT m.id, m.media_url, m.media_type
+				SELECT DISTINCT m.id, m.media_url, m.media_type, m.name, m.dimensions
 				FROM meme m
 				JOIN meme_tag mt ON m.id = mt.meme_id
 				JOIN tag t ON mt.tag_id = t.id
@@ -259,7 +260,9 @@ func (s *Server) FilterMemesByTags(ctx context.Context, req *pb.FilterMemesByTag
 	var memes []*pb.MemeResponse
 	for rows.Next() {
 		meme := &pb.MemeResponse{}
-		err := rows.Scan(&meme.Id, &meme.MediaUrl, &meme.MediaType)
+		var dimensions pq.Int32Array
+		err := rows.Scan(&meme.Id, &meme.MediaUrl, &meme.MediaType, &meme.Name, &dimensions)
+		meme.Dimensions = dimensions
 		if err != nil {
 			return nil, fmt.Errorf("error scanning meme: %v", err)
 		}

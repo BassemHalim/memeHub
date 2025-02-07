@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -96,15 +97,46 @@ func getMemes(memeClient pb.MemeServiceClient) func(w http.ResponseWriter, r *ht
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
+
+		// parse query parameters
+		queryParams := r.URL.Query()
+		tags := queryParams["tags"]
+		pageSize := 10
+		if size := queryParams.Get("size"); size != "" {
+			if parsedSize, err := strconv.Atoi(size); err == nil && parsedSize > 0 {
+				pageSize = parsedSize
+			}
+		}
+		page := 1
+		if p := queryParams.Get("page"); p != "" {
+			if parsedPage, err := strconv.Atoi(p); err == nil && parsedPage > 0 {
+				page = parsedPage
+			}
+		}
+		// parse sort order
+		sortOrder := pb.SortOrder_NEWEST // default value
+		if order := queryParams.Get("sort"); order != "" {
+			if strings.EqualFold(order, "oldest") {
+				sortOrder = pb.SortOrder_OLDEST
+			}
+		}
+
+		// parse match type
+		matchType := pb.TagMatchType_ANY // default value
+		if match := queryParams.Get("match"); match != "" {
+			if strings.EqualFold(match, "all") {
+				matchType = pb.TagMatchType_ALL
+			}
+		}
 		// get memes from memeService
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
 		resp, err := memeClient.FilterMemesByTags(ctx, &pb.FilterMemesByTagsRequest{
-			Tags:      []string{}, // TODO: get tags from query params
-			PageSize:  10,
-			Page:      1,
-			SortOrder: pb.SortOrder_NEWEST,
-			MatchType: pb.TagMatchType_ANY,
+			Tags:      tags,
+			PageSize:  int32(pageSize),
+			Page:      int32(page),
+			SortOrder: sortOrder,
+			MatchType: matchType,
 		})
 		if err != nil {
 			log.Println("Error getting memes", err)
@@ -264,14 +296,14 @@ func main() {
 		log.Fatal("failed to connect to memeService", err)
 	}
 	// RequestLogger middleware logs all HTTP requests
-	requestLogger := func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			start := time.Now()
-			log.Printf("Started %s %s\n", r.Method, r.URL.Path)
-			next.ServeHTTP(w, r)
-			log.Printf("Completed %s %s in %v\n", r.Method, r.URL.Path, time.Since(start))
-		})
-	}
+	// requestLogger := func(next http.Handler) http.Handler {
+	// 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	// 		start := time.Now()
+	// 		log.Printf("Started %s %s\n", r.Method, r.URL.Path)
+	// 		next.ServeHTTP(w, r)
+	// 		log.Printf("Completed %s %s in %v\n", r.Method, r.URL.Path, time.Since(start))
+	// 	})
+	// }
 	// Enable CORS for all endpoints
 	corsHandler := func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -296,7 +328,7 @@ func main() {
 
 	http.Handle("/api/memes", corsHandler(limiter.RateLimit(getMemes)))
 	http.Handle("/api/meme", corsHandler(limiter.RateLimit(uploadMeme)))
-	http.Handle("/imgs/", limiter.RateLimit(serveMedia))
+	http.Handle("/imgs/", corsHandler(limiter.RateLimit(serveMedia)))
 	// Start server
 	log.Println("Starting server on :8080")
 	if err := http.ListenAndServe(":8080", nil); err != nil {

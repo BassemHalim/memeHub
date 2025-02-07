@@ -5,6 +5,8 @@ export interface Meme {
     media_url: string;
     media_type: string;
     tags: string[];
+    name: string;
+    dimensions: number[];
 }
 
 export interface MemesResponse {
