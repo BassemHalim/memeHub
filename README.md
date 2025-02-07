@@ -28,5 +28,5 @@ The memeService currently stores the memes locally
 ## Architecture:
 
 The backend is made of 2 services:
-**MemeService**: which handles storing and retrieving the memes
-**Gateway**: acts as a REST client to **MemeService** and handles rate limiting, request validations, serving the images and as a caching layer (not yet implemented)
+- **MemeService**: which handles storing and retrieving the memes
+- **Gateway**: acts as a REST client to **MemeService** and handles rate limiting, request validations, serving the images and as a caching layer (not yet implemented)
