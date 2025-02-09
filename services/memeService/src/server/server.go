@@ -25,6 +25,7 @@ type Meme struct {
 	MediaURL        string
 	MediaType       string
 	MediaDimensions string
+	Name            string
 	Tags            []string
 }
 
@@ -299,4 +300,28 @@ func (s *Server) FilterMemesByTags(ctx context.Context, req *pb.FilterMemesByTag
 		Page:       req.Page,
 		TotalPages: totalPages,
 	}, nil
+}
+
+func (s *Server) SearchMemes(query string) ([]Meme, error) {
+	var memes []Meme
+	rows, err := s.db.Query("Select * FROM search_memes($1)", query)
+	if err != nil {
+		return nil, fmt.Errorf("Searching memes failed %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var meme Meme
+		err := rows.Scan(
+			&meme.ID,
+			&meme.MediaURL,
+			&meme.MediaType,
+			&meme.Name,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to read meme metadata %w", err)
+		}
+		s.log.Println(meme)
+		memes = append(memes, meme)
+	}
+	return memes, nil
 }

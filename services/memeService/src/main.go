@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"embed"
 	"fmt"
 	"log"
 	"net"
@@ -34,6 +35,9 @@ func buildDBConnString() string {
 	)
 }
 
+//go:embed schema.sql
+var schemaFS embed.FS
+
 func initDB() (*sql.DB, error) {
 
 	db, err := sql.Open("postgres", buildDBConnString())
@@ -44,30 +48,13 @@ func initDB() (*sql.DB, error) {
 		return nil, fmt.Errorf("Error pinging the database: %v", err)
 	}
 
-	// create Tables if they don't exist
-	createTables := `
-    CREATE TABLE IF NOT EXISTS meme (
-        id SERIAL PRIMARY KEY,
-        media_url TEXT NOT NULL,
-        media_type TEXT NOT NULL,
-		name TEXT NOT NULL,
-		dimensions INTEGER[] NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
+	schema, err := schemaFS.ReadFile("schema.sql")
+	if err != nil {
+		return nil, fmt.Errorf("Failed to open SQL schema file, %w", err)
+	}
 
-    CREATE TABLE IF NOT EXISTS tag (
-        id SERIAL PRIMARY KEY,
-        name TEXT UNIQUE NOT NULL
-    );
+	_, err = db.Exec(string(schema))
 
-    CREATE TABLE IF NOT EXISTS meme_tag (
-        meme_id INTEGER REFERENCES meme(id),
-        tag_id INTEGER REFERENCES tag(id),
-        PRIMARY KEY (meme_id, tag_id)
-    );`
-
-	_, err = db.Exec(createTables)
 	return db, err
 }
 
@@ -79,7 +66,6 @@ func main() {
 		log.Fatalf("Failed to connect to the database: %v", err)
 	}
 	defer db.Close()
-
 
 	serverPort := getEnvOrDefault("SERVER_PORT", "50051")
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%s", serverPort))
@@ -109,6 +95,5 @@ func main() {
 
 	<-done
 	fmt.Println("Server stopped")
-
 
 }
