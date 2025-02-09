@@ -1,6 +1,8 @@
 services:
     postgres:
-        image: postgres:13
+        # image: postgres:13
+        build:
+            dockerfile: dockerfile
         container_name: meme-postgres
         environment:
             POSTGRES_USER: postgres

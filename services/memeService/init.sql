@@ -33,9 +33,8 @@ CREATE TEXT SEARCH DICTIONARY arabic_hunspell (
     StopWords = arabic
 );
 ALTER TEXT SEARCH CONFIGURATION arabic 
-	ALTER MAPPING FOR asciiword, asciihword, hword_asciipart, 
-                    word, hword, hword_part 
-	WITH arabic_hunspell, simple;
+    ALTER MAPPING FOR asciiword, asciihword, hword_asciipart 
+    WITH arabic_hunspell, simple;
 
 -- Function to set or update search_vector
 CREATE OR REPLACE FUNCTION update_meme_search_vector() RETURNS trigger AS $$

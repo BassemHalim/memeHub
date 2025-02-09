@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"embed"
 	"fmt"
 	"log"
 	"net"
@@ -35,9 +34,6 @@ func buildDBConnString() string {
 	)
 }
 
-//go:embed schema.sql
-var schemaFS embed.FS
-
 func initDB() (*sql.DB, error) {
 
 	db, err := sql.Open("postgres", buildDBConnString())
@@ -47,13 +43,6 @@ func initDB() (*sql.DB, error) {
 	if err = db.Ping(); err != nil {
 		return nil, fmt.Errorf("Error pinging the database: %v", err)
 	}
-
-	schema, err := schemaFS.ReadFile("schema.sql")
-	if err != nil {
-		return nil, fmt.Errorf("Failed to open SQL schema file, %w", err)
-	}
-
-	_, err = db.Exec(string(schema))
 
 	return db, err
 }
