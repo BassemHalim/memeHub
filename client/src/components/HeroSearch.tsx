@@ -1,39 +1,88 @@
+import { Search } from "lucide-react";
 import Image from "next/image";
+import { FormEvent, useState } from "react";
 
 const HeroSearch = () => {
+    const [error, setError] = useState(false);
+    // const [showError, setShowError] = useState(false);
+
+    async function search(event: FormEvent) {
+        event.preventDefault();
+        const form = event.target as HTMLFormElement;
+        const data = new FormData(form);
+        const query = data.get("query")?.toString();
+        if (!query || query.length == 0) {
+            return;
+        }
+        console.log(query);
+        // make fetch request to /api/memes?query
+        const url = new URL("/api/memes", process.env.NEXT_PUBLIC_API_HOST);
+        url.searchParams.append("query", query);
+        try {
+            const resp = await fetch(url);
+            if (!resp.ok) {
+                throw new Error("Failed to fetch memes");
+            }
+            const memes = await resp.json();
+            console.log(memes);
+            form.reset();
+            setError(false);
+        } catch (err) {
+            setError(true);
+            console.log(err);
+        }
+    }
+
+    // useEffect(() => {
+    //     if (error) {
+    //         setShowError(true);
+    //         setTimeout(() => {
+    //             setError(false);
+    //             // Add a slight delay before hiding to allow fade out animation
+    //             setTimeout(() => {
+    //                 setShowError(false);
+    //             }, 500);
+    //         }, 5000);
+    //     }
+    // }, [error]);
     return (
-        <section className="relative w-full min-h-[50vh] md:min-h-screen flex items-center justify-center py-4 px-4 md:px-6">
-            <div className="container mx-auto w-full md:w-4/5 relative">
-                {/* Image Container */}
-                <div className="relative  h-[300px] sm:h-[400px] md:h-[500px] lg:h-[600px]">
-                    <Image
-                        objectFit="fill"
-                        src="/hero_search.jpg"
-                        alt="Hero image"
-                        fill
-                        className="object-cover rounded-lg shadow-lg"
-                        priority
-                        sizes="(max-width: 768px) 100vw,
-                   (max-width: 1200px) 80vw,
-                   80vw"
-                    />
-
-                    <div className="absolute inset-0 bg-black/30 rounded-lg"></div>
-                </div>
-
-                {/* Search Container */}
-                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full px-4 md:px-0">
-                    <div className="max-w-xs sm:max-w-sm md:max-w-md mx-auto">
-                        {/* Search Input */}
+        <section className="relative h-[400px] w-full mb-12">
+            <div className="absolute inset-0">
+                <Image
+                    src="/ali_rabi3.jpg"
+                    height={500}
+                    width={1000}
+                    alt="Ali Rabi3 meme"
+                    className="w-full h-full object-fill brightness-50"
+                />
+            </div>
+            <div className="relative h-full flex flex-col items-center justify-center px-4">
+                <h1 className="text-5xl font-bold text-white mb-6 text-center">
+                    House of Memes
+                </h1>
+                <div className="w-full max-w-2xl relative text-gray-800 ">
+                    <form onSubmit={search}>
                         <input
+                            required
+                            name="query"
                             type="text"
-                            placeholder="Enter your text here"
-                            className="w-full px-4 sm:px-6 py-2 sm:py-3 rounded-lg border border-gray-300 
-                       focus:outline-none focus:ring-2 focus:ring-blue-500 
-                       shadow-lg text-sm sm:text-base
-                       placeholder-gray-500"
+                            placeholder="Search memes..."
+                            className={`w-full px-6 py-4 rounded-lg text-lg shadow-lg pr-14  ${
+                                error ? "border-4 border-rose-800" : ""
+                            }`}
                         />
-                    </div>
+                        <button type="submit">
+                            <Search className="absolute right-4 top-0 mt-4 text-gray-400 h-6 w-6" />
+                        </button>
+
+                        {/* <span
+                            className={`${showError? '': 'hidden'} inline-block m-4 p-4  text-white bg-rose-800/20 rounded-lg transition-opacity duration-500 ${
+                                error ? "opacity-100" : "opacity-100"
+                            }`}
+                        >
+                            Sorry, we had a problem 😢
+                        </span> */}
+                    </form>
                 </div>
             </div>
         </section>

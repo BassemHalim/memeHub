@@ -101,6 +101,8 @@ func getMemes(memeClient pb.MemeServiceClient) func(w http.ResponseWriter, r *ht
 		// parse query parameters
 		queryParams := r.URL.Query()
 		tags := queryParams["tags"]
+		query := queryParams["query"]
+		log.Println(query)
 		pageSize := 10
 		if size := queryParams.Get("size"); size != "" {
 			if parsedSize, err := strconv.Atoi(size); err == nil && parsedSize > 0 {

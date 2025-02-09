@@ -47,12 +47,12 @@ export default function MemeCard({ meme }: { meme: Meme; size: string }) {
                 // fill
                 // className="object-contain"
             />
-            <div className="absolute bottom-0 left-0 right-0 bg-gray-800 bg-opacity-50 text-white text-xs p-2 group-hover:hidden flex flex-wrap">
+            <div className="absolute bottom-0 left-0 right-0 bg-gray-800/40 text-white text-xs p-2 group-hover:hidden flex flex-wrap">
                 {meme.tags.map((tag: string) => {
                     return (
                         <span
                             key={tag}
-                            className="text-xs bg-gray-200 text-gray-800 text-xs px-2 py-1 rounded-full mx-[4px] my-[2px]"
+                            className="text-xs bg-gray-200 text-gray-800 text-xs px-2 py-1 rounded-lg mx-[4px] my-[2px]"
                         >
                             {tag}
                         </span>

@@ -9,7 +9,7 @@ body {
 @media (prefers-color-scheme: dark) {
     :root {
         --background: #222831;
-        --foreground: #EEEEEE;
+        --foreground: #eeeeee;
     }
 }
 
@@ -19,11 +19,10 @@ body {
     font-family: Arial, Helvetica, sans-serif;
 }
 
-
 @layer base {
-  :root {
-        --background: #EEEEEE;
-        --foreground:  #222831;
+    :root {
+        --background: #eeeeee;
+        --foreground: #222831;
         --card: 0 0% 100%;
         --card-foreground: 20 14.3% 4.1%;
         --popover: 0 0% 100%;
@@ -48,7 +47,7 @@ body {
         --chart-5: 27 87% 67%;
         --radius: 0.5rem;
     }
-  .dark {
+    .dark {
         --background: #222831;
         --foreground: 60 9.1% 97.8%;
         --card: 20 14.3% 4.1%;
@@ -77,12 +76,12 @@ body {
 }
 
 @layer base {
-  * {
-    @apply border-border;
+    * {
+        @apply border-border;
     }
-  body {
-    @apply bg-background text-foreground;
+    body {
+        @apply bg-background text-foreground;
     }
+
+ 
 }
-
-

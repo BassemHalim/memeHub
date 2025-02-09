@@ -1,12 +1,13 @@
 "use client";
 
-import { UploadOutlined } from "@ant-design/icons";
+import { UploadOutlined, WarningTwoTone } from "@ant-design/icons";
 import { Button, Form, Input, Modal, Select, SelectProps, Upload } from "antd";
 import { useState } from "react";
 
 export default function DialogDemo({ className }: { className?: string }) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(false);
     const [form] = Form.useForm();
 
     const options: SelectProps["options"] = [
@@ -56,6 +57,7 @@ export default function DialogDemo({ className }: { className?: string }) {
                     })
                     .catch((err) => {
                         console.log(err);
+                        setError(true);
                         // update UI to mention failed upload
                     });
                 setLoading(false);
@@ -65,13 +67,20 @@ export default function DialogDemo({ className }: { className?: string }) {
             });
     };
     const handleCancel = () => {
+        form.resetFields();
         setIsModalOpen(false);
+        setError(false);
     };
     return (
         <div className={className}>
-            <button className='bg-gray-200 text-gray-800 p-1 px-2 py-1 rounded-full' onClick={showModal}>Upload <UploadOutlined className="text-lg"/> </button>
+            <button
+                className="bg-gray-200 text-gray-800 p-1 px-2 py-1 rounded-lg"
+                onClick={showModal}
+            >
+                Upload <UploadOutlined className="text-lg" />{" "}
+            </button>
             <Modal
-                title="Basic Modal"
+                title="Upload Meme"
                 open={isModalOpen}
                 confirmLoading={loading}
                 onOk={submitForm}
@@ -80,82 +89,99 @@ export default function DialogDemo({ className }: { className?: string }) {
                     <Button key="back" onClick={handleCancel}>
                         Cancel
                     </Button>,
-                    <Button
-                        key="submit"
-                        type="primary"
-                        loading={loading}
-                        onClick={submitForm}
-                    >
-                        Submit
-                    </Button>,
+                    !error ? (
+                        <Button
+                            key="submit"
+                            type="primary"
+                            loading={loading}
+                            onClick={submitForm}
+                        >
+                            Submit
+                        </Button>
+                    ) : null,
                 ]}
             >
-                <Form
-                    form={form}
-                    onFinish={submitForm}
-                    layout="vertical"
-                    initialValues={{
-                        name: "",
-                        tags: [],
-                        imageUrl: "",
-                        imageFile: undefined,
-                    }}
-                >
-                    <Form.Item
-                        label="Name"
-                        name="name"
-                        rules={[
-                            {
-                                required: true,
-                                message: "Please input a meme name",
-                            },
-                        ]}
+                {!error ? (
+                    <Form
+                        form={form}
+                        onFinish={submitForm}
+                        layout="vertical"
+                        initialValues={{
+                            name: "",
+                            tags: [],
+                            imageUrl: "",
+                            imageFile: undefined,
+                        }}
                     >
-                        <Input placeholder="Enter meme name" />
-                    </Form.Item>
-
-                    <Form.Item
-                        label="Tags"
-                        name="tags"
-                        rules={[
-                            {
-                                required: true,
-                                message: "Please select at least one tag!",
-                            },
-                        ]}
-                    >
-                        <Select
-                            mode="tags"
-                            style={{ width: "100%" }}
-                            placeholder="Add tags..."
-                            options={options}
-                        />
-                    </Form.Item>
-
-                    <Form.Item
-                        label="Image URL"
-                        name="imageUrl"
-                        rules={[{ type: "url", message: "Invalid URL" }]}
-                    >
-                        <Input />
-                    </Form.Item>
-
-                    <div className="text-center">or</div>
-
-                    <Form.Item
-                        label="Upload Image"
-                        name="imageFile"
-                        valuePropName="imagFile"
-                    >
-                        <Upload
-                            maxCount={1}
-                            accept="image/*"
-                            beforeUpload={() => false}
+                        <Form.Item
+                            label="Name"
+                            name="name"
+                            rules={[
+                                {
+                                    required: true,
+                                    message: "Please input a meme name",
+                                },
+                            ]}
                         >
-                            <Button icon={<UploadOutlined />}>Upload</Button>
-                        </Upload>
-                    </Form.Item>
-                </Form>
+                            <Input placeholder="Enter meme name" />
+                        </Form.Item>
+
+                        <Form.Item
+                            label="Tags"
+                            name="tags"
+                            rules={[
+                                {
+                                    required: true,
+                                    message: "Please select at least one tag!",
+                                },
+                            ]}
+                        >
+                            <Select
+                                mode="tags"
+                                style={{ width: "100%" }}
+                                placeholder="Add tags..."
+                                options={options}
+                            />
+                        </Form.Item>
+
+                        <Form.Item
+                            label="Image URL"
+                            name="imageUrl"
+                            rules={[{ type: "url", message: "Invalid URL" }]}
+                        >
+                            <Input />
+                        </Form.Item>
+
+                        <div className="text-center">or</div>
+
+                        <Form.Item
+                            label="Upload Image"
+                            name="imageFile"
+                            valuePropName="imagFile"
+                        >
+                            <Upload
+                                maxCount={1}
+                                accept="image/*"
+                                beforeUpload={() => false}
+                            >
+                                <Button icon={<UploadOutlined />}>
+                                    Upload
+                                </Button>
+                            </Upload>
+                        </Form.Item>
+                    </Form>
+                ) : (
+                    <div className="text-center text-lg">
+                        <WarningTwoTone
+                            twoToneColor={"#cb3c71"}
+                            className="text-5xl"
+                        />
+                        <h2 className="font-bold text-lg">
+                            Failed to upload Meme
+                        </h2>
+                        <p>Please try again later</p>
+                    </div>
+                )}
             </Modal>
         </div>
     );
