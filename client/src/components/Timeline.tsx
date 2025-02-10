@@ -25,8 +25,10 @@ export default function Home() {
                 })
                 .then((data) => {
                     const memeResp = data as MemesResponse;
-                    console.log(memeResp);
-                    setMemes(memeResp.memes);
+                    console.log(memeResp)
+                    if (memeResp.total_count != undefined && memeResp.total_count > 0) {
+                        setMemes(memeResp.memes);
+                    }
                 })
                 .catch((error) => {
                     console.log("failed to fetch memes", error);
@@ -36,7 +38,7 @@ export default function Home() {
     }, []);
     return (
         <div className="w-full flex flex-col">
-            <HeroSearch />
+            <HeroSearch setMemes={setMemes} />
             <section className="container mx-auto py-8 px-4 grow-2">
                 <div className="columns-1 sm:columns-2 lg:columns-4 gap-6">
                     {memes.map((meme) => (

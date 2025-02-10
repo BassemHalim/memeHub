@@ -1,8 +1,12 @@
+import { Meme } from "@/types/Meme";
 import { Search } from "lucide-react";
 import Image from "next/image";
-import { FormEvent, useState } from "react";
+import { Dispatch, FormEvent, SetStateAction, useState } from "react";
 
-const HeroSearch = () => {
+type HeroSearchProps = {
+    setMemes: Dispatch<SetStateAction<Meme[]>>;
+};
+const HeroSearch = ({ setMemes }: HeroSearchProps) => {
     const [error, setError] = useState(false);
     // const [showError, setShowError] = useState(false);
 
@@ -16,15 +20,19 @@ const HeroSearch = () => {
         }
         console.log(query);
         // make fetch request to /api/memes?query
-        const url = new URL("/api/memes", process.env.NEXT_PUBLIC_API_HOST);
+        const url = new URL(
+            "/api/memes/search",
+            process.env.NEXT_PUBLIC_API_HOST
+        );
         url.searchParams.append("query", query);
         try {
             const resp = await fetch(url);
             if (!resp.ok) {
                 throw new Error("Failed to fetch memes");
             }
-            const memes = await resp.json();
-            console.log(memes);
+            const memesResp = await resp.json();
+            const memes: Meme[] = memesResp.memes;
+            setMemes(memes);
             form.reset();
             setError(false);
         } catch (err) {

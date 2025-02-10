@@ -11,7 +11,7 @@ export interface Meme {
 
 export interface MemesResponse {
     memes: Meme[];
-    TotalCount: number;
-    Page: number;
+    total_count: number;
+    page: number;
     TotalPages: number;
 }
