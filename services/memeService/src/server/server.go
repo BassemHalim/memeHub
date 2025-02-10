@@ -118,14 +118,17 @@ func (s *Server) GetMeme(ctx context.Context, req *pb.GetMemeRequest) (*pb.MemeR
 	var resp pb.MemeResponse
 	resp.Id = req.Id
 	// get meme details
+	var dimensions pq.Int32Array
 	err := s.db.QueryRow(`
 		SELECT media_url, media_type, name, dimensions
 		FROM meme
 		WHERE id = $1
-		`, req.Id).Scan(&resp.MediaUrl, &resp.MediaType, &resp.Name, &resp.Dimensions)
+		`, req.Id).Scan(&resp.MediaUrl, &resp.MediaType, &resp.Name, &dimensions)
 	if err != nil {
+		log.Println("Failed to get meme", err)
 		return nil, fmt.Errorf("Error getting the meme")
 	}
+	resp.Dimensions = dimensions
 	// get tags
 	rows, err := s.db.Query(`
 	SELECT t.name
@@ -134,14 +137,16 @@ func (s *Server) GetMeme(ctx context.Context, req *pb.GetMemeRequest) (*pb.MemeR
 	WHERE mt.meme_id = $1
 	`, req.Id)
 	if err != nil {
-		return nil, fmt.Errorf("Error getting the meme")
+		log.Println("Failed to get tag", err)
+		return nil, fmt.Errorf("Error getting the tag")
 	}
 	defer rows.Close()
 	var tags []string
 	for rows.Next() {
 		var tag string
 		if err = rows.Scan(&tag); err != nil {
-			return nil, fmt.Errorf("Error getting the meme")
+			log.Println("Failed to get tag name", err)
+			return nil, fmt.Errorf("Error getting the tag")
 		}
 		tags = append(tags, tag)
 	}
@@ -150,7 +155,7 @@ func (s *Server) GetMeme(ctx context.Context, req *pb.GetMemeRequest) (*pb.MemeR
 }
 
 // This is a LLM generated function and is disposable
-func (s *Server) FilterMemesByTags(ctx context.Context, req *pb.FilterMemesByTagsRequest) (*pb.FilterMemesByTagsResponse, error) {
+func (s *Server) FilterMemesByTags(ctx context.Context, req *pb.FilterMemesByTagsRequest) (*pb.MemesResponse, error) {
 	// Validate pagination parameters
 	if req.Page < 1 {
 		req.Page = 1
@@ -167,7 +172,6 @@ func (s *Server) FilterMemesByTags(ctx context.Context, req *pb.FilterMemesByTag
 	var rows *sql.Rows
 	var err error
 	var totalCount int32
-
 	// If tags are empty, select all memes
 	if len(req.Tags) == 0 {
 		baseQuery = `
@@ -292,36 +296,41 @@ func (s *Server) FilterMemesByTags(ctx context.Context, req *pb.FilterMemesByTag
 		memes = append(memes, meme)
 	}
 
-	totalPages := (totalCount + req.PageSize - 1) / req.PageSize
-
-	return &pb.FilterMemesByTagsResponse{
+	totalPages := (totalCount) / req.PageSize
+	return &pb.MemesResponse{
 		Memes:      memes,
-		TotalCount: totalCount,
-		Page:       req.Page,
-		TotalPages: totalPages,
+		TotalCount: int32(totalCount),
+		Page:       int32(req.Page),
+		TotalPages: int32(totalPages),
 	}, nil
 }
 
-func (s *Server) SearchMemes(query string) ([]Meme, error) {
-	var memes []Meme
-	rows, err := s.db.Query("Select * FROM search_memes($1)", query)
+func (s *Server) SearchMemes(ctx context.Context, req *pb.SearchMemesRequest) (*pb.MemesResponse, error) {
+	query := req.Query
+	var memes []*pb.MemeResponse
+
+	rows, err := s.db.Query("Select id FROM search_memes($1)", query)
 	if err != nil {
 		return nil, fmt.Errorf("Searching memes failed %w", err)
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var meme Meme
+		var id int64
 		err := rows.Scan(
-			&meme.ID,
-			&meme.MediaURL,
-			&meme.MediaType,
-			&meme.Name,
+			&id,
 		)
+		memeResponse, err := s.GetMeme(ctx, &pb.GetMemeRequest{Id: id})
 		if err != nil {
-			return nil, fmt.Errorf("Failed to read meme metadata %w", err)
+			return nil, fmt.Errorf("Failed to fetch meme Metadata %w", err)
 		}
-		s.log.Println(meme)
-		memes = append(memes, meme)
+
+		memes = append(memes, memeResponse)
 	}
-	return memes, nil
+	// TODO: handle pagination etc.
+	return &pb.MemesResponse{
+		Memes:      memes,
+		TotalCount: int32(len(memes)),
+		Page:       0,
+		TotalPages: 0,
+	}, nil
 }

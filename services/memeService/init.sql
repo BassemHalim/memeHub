@@ -22,9 +22,11 @@ CREATE TABLE IF NOT EXISTS meme_tag (
 );
 
 -- Create Search Index
+DROP INDEX IF EXISTS meme_search_idx;
 CREATE INDEX meme_search_idx ON meme USING gin(search_vector);
 
 -- Create arabic search configuration
+DROP TEXT SEARCH CONFIGURATION IF EXISTS arabic;
 CREATE TEXT SEARCH CONFIGURATION public.arabic (COPY = pg_catalog.simple);
 CREATE TEXT SEARCH DICTIONARY arabic_hunspell (
     TEMPLATE = ispell,
@@ -58,6 +60,7 @@ BEGIN
 END;
 $$
  LANGUAGE plpgsql;
+
 CREATE TRIGGER meme_search_vector_update
     BEFORE INSERT OR UPDATE ON meme
     FOR EACH ROW
@@ -75,22 +78,27 @@ RETURNS TABLE (
 ) AS $$
 BEGIN
     RETURN QUERY
+    WITH search_terms AS (
+        SELECT 
+            websearch_to_tsquery('english', search_query) ||
+            websearch_to_tsquery('arabic', search_query) 
+            AS query_vector
+    )
     SELECT 
         m.id,
         m.media_url,
         m.media_type,
         m.name,
         m.dimensions,
-        ts_rank(m.search_vector, query) AS rank
+        ts_rank(m.search_vector, st.query_vector) AS rank
     FROM 
         meme m,
-        (
-            to_tsquery('english', websearch_to_tsquery('english', search_query)) ||
-            to_tsquery('arabic', websearch_to_tsquery('arabic', search_query))
-        ) query
+        search_terms st
     WHERE 
-        m.search_vector @@ query
+        m.search_vector @@ st.query_vector
+        AND st.query_vector IS NOT NULL
     ORDER BY rank DESC;
 END;
 $$
- LANGUAGE plpgsql;
+
+LANGUAGE plpgsql;

@@ -256,7 +256,37 @@ func uploadMeme(memeClient pb.MemeServiceClient, log *log.Logger) func(w http.Re
 
 	}
 }
+func searchMemes(memeClient pb.MemeServiceClient, log *log.Logger) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "Invalid Method", http.StatusBadRequest)
+			return
+		}
+		// parse query parameters
+		queryParams := r.URL.Query()
+		// tags := queryParams["tags"]
+		query := queryParams["query"]
+		log.Println(query)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		resp, err := memeClient.SearchMemes(ctx, &pb.SearchMemesRequest{
+			Query:    query[0],
+			Page:     0,
+			PageSize: 10,
+		})
+		if err != nil{
+			log.Println(err)
+			http.Error(w, "Failed to fetch memes", http.StatusInternalServerError)
+			return
+		}
+		log.Println("memes Response ", resp)
 
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(resp)
+
+	}
+}
 func serveMedia(fs http.Handler) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log.Println("serving image: ", r.URL.Path)
@@ -326,10 +356,12 @@ func main() {
 
 	getMemes := http.HandlerFunc(getMemes(memeServiceClient))
 	uploadMeme := http.HandlerFunc(uploadMeme(memeServiceClient, log))
+	searchMemes := http.HandlerFunc(searchMemes(memeServiceClient, log))
 	serveMedia := http.HandlerFunc(serveMedia(fs))
 
 	http.Handle("/api/memes", corsHandler(limiter.RateLimit(getMemes)))
 	http.Handle("/api/meme", corsHandler(limiter.RateLimit(uploadMeme)))
+	http.Handle("/api/memes/search", corsHandler(limiter.RateLimit(searchMemes)))
 	http.Handle("/imgs/", corsHandler(limiter.RateLimit(serveMedia)))
 	// Start server
 	log.Println("Starting server on :8080")

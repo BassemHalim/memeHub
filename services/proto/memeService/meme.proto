@@ -5,7 +5,8 @@ option go_package = "github.com/BassemHalim/memeDB/proto/memeService";
 service MemeService {
   rpc UploadMeme (UploadMemeRequest) returns (MemeResponse);
   rpc GetMeme (GetMemeRequest) returns (MemeResponse);
-  rpc FilterMemesByTags(FilterMemesByTagsRequest) returns (FilterMemesByTagsResponse);
+  rpc FilterMemesByTags(FilterMemesByTagsRequest) returns (MemesResponse);
+  rpc SearchMemes(SearchMemesRequest) returns(MemesResponse);
 }
 
 message UploadMemeRequest {
@@ -37,7 +38,12 @@ message FilterMemesByTagsRequest {
   SortOrder sort_order = 5;
 }
 
-message FilterMemesByTagsResponse {
+message SearchMemesRequest{
+  string query = 1;
+  int32 page = 3;
+  int32 page_size = 4;
+}
+message MemesResponse {
   repeated MemeResponse memes = 1;
   int32 total_count = 2;
   int32 page = 3;

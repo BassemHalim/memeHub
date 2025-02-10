@@ -11,5 +11,6 @@ RUN apt-get update && apt-get install -y \
 RUN ln -s /usr/share/hunspell/ar.aff /usr/share/postgresql/13/tsearch_data/arabic.aff && \
     ln -s /usr/share/hunspell/ar.dic /usr/share/postgresql/13/tsearch_data/arabic.dic
 
+
 # Copy your SQL initialization script
 COPY init.sql /docker-entrypoint-initdb.d/

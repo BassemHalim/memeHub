@@ -13,4 +13,4 @@ grpcurl -plaintext -proto proto/meme.proto -d '{"id": 1}' \
   localhost:50051 meme.MemeService/GetMeme
 
 # Get memes by tag
-grpcurl -plaintext -proto proto/meme.proto -d '{"tags":["funny", "test"], "match_type":"ANY", "page":1, "page_size":10, "sort_order":"NEWEST"}' localhost:50051 meme.MemeService/FilterMemesByTags 
+grpcurl -plaintext -proto proto/memeService/meme.proto -d '{"tags":["funny", "test"], "match_type":"ANY", "page":1, "page_size":10, "sort_order":"NEWEST"}' localhost:50051 meme.MemeService/FilterMemesByTags 
