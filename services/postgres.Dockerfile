@@ -13,4 +13,4 @@ RUN ln -s /usr/share/hunspell/ar.aff /usr/share/postgresql/13/tsearch_data/arabi
 
 
 # Copy your SQL initialization script
-COPY init.sql /docker-entrypoint-initdb.d/
+COPY memeService/init.sql /docker-entrypoint-initdb.d/
