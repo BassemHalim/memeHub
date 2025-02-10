@@ -11,8 +11,9 @@ export default function DialogDemo({ className }: { className?: string }) {
     const [form] = Form.useForm();
 
     const options: SelectProps["options"] = [
-        { label: "tag1", value: "tag1" },
-        { label: "tag2", value: "tag2" },
+        { label: "Movie", value: "Movie" },
+        { label: "TV-Show", value: "TV-Show" },
+        { label: "blank", value: "blank" },
     ];
     const showModal = () => {
         setIsModalOpen(true);
@@ -127,12 +128,13 @@ export default function DialogDemo({ className }: { className?: string }) {
                         </Form.Item>
 
                         <Form.Item
+                            help="Include as many tags as you can (such as movie/show name, actor/actress relevant text etc.) to simplify searching for that meme"
                             label="Tags"
                             name="tags"
                             rules={[
                                 {
                                     required: true,
-                                    message: "Please select at least one tag!",
+                                    message: "Please select at least one tag",
                                 },
                             ]}
                         >

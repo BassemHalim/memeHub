@@ -16,3 +16,5 @@ curl -X POST \
    \localhost:8080/api/memes
 
 curl -X GET 'http://localhost:8080/api/memes?tags=funny&tags=doctor&size=5&page=1&match=any&sort=newest' | jq
+
+curl -X GET 'http://localhost:8080/api/memes/search?query=linkedin' | jq

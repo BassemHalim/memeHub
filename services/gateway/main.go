@@ -274,7 +274,7 @@ func searchMemes(memeClient pb.MemeServiceClient, log *log.Logger) func(w http.R
 			Page:     0,
 			PageSize: 10,
 		})
-		if err != nil{
+		if err != nil {
 			log.Println(err)
 			http.Error(w, "Failed to fetch memes", http.StatusInternalServerError)
 			return
@@ -310,7 +310,9 @@ func serveMedia(fs http.Handler) func(w http.ResponseWriter, r *http.Request) {
 }
 func initGRPCClient() (pb.MemeServiceClient, error) {
 	// Set up a connection to the server.
-	conn, err := grpc.NewClient("localhost:50051", grpc.WithInsecure())
+	host := os.Getenv("GRPC_HOST")
+	port := os.Getenv("GRPC_PORT")
+	conn, err := grpc.NewClient(fmt.Sprintf("%s:%s", host, port), grpc.WithInsecure())
 	if err != nil {
 		return nil, err
 	}
