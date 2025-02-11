@@ -67,15 +67,10 @@ CREATE TRIGGER meme_search_vector_update
     EXECUTE FUNCTION update_meme_search_vector();
 
 -- Search Function
-CREATE OR REPLACE FUNCTION search_memes(search_query text)
-RETURNS TABLE (
-    id integer,
-    media_url text,
-    media_type text,
-    name text,
-    dimensions integer[],
-    rank float4
-) AS $$
+
+CREATE FUNCTION public.search_memes(search_query text) RETURNS TABLE(id integer, media_url text, media_type text, name text, dimensions integer[], rank real)
+    LANGUAGE plpgsql
+    AS $$
 BEGIN
     RETURN QUERY
     WITH search_terms AS (
@@ -99,6 +94,7 @@ BEGIN
         AND st.query_vector IS NOT NULL
     ORDER BY rank DESC;
 END;
-$$
+$$;
 
-LANGUAGE plpgsql;
+
+ALTER FUNCTION public.search_memes(search_query text) OWNER TO postgres;

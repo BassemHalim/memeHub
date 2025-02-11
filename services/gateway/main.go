@@ -10,6 +10,7 @@ import (
 	_ "image/jpeg"
 	_ "image/png"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -22,63 +23,6 @@ import (
 	"github.com/go-playground/validator/v10"
 	"google.golang.org/grpc"
 )
-
-var sampleMemes = []struct {
-	ID        int      `json:"id"`
-	Name      string   `json:"name"`
-	MediaURL  string   `json:"media_url"`
-	MediaType string   `json:"media_type"`
-	Tags      []string `json:"tags"`
-}{
-	{
-		ID:        1,
-		MediaURL:  "https://i.redd.it/jv65hih9gbtd1.jpeg",
-		MediaType: "image/jpeg",
-		Tags:      []string{"funny", "meme"},
-	},
-	{
-		ID:        2,
-		MediaURL:  "https://i.redd.it/99vxtugaizpd1.jpeg",
-		MediaType: "image/jpeg",
-		Tags:      []string{"de7k", "meme"},
-	},
-	{
-		ID:        3,
-		MediaURL:  "https://i.redd.it/yq78v9mfmlpd1.jpeg",
-		MediaType: "image/jpeg",
-		Tags:      []string{"ha5a", "meme"},
-	},
-	{
-		ID:        4,
-		MediaURL:  "https://media.filfan.com/NewsPics/FilFanNew/Large/273802_0.png",
-		MediaType: "image/jpeg",
-		Tags:      []string{"hahaha", "meme"},
-	},
-	{
-		ID:        5,
-		MediaURL:  "https://i.pinimg.com/736x/85/1f/08/851f082ec2bb5011f8f9a729878b0308.jpg",
-		MediaType: "image/jpeg",
-		Tags:      []string{"funny", "meme"},
-	},
-	{
-		ID:        6,
-		MediaURL:  "https://i.pinimg.com/736x/2e/7e/9a/2e7e9a919d7537f884e7a777c9e7e589.jpg",
-		MediaType: "image/jpeg",
-		Tags:      []string{"de7k", "meme"},
-	},
-	{
-		ID:        7,
-		MediaURL:  "https://i.pinimg.com/474x/ad/97/2a/ad972a156b9e81a6b1ae09488c7481e6.jpg",
-		MediaType: "image/jpeg",
-		Tags:      []string{"ha5a", "meme"},
-	},
-	{
-		ID:        8,
-		MediaURL:  "/restaurant.jpeg",
-		MediaType: "image/jpeg",
-		Tags:      []string{"hahaha", "meme"},
-	},
-}
 
 type MemeUpload struct {
 	Name      string   `json:"name" validate:"required"`
@@ -152,7 +96,7 @@ func getMemes(memeClient pb.MemeServiceClient) func(w http.ResponseWriter, r *ht
 
 	}
 }
-func uploadMeme(memeClient pb.MemeServiceClient, log *log.Logger) func(w http.ResponseWriter, r *http.Request) {
+func uploadMeme(memeClient pb.MemeServiceClient, log *slog.Logger) func(w http.ResponseWriter, r *http.Request) {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -164,24 +108,25 @@ func uploadMeme(memeClient pb.MemeServiceClient, log *log.Logger) func(w http.Re
 
 		// get the json metadata
 		jsonData := r.FormValue("meme")
-		log.Println("JSON Data:", jsonData)
 		var meme MemeUpload
 		if err := json.Unmarshal([]byte(jsonData), &meme); err != nil {
-			log.Println("Error parsing the meme data", err)
+			log.Error("Error parsing the json", "JSON", jsonData, "ERROR", err)
 			http.Error(w, "Error parsing the meme data", http.StatusBadRequest)
 			return
 		}
+		log.Debug("Uploaded meme metadata", "JSON", jsonData)
+
 		validate = validator.New(validator.WithRequiredStructEnabled())
 		err := validate.Struct(meme)
 		if err != nil {
-			log.Println("Invalid MemeResponse Struct :", err)
+			log.Error("Invalid MemeResponse Struct :", "JSON", jsonData)
 			http.Error(w, "The meme data is invalid or missing required fields", http.StatusBadRequest)
 			return
 		}
-		log.Println("Parsed Meme: ", meme)
+		log.Debug("Parsed Meme", "Meme", meme)
 		// verify if mime type is for an image
 		if strings.Split(meme.MimeType, "/")[0] != "image" {
-			log.Println("Invalid media type", meme.MimeType)
+			log.Debug("Invalid media type", "MimeType", meme.MimeType)
 			http.Error(w, "Invalid media type", http.StatusBadRequest)
 			return
 		}
@@ -190,16 +135,16 @@ func uploadMeme(memeClient pb.MemeServiceClient, log *log.Logger) func(w http.Re
 
 		// if no MediaURL is provided, then it's a file upload
 		if meme.MediaURL == "" {
-			log.Println("File upload")
+			log.Info("File upload")
 			file, _, err := r.FormFile("image")
 			if err != nil {
-				log.Println("Error reading the image", err)
+				log.Error("Couldn't find image in the multipart request", "ERROR", err)
 				http.Error(w, "Error Reading the image", http.StatusBadRequest)
 				return
 			}
 			defer file.Close()
 			if _, err := imgBuf.ReadFrom(file); err != nil {
-				log.Println("Error reading the image", err)
+				log.Error("Error reading the image into butter", "ERROR", err)
 				http.Error(w, "Error reading the image", http.StatusBadRequest)
 				return
 			}
@@ -208,14 +153,13 @@ func uploadMeme(memeClient pb.MemeServiceClient, log *log.Logger) func(w http.Re
 			// download the image from the URL
 			resp, err := http.Get(meme.MediaURL)
 			if err != nil {
-				log.Println("Error reading the image", err)
+				log.Error("Error downloading the image", "URL", meme.MediaURL, "STATUS_CODE", resp.StatusCode)
 				http.Error(w, "Error downloading the image", http.StatusBadRequest)
 				return
 			}
 			defer resp.Body.Close()
-			log.Println("Image downloaded from URL", resp.Status)
 			if _, err := imgBuf.ReadFrom(resp.Body); err != nil {
-				log.Println("Error reading the image", err)
+				log.Error("Error reading the image", err)
 				http.Error(w, "Error reading the image", http.StatusBadRequest)
 				return
 			}
@@ -225,13 +169,11 @@ func uploadMeme(memeClient pb.MemeServiceClient, log *log.Logger) func(w http.Re
 		imgReader := bytes.NewReader(imgBytes)
 		imgConfig, _, err := image.DecodeConfig(imgReader)
 		if err != nil {
-			log.Println("Failed to read image config", err, len(imgBytes))
+			log.Error("Failed to decode image config Likely not an image", "Error", err, "Num_Bytes", len(imgBytes))
 			http.Error(w, "Error reading the image", http.StatusBadRequest)
 			return
 		}
-		// verify image mime type
-		fmt.Println("Image dimensions: ", imgConfig.Width, imgConfig.Height)
-		fmt.Println(meme)
+
 		// call the memeService to upload the meme
 		memeUpload := &pb.UploadMemeRequest{
 			MediaType:  meme.MimeType,
@@ -244,11 +186,10 @@ func uploadMeme(memeClient pb.MemeServiceClient, log *log.Logger) func(w http.Re
 		defer cancel()
 		resp, err := memeClient.UploadMeme(ctx, memeUpload)
 		if err != nil {
-			log.Println("Error uploading the meme", err)
+			log.Error("Error uploading the meme to meme-service", "Error", err)
 			http.Error(w, "Error uploading the meme", http.StatusInternalServerError)
 			return
 		}
-		log.Println("Meme uploaded successfully", resp)
 		// return the meme ID
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
@@ -256,7 +197,7 @@ func uploadMeme(memeClient pb.MemeServiceClient, log *log.Logger) func(w http.Re
 
 	}
 }
-func searchMemes(memeClient pb.MemeServiceClient, log *log.Logger) func(w http.ResponseWriter, r *http.Request) {
+func searchMemes(memeClient pb.MemeServiceClient, log *slog.Logger) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			http.Error(w, "Invalid Method", http.StatusBadRequest)
@@ -266,7 +207,7 @@ func searchMemes(memeClient pb.MemeServiceClient, log *log.Logger) func(w http.R
 		queryParams := r.URL.Query()
 		// tags := queryParams["tags"]
 		query := queryParams["query"]
-		log.Println(query)
+		log.Debug("Search Query", "Query", query)
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
 		resp, err := memeClient.SearchMemes(ctx, &pb.SearchMemesRequest{
@@ -275,11 +216,10 @@ func searchMemes(memeClient pb.MemeServiceClient, log *log.Logger) func(w http.R
 			PageSize: 10,
 		})
 		if err != nil {
-			log.Println(err)
+			log.Debug("Failed to fetch meme from memeClient", "Error", err)
 			http.Error(w, "Failed to fetch memes", http.StatusInternalServerError)
 			return
 		}
-		log.Println("memes Response ", resp)
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
@@ -322,12 +262,14 @@ func initGRPCClient() (pb.MemeServiceClient, error) {
 }
 
 func main() {
-	log := log.New(os.Stdout, "Meme-Gateway:", log.LstdFlags)
+	serverPort := 8080
+	log := slog.New(slog.NewJSONHandler(os.Stdout, nil)).With("Service", "MEME_GATEWAY")
 	limiter := rateLimiter.NewRateLimiter(rateLimiter.REFILL_RATE, rateLimiter.BUCKET_SIZE)
 	memeServiceClient, err := initGRPCClient()
 
 	if err != nil {
-		log.Fatal("failed to connect to memeService", err)
+		log.Error("failed to connect to memeService", "ERROR", err)
+		return
 	}
 	// RequestLogger middleware logs all HTTP requests
 	// requestLogger := func(next http.Handler) http.Handler {
@@ -366,8 +308,8 @@ func main() {
 	http.Handle("/api/memes/search", corsHandler(limiter.RateLimit(searchMemes)))
 	http.Handle("/imgs/", corsHandler(limiter.RateLimit(serveMedia)))
 	// Start server
-	log.Println("Starting server on :8080")
-	if err := http.ListenAndServe(":8080", nil); err != nil {
-		log.Fatal(err)
+	log.Info("Starting server", "PORT", serverPort)
+	if err := http.ListenAndServe(fmt.Sprintf(":%d", serverPort), nil); err != nil {
+		log.Error("Failed to listen on port", "PORT", serverPort)
 	}
 }

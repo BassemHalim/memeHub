@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"log/slog"
 	"mime"
 	"os"
 	"path/filepath"
@@ -17,7 +18,7 @@ import (
 type Server struct {
 	pb.UnimplementedMemeServiceServer
 	db  *sql.DB
-	log *log.Logger
+	log *slog.Logger
 }
 
 type Meme struct {
@@ -29,31 +30,31 @@ type Meme struct {
 	Tags            []string
 }
 
-func NewMemeServer(db *sql.DB, logger *log.Logger) *Server {
+func NewMemeServer(db *sql.DB, logger *slog.Logger) *Server {
 	return &Server{db: db, log: logger}
 }
 
 func (s *Server) UploadMeme(ctx context.Context, req *pb.UploadMemeRequest) (*pb.MemeResponse, error) {
-
-	s.log.Println("Uploading Meme")
+	log := s.log
+	log.Debug("Uploading Meme")
 	// TODO: update the meme table to include a name and dimensions
 	if len(req.Dimensions) != 2 {
 		return nil, fmt.Errorf("Invalid image dimensions")
 	}
 	ext, err := mime.ExtensionsByType(req.MediaType)
 	if err != nil {
-		log.Println("Invalid mime type")
+		log.Debug("Invalid mime type")
 		return nil, fmt.Errorf("Invalid media mime type")
 	}
 	filename := uuid.New().String() + ext[len(ext)-1]
 	uploadDir := "./imgs"
 	filePath := filepath.Join(uploadDir, filename)
 	if err := os.MkdirAll(uploadDir, 0755); err != nil {
-		log.Printf("Failed to create memes directory: %v", err)
+		log.Error("Failed to create memes directory", "Error", err)
 		return nil, fmt.Errorf("Error creating memes directory")
 	}
 	if err := os.WriteFile(filePath, req.Image, 0666); err != nil {
-		log.Printf("Failed to save image to disk due to error: %v", err)
+		log.Error("Failed to save image to disk due to error", "Error", err)
 		return nil, fmt.Errorf("Error saving image to disk")
 	}
 	tx, err := s.db.Begin()
@@ -70,7 +71,7 @@ func (s *Server) UploadMeme(ctx context.Context, req *pb.UploadMemeRequest) (*pb
 		RETURNING id
 	`, filePath, req.MediaType, req.Name, pq.Array(req.Dimensions)).Scan(&memeID)
 	if err != nil {
-		log.Println("Failed to insert meme ", err)
+		log.Error("Failed to insert meme", "Error", err)
 		return nil, fmt.Errorf("Error saving the image metadata")
 	}
 

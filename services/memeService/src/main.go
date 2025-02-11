@@ -3,7 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"log"
+	"log/slog"
 	"net"
 	"os"
 	"os/signal"
@@ -48,20 +48,20 @@ func initDB() (*sql.DB, error) {
 }
 
 func main() {
-	// TODO: add health check endpoint
-	log := log.Default()
+	log := slog.New(slog.NewJSONHandler(os.Stdout, nil)).With("Service", "MEME_SERVICE")
 	db, err := initDB()
 	if err != nil {
-		log.Fatalf("Failed to connect to the database: %v", err)
+		log.Error("Failed to connect to the database", "ERROR", err)
+		os.Exit(1)
 	}
 	defer db.Close()
 
 	serverPort := getEnvOrDefault("SERVER_PORT", "50051")
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%s", serverPort))
 	if err != nil {
-		log.Fatalf("Failed to listen: %v", err)
+		log.Error("Failed to listen to TCP", "PORT", serverPort)
 	}
-	fmt.Printf("Server started on port %s\n", serverPort)
+	log.Info("Server started on port", "Port", serverPort)
 	s := grpc.NewServer()
 	pb.RegisterMemeServiceServer(s, server.NewMemeServer(db, log))
 
@@ -70,19 +70,19 @@ func main() {
 	signal.Notify(c, os.Interrupt)
 	go func() {
 		<-c
-		log.Println("Shutting down gracefully...")
+		log.Info("Shutting down gracefully...")
 		s.GracefulStop()
 		done <- true
 	}()
 
 	go func() {
 		if err := s.Serve(listener); err != nil {
-			log.Printf("Failed to serve: %v", err)
+			log.Error("Failed to serve", "ERROR", err)
 			done <- true
 		}
 	}()
 
 	<-done
-	fmt.Println("Server stopped")
+	log.Info("Server stopped")
 
 }
