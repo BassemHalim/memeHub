@@ -35,9 +35,9 @@ func NewMemeServer(db *sql.DB, logger *slog.Logger) *Server {
 }
 
 func (s *Server) UploadMeme(ctx context.Context, req *pb.UploadMemeRequest) (*pb.MemeResponse, error) {
+	
 	log := s.log
 	log.Debug("Uploading Meme")
-	// TODO: update the meme table to include a name and dimensions
 	if len(req.Dimensions) != 2 {
 		return nil, fmt.Errorf("Invalid image dimensions")
 	}
@@ -47,12 +47,21 @@ func (s *Server) UploadMeme(ctx context.Context, req *pb.UploadMemeRequest) (*pb
 		return nil, fmt.Errorf("Invalid media mime type")
 	}
 	filename := uuid.New().String() + ext[len(ext)-1]
-	uploadDir := "./imgs"
+
+	uploadDir := "images"
+	cwd, err := os.Getwd()
+	if err != nil {
+		log.Error("Failed to get current working directory", "ERROR", err)
+		return nil, fmt.Errorf("Invalid images directory")
+	}
+	uploadDir = filepath.Join(cwd, uploadDir)
+
 	filePath := filepath.Join(uploadDir, filename)
 	if err := os.MkdirAll(uploadDir, 0755); err != nil {
 		log.Error("Failed to create memes directory", "Error", err)
 		return nil, fmt.Errorf("Error creating memes directory")
 	}
+
 	if err := os.WriteFile(filePath, req.Image, 0666); err != nil {
 		log.Error("Failed to save image to disk due to error", "Error", err)
 		return nil, fmt.Errorf("Error saving image to disk")
@@ -61,6 +70,7 @@ func (s *Server) UploadMeme(ctx context.Context, req *pb.UploadMemeRequest) (*pb
 	if err != nil {
 		return nil, fmt.Errorf("Error saving the image metadata")
 	}
+	// TODO: clean up on failure (delete stored images)
 	defer tx.Rollback()
 
 	// save the meme in the database
@@ -69,7 +79,7 @@ func (s *Server) UploadMeme(ctx context.Context, req *pb.UploadMemeRequest) (*pb
 		INSERT INTO meme (media_url, media_type, name, dimensions)
 		VALUES ($1, $2, $3, $4)
 		RETURNING id
-	`, filePath, req.MediaType, req.Name, pq.Array(req.Dimensions)).Scan(&memeID)
+	`, fmt.Sprintf("/imgs/%s", filename), req.MediaType, req.Name, pq.Array(req.Dimensions)).Scan(&memeID)
 	if err != nil {
 		log.Error("Failed to insert meme", "Error", err)
 		return nil, fmt.Errorf("Error saving the image metadata")

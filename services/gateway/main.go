@@ -9,7 +9,6 @@ import (
 	_ "image/gif"
 	_ "image/jpeg"
 	_ "image/png"
-	"log"
 	"log/slog"
 	"net/http"
 	"os"
@@ -34,7 +33,7 @@ type MemeUpload struct {
 
 var validate *validator.Validate
 
-func getMemes(memeClient pb.MemeServiceClient) func(w http.ResponseWriter, r *http.Request) {
+func getMemes(memeClient pb.MemeServiceClient, log *slog.Logger) func(w http.ResponseWriter, r *http.Request) {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
@@ -46,7 +45,7 @@ func getMemes(memeClient pb.MemeServiceClient) func(w http.ResponseWriter, r *ht
 		queryParams := r.URL.Query()
 		tags := queryParams["tags"]
 		query := queryParams["query"]
-		log.Println(query)
+		log.Info("/GET memes", "Query", query)
 		pageSize := 10
 		if size := queryParams.Get("size"); size != "" {
 			if parsedSize, err := strconv.Atoi(size); err == nil && parsedSize > 0 {
@@ -85,7 +84,7 @@ func getMemes(memeClient pb.MemeServiceClient) func(w http.ResponseWriter, r *ht
 			MatchType: matchType,
 		})
 		if err != nil {
-			log.Println("Error getting memes", err)
+			log.Error("Error getting filtered memes", "ERROR", err)
 			http.Error(w, "Error getting memes", http.StatusInternalServerError)
 			return
 		}
@@ -227,9 +226,9 @@ func searchMemes(memeClient pb.MemeServiceClient, log *slog.Logger) func(w http.
 
 	}
 }
-func serveMedia(fs http.Handler) func(w http.ResponseWriter, r *http.Request) {
+func serveMedia(fs http.Handler, log *slog.Logger) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		log.Println("serving image: ", r.URL.Path)
+		log.Info("/imgs", "IMAGE_PATH", r.URL.Path)
 		// Validate file extension
 		ext := strings.ToLower(filepath.Ext(r.URL.Path))
 		allowedExts := map[string]bool{
@@ -294,14 +293,23 @@ func main() {
 		})
 	}
 
-	fs := http.FileServer(http.Dir("../memeService/imgs"))
+	uploadDir := "images"
+
+	// Ensure the upload directory is relative to the current working directory
+	cwd, err := os.Getwd()
+	if err != nil {
+		log.Error("Failed to get current working directory", "ERROR", err)
+		return
+	}
+	uploadDir = filepath.Join(cwd, uploadDir)
+	fs := http.FileServer(http.Dir(uploadDir))
 
 	// Handle all requests to /imgs
 
-	getMemes := http.HandlerFunc(getMemes(memeServiceClient))
+	getMemes := http.HandlerFunc(getMemes(memeServiceClient, log))
 	uploadMeme := http.HandlerFunc(uploadMeme(memeServiceClient, log))
 	searchMemes := http.HandlerFunc(searchMemes(memeServiceClient, log))
-	serveMedia := http.HandlerFunc(serveMedia(fs))
+	serveMedia := http.HandlerFunc(serveMedia(fs, log))
 
 	http.Handle("/api/memes", corsHandler(limiter.RateLimit(getMemes)))
 	http.Handle("/api/meme", corsHandler(limiter.RateLimit(uploadMeme)))

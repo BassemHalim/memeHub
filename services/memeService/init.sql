@@ -41,34 +41,36 @@ ALTER TEXT SEARCH CONFIGURATION arabic
 -- Function to set or update search_vector
 CREATE OR REPLACE FUNCTION update_meme_search_vector() RETURNS trigger AS $$
 BEGIN
-    NEW.search_vector :=
-        setweight(to_tsvector('english', COALESCE(NEW.name, '')), 'A') ||
-        setweight(to_tsvector('arabic', COALESCE(NEW.name, '')), 'A') ||
-        setweight(to_tsvector('english', 
+    UPDATE meme 
+    SET search_vector = 
+        setweight(to_tsvector('english', COALESCE(name, '')), 'A') ||
+        setweight(to_tsvector('arabic', COALESCE(name, '')), 'A') ||
+        setweight(to_tsvector('english',
             (SELECT string_agg(t.name, ' ')
-             FROM tag t
-             JOIN meme_tag mt ON mt.tag_id = t.id
-             WHERE mt.meme_id = NEW.id)
+            FROM tag t
+            JOIN meme_tag mt ON mt.tag_id = t.id
+            WHERE mt.meme_id = meme.id)
         ), 'B') ||
         setweight(to_tsvector('arabic',
             (SELECT string_agg(t.name, ' ')
-             FROM tag t
-             JOIN meme_tag mt ON mt.tag_id = t.id
-             WHERE mt.meme_id = NEW.id)
-        ), 'B');
+            FROM tag t
+            JOIN meme_tag mt ON mt.tag_id = t.id
+            WHERE mt.meme_id = meme.id)
+        ), 'B')
+    WHERE id =  NEW.meme_id;
     RETURN NEW;
 END;
 $$
  LANGUAGE plpgsql;
 
-CREATE TRIGGER meme_search_vector_update
-    BEFORE INSERT OR UPDATE ON meme
+CREATE OR REPLACE TRIGGER meme_search_vector_update
+    AFTER INSERT OR UPDATE ON meme_tag
     FOR EACH ROW
     EXECUTE FUNCTION update_meme_search_vector();
 
 -- Search Function
 
-CREATE FUNCTION public.search_memes(search_query text) RETURNS TABLE(id integer, media_url text, media_type text, name text, dimensions integer[], rank real)
+CREATE OR REPLACE FUNCTION public.search_memes(search_query text) RETURNS TABLE(id integer, media_url text, media_type text, name text, dimensions integer[], rank real)
     LANGUAGE plpgsql
     AS $$
 BEGIN
