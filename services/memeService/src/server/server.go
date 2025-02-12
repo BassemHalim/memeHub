@@ -30,48 +30,61 @@ type Meme struct {
 	Tags            []string
 }
 
+var logger *slog.Logger = slog.Default()
+
+// Saves image with filename and dir at dir/filename
+func saveImage(dir string, filename string, image []byte) error {
+	filePath := filepath.Join(dir, filename)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		logger.Error("Failed to create directory", "Dir", dir, "Error", err)
+		return fmt.Errorf("Error creating memes directory")
+	}
+
+	if err := os.WriteFile(filePath, image, 0666); err != nil {
+		logger.Error("Failed to save image to disk due to error", "Error", err)
+		return fmt.Errorf("Error saving image to disk")
+	}
+	return nil
+}
+
+// returns a random UUID
+func randomUUID() string {
+	return uuid.New().String()
+}
+
+// converts a mimetype like image/jpeg to an extension like '.jpg'
+func mimeToExtension(mimeType string) (string, error) {
+	ext, err := mime.ExtensionsByType(mimeType)
+	if err != nil {
+		logger.Debug("Invalid mime type")
+		return "", fmt.Errorf("Invalid media mime type")
+	}
+	return ext[len(ext)-1], nil
+}
+
 func NewMemeServer(db *sql.DB, logger *slog.Logger) *Server {
 	return &Server{db: db, log: logger}
 }
 
 func (s *Server) UploadMeme(ctx context.Context, req *pb.UploadMemeRequest) (*pb.MemeResponse, error) {
-	
+
 	log := s.log
 	log.Debug("Uploading Meme")
 	if len(req.Dimensions) != 2 {
 		return nil, fmt.Errorf("Invalid image dimensions")
 	}
-	ext, err := mime.ExtensionsByType(req.MediaType)
+	ext, err := mimeToExtension(req.MediaType)
 	if err != nil {
-		log.Debug("Invalid mime type")
-		return nil, fmt.Errorf("Invalid media mime type")
+		return nil, err
 	}
-	filename := uuid.New().String() + ext[len(ext)-1]
+	filename := randomUUID() + ext
 
-	uploadDir := "images"
-	cwd, err := os.Getwd()
+		tx, err := s.db.Begin()
 	if err != nil {
-		log.Error("Failed to get current working directory", "ERROR", err)
-		return nil, fmt.Errorf("Invalid images directory")
+		return nil, fmt.Errorf("Error starting a transaction")
 	}
-	uploadDir = filepath.Join(cwd, uploadDir)
-
-	filePath := filepath.Join(uploadDir, filename)
-	if err := os.MkdirAll(uploadDir, 0755); err != nil {
-		log.Error("Failed to create memes directory", "Error", err)
-		return nil, fmt.Errorf("Error creating memes directory")
-	}
-
-	if err := os.WriteFile(filePath, req.Image, 0666); err != nil {
-		log.Error("Failed to save image to disk due to error", "Error", err)
-		return nil, fmt.Errorf("Error saving image to disk")
-	}
-	tx, err := s.db.Begin()
-	if err != nil {
-		return nil, fmt.Errorf("Error saving the image metadata")
-	}
-	// TODO: clean up on failure (delete stored images)
 	defer tx.Rollback()
+	mediaURL := fmt.Sprintf("/imgs/%s", filename) 
 
 	// save the meme in the database
 	var memeID int64
@@ -79,7 +92,7 @@ func (s *Server) UploadMeme(ctx context.Context, req *pb.UploadMemeRequest) (*pb
 		INSERT INTO meme (media_url, media_type, name, dimensions)
 		VALUES ($1, $2, $3, $4)
 		RETURNING id
-	`, fmt.Sprintf("/imgs/%s", filename), req.MediaType, req.Name, pq.Array(req.Dimensions)).Scan(&memeID)
+	`, mediaURL, req.MediaType, req.Name, pq.Array(req.Dimensions)).Scan(&memeID)
 	if err != nil {
 		log.Error("Failed to insert meme", "Error", err)
 		return nil, fmt.Errorf("Error saving the image metadata")
@@ -112,6 +125,19 @@ func (s *Server) UploadMeme(ctx context.Context, req *pb.UploadMemeRequest) (*pb
 			return nil, fmt.Errorf("Error saving the tag %s", err)
 		}
 	}
+	//  Save the image
+	uploadDir := "images"
+	cwd, err := os.Getwd()
+	if err != nil {
+		log.Error("Failed to get current working directory", "ERROR", err)
+		return nil, fmt.Errorf("Invalid images directory")
+	}
+	uploadDir = filepath.Join(cwd, uploadDir)
+
+	if err := saveImage(uploadDir, filename, req.Image); err != nil {
+		return nil, err
+	}
+
 	if err = tx.Commit(); err != nil {
 		return nil, fmt.Errorf("Error saving the image metadata")
 	}
@@ -119,7 +145,7 @@ func (s *Server) UploadMeme(ctx context.Context, req *pb.UploadMemeRequest) (*pb
 	// return the meme
 	return &pb.MemeResponse{
 		Id:        memeID,
-		MediaUrl:  filePath,
+		MediaUrl:  mediaURL,
 		MediaType: req.MediaType,
 		Tags:      req.Tags,
 	}, nil
