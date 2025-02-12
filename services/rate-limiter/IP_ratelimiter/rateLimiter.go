@@ -1,9 +1,10 @@
 package rateLimiter
 
 import (
-	"log"
+	"log/slog"
 	"net"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 
@@ -25,6 +26,7 @@ type RateLimiter struct {
 	clientsLock sync.Mutex
 	rate        rate.Limit
 	burst       int
+	log         *slog.Logger
 }
 
 func NewRateLimiter(rate rate.Limit, burst int) *RateLimiter {
@@ -32,6 +34,7 @@ func NewRateLimiter(rate rate.Limit, burst int) *RateLimiter {
 		clients: make(map[string]*ClientLimiter),
 		rate:    rate,
 		burst:   burst,
+		log:     slog.New(slog.NewJSONHandler(os.Stdout, nil)).With("MODULE", "RATE_LIMITER"),
 	}
 
 	go handler.cleanUp()
@@ -45,7 +48,7 @@ func (l *RateLimiter) cleanUp() {
 		time.Sleep(CLEANUP_RATE)
 		// lock clients
 		l.clientsLock.Lock()
-		remove := make([]string, len(l.clients))
+		remove := make([]string, 0)
 		for ip, client := range l.clients {
 			if time.Since(client.lastSeen) > STALE_CLIENT {
 				remove = append(remove, ip)
@@ -76,9 +79,14 @@ func (h *RateLimiter) getClientLimiter(ip string) *rate.Limiter {
 
 func (h *RateLimiter) RateLimit(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ip, _, _ := net.SplitHostPort(r.RemoteAddr)
+		ip, _, err := net.SplitHostPort(r.RemoteAddr)
+		if err != nil {
+			http.Error(w, "Invalid client address", http.StatusBadRequest)
+			return
+		}
+
 		limiter := h.getClientLimiter(ip)
-		log.Println("Received request from IP: ", ip, "Tokens available: ", limiter.Tokens())
+		h.log.Info("Received request", "IP", ip, "tokens_available", limiter.Tokens())
 		if !limiter.Allow() {
 			http.Error(w, "Rate limit exceeded", http.StatusTooManyRequests)
 			return
