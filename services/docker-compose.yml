@@ -4,10 +4,19 @@ services:
             context: .
             dockerfile: postgres.Dockerfile
         container_name: memeDB_postgres
+        command:
+            [
+                "postgres",
+                "-c",
+                "logging_collector=on",
+                "-c",
+                "log_destination=jsonlog",
+            ]
         environment:
             POSTGRES_USER: postgres
             POSTGRES_PASSWORD: postgres
             POSTGRES_DB: memedb
+            PGDATA: /var/lib/postgresql/data/pgdata
         ports:
             - "5432:5432"
         volumes:
@@ -33,6 +42,8 @@ services:
             - 50051:50051
         depends_on:
             - postgres
+        volumes:
+            - ./images:/app/images
     gateway:
         build:
             context: .
@@ -45,8 +56,8 @@ services:
             - 8080:8080
         depends_on:
             - meme-service
+        volumes:
+            - ./images:/app/images:ro
 
 volumes:
     postgres_data:
-        external: true
-        name: memeservice_postgres_data

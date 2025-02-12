@@ -1,4 +1,4 @@
-FROM postgres:13
+FROM postgres:15
 
 # Install required packages
 RUN apt-get update && apt-get install -y \
@@ -8,8 +8,8 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Create symbolic links for Arabic dictionary files
-RUN ln -s /usr/share/hunspell/ar.aff /usr/share/postgresql/13/tsearch_data/arabic.aff && \
-    ln -s /usr/share/hunspell/ar.dic /usr/share/postgresql/13/tsearch_data/arabic.dic
+RUN ln -s /usr/share/hunspell/ar.aff /usr/share/postgresql/15/tsearch_data/arabic.aff && \
+    ln -s /usr/share/hunspell/ar.dic /usr/share/postgresql/15/tsearch_data/arabic.dict
 
 
 # Copy your SQL initialization script

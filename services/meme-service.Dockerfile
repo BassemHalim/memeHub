@@ -10,6 +10,7 @@ COPY go.sum .
 RUN go mod download
 RUN go mod tidy
 
+
 WORKDIR /app/memeService/src
 
 RUN CGO_ENABLED=0 GOOS=linux go build -o /meme-service .
@@ -17,5 +18,8 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o /meme-service .
 # Final stage
 FROM alpine:latest
 COPY --from=builder /meme-service /meme-service
+
+WORKDIR /app
+RUN mkdir -p images 
 
 CMD ["/meme-service"]

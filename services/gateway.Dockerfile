@@ -21,5 +21,8 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o /gateway .
 FROM alpine:latest
 COPY --from=builder /gateway /gateway
 
+WORKDIR /app
+RUN mkdir -p images
+
 EXPOSE 8080
 CMD ["/gateway"]
