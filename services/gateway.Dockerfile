@@ -15,7 +15,7 @@ RUN go mod tidy
 
 WORKDIR /app/gateway
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o /gateway .
+RUN GOOS=linux go build -o /gateway .
 
 # Final stage
 FROM alpine:latest
