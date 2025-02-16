@@ -35,44 +35,43 @@ type MemeUpload struct {
 	ImageData []byte   `json:"image,omitempty" validate:"omitempty,datauri"`
 }
 
+type Config struct {
+	WhitelistedDomains []string `json:"whitelisted_domains"`
+}
+
 var validate *validator.Validate
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024
 
-// returns true if the provided url is whitelisted to download from
-func isWhitelisted(domain *url.URL) bool {
-	// TODO: change it to an env variable or a file
-	whitelist := map[string]bool{
-		// Social Media
-		"pinterest.com":      true,
-		"i.pinimg.com":      true,
-		"twitter.com":       true,
-		"imgur.com":         true,
-		"i.redd.it":        true,
-		"cdn.discordapp.com": true,
-		"twimg.com":         true,
-		"pbs.twimg.com":     true,
-		"fbcdn.net":         true,
+var whitelisted_domains map[string]bool
 
-		// Major Image Hosting
-		"flickr.com":       true,
-		"staticflickr.com": true, 
-		"dropbox.com":      true,
-		"cloudinary.com":   true,
-		"imgbox.com":       true,
-		"postimage.org":    true,
-		"lensdump.com":     true,
-		"cubeupload.com":   true,
-
-		// Content Delivery Networks
-		"cloudfront.net": true,
-		"akamaized.net": true,
-		"fastly.net":    true,
-		"imgix.net":     true,
+func loadConfig() error {
+	data, err := os.ReadFile("config.json")
+	if err != nil {
+		return fmt.Errorf("error reading config file: %v", err)
 	}
 
+	var config Config
+	if err := json.Unmarshal(data, &config); err != nil {
+		return fmt.Errorf("error parsing config: %v", err)
+	}
+
+	// Initialize the whitelist map
+	whitelisted_domains = make(map[string]bool)
+
+	// Add all domains to the whitelist
+	for _, domain := range config.WhitelistedDomains {
+		whitelisted_domains[domain] = true
+	}
+
+	return nil
+}
+
+// returns true if the provided url is whitelisted to download from
+func isWhitelisted(domain *url.URL) bool {
+
 	host := domain.Host
-	for whitelisted := range whitelist {
+	for whitelisted := range whitelisted_domains {
 		if strings.HasSuffix(host, whitelisted) {
 			return true
 		}
@@ -138,9 +137,6 @@ func getMemesTimeline(memeClient pb.MemeServiceClient, log *slog.Logger) func(w 
 
 		// parse query parameters
 		queryParams := r.URL.Query()
-		// tags := queryParams["tags"]
-		// query := queryParams["query"]
-		// log.Info("/GET memes", "Query", query)
 
 		pageSize := 10
 		if size := queryParams.Get("pageSize"); size != "" {
@@ -382,6 +378,7 @@ func getEnvOrDefault(key, defaultValue string) string {
 func main() {
 	serverPort := 8080
 	log := slog.New(slog.NewJSONHandler(os.Stdout, nil)).With("Service", "MEME_GATEWAY")
+	// TODO: move all config to config.json file
 	requestRate, err := strconv.Atoi(getEnvOrDefault("TOKEN_RATE", strconv.Itoa(rateLimiter.TOKEN_RATE)))
 	if err != nil {
 		log.Error("Failed to parse TOKEN_LIMIT env")
@@ -392,6 +389,13 @@ func main() {
 	}
 	limiter := rateLimiter.NewRateLimiter(rate.Limit(requestRate), burstRate)
 	log.Info("Rate Limiter", "RATE", requestRate, "BURST", burstRate)
+
+	err = loadConfig()
+	if err != nil {
+		log.Error("Failed to load config file", "Error", err)
+	}
+	log.Info("Whitelisted Domains", "Domains", whitelisted_domains)
+
 	memeServiceClient, err := initGRPCClient()
 
 	if err != nil {

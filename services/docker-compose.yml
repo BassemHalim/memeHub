@@ -66,6 +66,7 @@ services:
             - meme-service
         volumes:
             - ./images:/app/images:ro
+            - ./config.json:/app/config.json
 
 volumes:
     postgres_data:
