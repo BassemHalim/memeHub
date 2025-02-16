@@ -342,6 +342,104 @@ func (s *Server) FilterMemesByTags(ctx context.Context, req *pb.FilterMemesByTag
 	}, nil
 }
 
+func (s *Server) GetTimelineMemes(ctx context.Context, req *pb.GetTimelineRequest) (*pb.MemesResponse, error) {
+    // Validate pagination parameters
+    if req.Page < 1 {
+        req.Page = 1
+    }
+    if req.PageSize < 1 {
+        req.PageSize = 10
+    }
+
+    offset := (req.Page - 1) * req.PageSize
+
+    // Base query without any tag filtering
+    baseQuery := `
+        SELECT m.id, m.media_url, m.media_type, m.name, m.dimensions
+        FROM meme m
+    `
+
+    // Add timeline-specific sorting
+    switch req.SortOrder {
+    case pb.SortOrder_OLDEST:
+        baseQuery += " ORDER BY m.created_at ASC"  // Assuming created_at exists
+    default:  // NEWEST
+        baseQuery += " ORDER BY m.created_at DESC" // Fallback to creation time
+    }
+
+    // Add pagination
+    baseQuery += " LIMIT $1 OFFSET $2"
+
+    // Get total count
+    var totalCount int32
+    countQuery := "SELECT COUNT(*) FROM meme"
+    err := s.db.QueryRow(countQuery).Scan(&totalCount)
+    if err != nil {
+        return nil, fmt.Errorf("error counting memes: %v", err)
+    }
+
+    // Execute main query
+    rows, err := s.db.Query(baseQuery, req.PageSize, offset)
+    if err != nil {
+        return nil, fmt.Errorf("error querying memes: %v", err)
+    }
+    defer rows.Close()
+
+    // Process results
+    var memes []*pb.MemeResponse
+    for rows.Next() {
+        meme := &pb.MemeResponse{}
+        var dimensions pq.Int32Array
+        if err := rows.Scan(
+            &meme.Id,
+            &meme.MediaUrl,
+            &meme.MediaType,
+            &meme.Name,
+            &dimensions,
+        ); err != nil {
+            return nil, fmt.Errorf("error scanning meme: %v", err)
+        }
+        meme.Dimensions = dimensions
+
+        // Get tags (maintain existing tag loading logic)
+        tagRows, err := s.db.Query(`
+            SELECT t.name
+            FROM tag t
+            JOIN meme_tag mt ON t.id = mt.tag_id
+            WHERE mt.meme_id = $1
+        `, meme.Id)
+        if err != nil {
+            return nil, fmt.Errorf("error getting tags: %v", err)
+        }
+        defer tagRows.Close()
+
+        var tags []string
+        for tagRows.Next() {
+            var tag string
+            if err := tagRows.Scan(&tag); err != nil {
+                return nil, fmt.Errorf("error scanning tag: %v", err)
+            }
+            tags = append(tags, tag)
+        }
+        meme.Tags = tags
+        memes = append(memes, meme)
+    }
+
+    // Calculate total pages
+    totalPages := totalCount / req.PageSize
+    if totalCount%req.PageSize != 0 {
+        totalPages++
+    }
+
+    return &pb.MemesResponse{
+        Memes:      memes,
+        TotalCount: totalCount,
+        Page:       int32(req.Page),
+        TotalPages: totalPages,
+    }, nil
+}
+
+
 func (s *Server) SearchMemes(ctx context.Context, req *pb.SearchMemesRequest) (*pb.MemesResponse, error) {
 	query := req.Query
 	var memes []*pb.MemeResponse
