@@ -13,8 +13,8 @@ import (
 
 const CLEANUP_RATE time.Duration = time.Minute
 const STALE_CLIENT time.Duration = time.Minute * 3
-const REFILL_RATE = 1 // 1 token per second
-const BUCKET_SIZE = 10
+const TOKEN_RATE = 1 // 1 token per second
+const TOKEN_BURST = 10
 
 type ClientLimiter struct {
 	limiter  *rate.Limiter // token bucket rate limiter
