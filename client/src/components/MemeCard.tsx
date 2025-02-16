@@ -44,8 +44,7 @@ export default function MemeCard({ meme }: { meme: Meme; size: string }) {
                 alt={meme.name}
                 height={meme.dimensions[1]}
                 width={meme.dimensions[0]}
-                // fill
-                className="mx-auto"
+                className="w-full"
             />
             <div className="absolute bottom-0 left-0 right-0 bg-gray-800/40 text-white text-xs p-2 group-hover:hidden flex flex-wrap">
                 {meme.tags.map((tag: string) => {

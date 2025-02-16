@@ -7,7 +7,7 @@ import { useState } from "react";
 export default function DialogDemo({ className }: { className?: string }) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(false);
+    const [error, setError] = useState("");
     const [form] = Form.useForm();
 
     const options: SelectProps["options"] = [
@@ -24,13 +24,20 @@ export default function DialogDemo({ className }: { className?: string }) {
         form.validateFields()
             .then((values) => {
                 // Call API to upload meme
-                let file, mimeType;
+                let file: File | undefined, mimeType;
                 if (values.imageFile) {
                     file = values.imageFile.file;
-                    mimeType = file.type;
+                    if (file) {
+                        if (file.size > 2 * 1024 * 1024) {
+                            setError("Image is too big");
+                            throw new Error("Upload file too large");
+                        }
+                        mimeType = file.type;
+                    }
                 } else {
                     mimeType = "image/jpeg";
                 }
+
                 const body: FormData = new FormData();
                 body.append(
                     "meme",
@@ -41,24 +48,26 @@ export default function DialogDemo({ className }: { className?: string }) {
                         tags: values.tags,
                     })
                 );
-                body.append("image", file);
+                if (file) {
+                    body.append("image", file);
+                }
                 fetch(process.env.NEXT_PUBLIC_API_HOST + "/meme", {
                     method: "POST",
                     body: body,
                 })
-                    .then((res) => {
+                    .then(async (res) => {
                         if (!res.ok) {
+                            const errorData = await res.text();
                             throw new Error(
-                                "Failed to upload meme " + res.status
+                                "Failed to upload meme " + errorData
                             );
                         }
                         setIsModalOpen(false);
                         form.resetFields();
                     })
-                    .catch((err) => {
+                    .catch((err: Error) => {
                         console.log(err);
-                        setError(true);
-                        // update UI to mention failed upload
+                        setError(err.message);
                     });
                 setLoading(false);
             })
@@ -69,7 +78,7 @@ export default function DialogDemo({ className }: { className?: string }) {
     const handleCancel = () => {
         form.resetFields();
         setIsModalOpen(false);
-        setError(false);
+        setError("");
     };
     return (
         <div className={className}>
@@ -177,7 +186,7 @@ export default function DialogDemo({ className }: { className?: string }) {
                         </Form.Item>
                     </Form>
                 ) : (
-                    <div className="text-center text-lg">
+                    <div className="text-center">
                         <WarningTwoTone
                             twoToneColor={"#cb3c71"}
                             className="text-5xl"
@@ -185,7 +194,13 @@ export default function DialogDemo({ className }: { className?: string }) {
                         <h2 className="font-bold text-lg">
                             Failed to upload Meme
                         </h2>
-                        <p>Please try again later</p>
+                        <p>
+                            This is likely because you used a bad image url.
+                            <br />
+                            Try uploading the image instead of its url
+                            <br />
+                            {error}
+                        </p>
                     </div>
                 )}
             </Modal>
