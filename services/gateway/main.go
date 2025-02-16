@@ -1,20 +1,22 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+	"strings"
+
+	"bytes"
 	"image"
 	_ "image/gif"
 	_ "image/jpeg"
 	_ "image/png"
 	"log/slog"
 	"net/http"
-	"os"
+	"net/url"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 
 	pb "github.com/BassemHalim/memeDB/proto/memeService"
@@ -35,7 +37,98 @@ type MemeUpload struct {
 
 var validate *validator.Validate
 
-func getMemes(memeClient pb.MemeServiceClient, log *slog.Logger) func(w http.ResponseWriter, r *http.Request) {
+const MAX_FILE_SIZE = 2 * 1024 * 1024
+
+// returns true if the provided url is whitelisted to download from
+func isWhitelisted(domain *url.URL) bool {
+	// TODO: change it to an env variable or a file
+	whitelist := map[string]bool{
+		// Social Media
+		"pinterest.com":      true,
+		"i.pinimg.com":      true,
+		"twitter.com":       true,
+		"imgur.com":         true,
+		"i.redd.it":        true,
+		"cdn.discordapp.com": true,
+		"twimg.com":         true,
+		"pbs.twimg.com":     true,
+		"fbcdn.net":         true,
+
+		// Major Image Hosting
+		"flickr.com":       true,
+		"staticflickr.com": true, 
+		"dropbox.com":      true,
+		"cloudinary.com":   true,
+		"imgbox.com":       true,
+		"postimage.org":    true,
+		"lensdump.com":     true,
+		"cubeupload.com":   true,
+
+		// Content Delivery Networks
+		"cloudfront.net": true,
+		"akamaized.net": true,
+		"fastly.net":    true,
+		"imgix.net":     true,
+	}
+
+	host := domain.Host
+	for whitelisted := range whitelist {
+		if strings.HasSuffix(host, whitelisted) {
+			return true
+		}
+	}
+	return false
+}
+
+// validates that the provided url is a valid image with size < 2MB
+// data is validated with HEAD request so you should still re-validate the result
+func validateImageContent(url string) bool {
+	client := &http.Client{
+		Timeout: 2 * time.Second,
+	}
+	// Check MIME type via HEAD
+	resp, err := client.Head(url)
+	if err != nil || resp.StatusCode != 200 {
+		return false
+	}
+
+	contentType := resp.Header.Get("Content-Type")
+	if !strings.HasPrefix(contentType, "image/") {
+		return false
+	}
+
+	sizeBytes := resp.Header.Get("Content-Length")
+	if size, err := strconv.Atoi(sizeBytes); err != nil || size > MAX_FILE_SIZE {
+		return false
+	}
+	return true
+}
+
+// validates provided url to make sure it is
+// 1. a valid url
+// 2. uses https
+// 3. is from a whitelisted domain
+// 4. file size is < MAX_FILE_SIZE (uses a HEAD request not GET)
+// 5. file mime type is image
+func memeURLValid(memeURL string) bool {
+	parsed, err := url.Parse(memeURL)
+	if err != nil {
+		return false
+	}
+	if parsed.Scheme != "https" {
+		return false
+	}
+	if !isWhitelisted(parsed) {
+		return false
+	}
+	if !validateImageContent(memeURL) {
+		return false
+	}
+	return true
+}
+
+// Endpoint to get memes for timeline and provide sort order
+func getMemesTimeline(memeClient pb.MemeServiceClient, log *slog.Logger) func(w http.ResponseWriter, r *http.Request) {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
@@ -45,11 +138,12 @@ func getMemes(memeClient pb.MemeServiceClient, log *slog.Logger) func(w http.Res
 
 		// parse query parameters
 		queryParams := r.URL.Query()
-		tags := queryParams["tags"]
-		query := queryParams["query"]
-		log.Info("/GET memes", "Query", query)
+		// tags := queryParams["tags"]
+		// query := queryParams["query"]
+		// log.Info("/GET memes", "Query", query)
+
 		pageSize := 10
-		if size := queryParams.Get("size"); size != "" {
+		if size := queryParams.Get("pageSize"); size != "" {
 			if parsedSize, err := strconv.Atoi(size); err == nil && parsedSize > 0 {
 				pageSize = parsedSize
 			}
@@ -68,22 +162,13 @@ func getMemes(memeClient pb.MemeServiceClient, log *slog.Logger) func(w http.Res
 			}
 		}
 
-		// parse match type
-		matchType := pb.TagMatchType_ANY // default value
-		if match := queryParams.Get("match"); match != "" {
-			if strings.EqualFold(match, "all") {
-				matchType = pb.TagMatchType_ALL
-			}
-		}
-		// get memes from memeService
+		// get timeline memes
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
-		resp, err := memeClient.FilterMemesByTags(ctx, &pb.FilterMemesByTagsRequest{
-			Tags:      tags,
-			PageSize:  int32(pageSize),
+		resp, err := memeClient.GetTimelineMemes(ctx, &pb.GetTimelineRequest{
 			Page:      int32(page),
+			PageSize:  int32(pageSize),
 			SortOrder: sortOrder,
-			MatchType: matchType,
 		})
 		if err != nil {
 			log.Error("Error getting filtered memes", "ERROR", err)
@@ -97,6 +182,7 @@ func getMemes(memeClient pb.MemeServiceClient, log *slog.Logger) func(w http.Res
 
 	}
 }
+
 func uploadMeme(memeClient pb.MemeServiceClient, log *slog.Logger) func(w http.ResponseWriter, r *http.Request) {
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -105,7 +191,7 @@ func uploadMeme(memeClient pb.MemeServiceClient, log *slog.Logger) func(w http.R
 			return
 		}
 		// Multipart form data
-		r.ParseMultipartForm(32 << 20) // limit your max input length to 32MB
+		r.ParseMultipartForm(MAX_FILE_SIZE) // limit your max input length to 2MB
 
 		// get the json metadata
 		jsonData := r.FormValue("meme")
@@ -152,6 +238,14 @@ func uploadMeme(memeClient pb.MemeServiceClient, log *slog.Logger) func(w http.R
 		} else {
 			// if MediaURL is provided, then it's a URL upload
 			// download the image from the URL
+
+			memeURL := meme.MediaURL
+			if !memeURLValid(memeURL) {
+				log.Error("Invalid meme url", "URL", memeURL, "IP", r.RemoteAddr)
+				http.Error(w, "Invalid media URL", http.StatusBadRequest)
+				return
+			}
+
 			resp, err := http.Get(meme.MediaURL)
 			if err != nil {
 				log.Error("Error downloading the image", "URL", meme.MediaURL, "STATUS_CODE", resp.StatusCode)
@@ -167,6 +261,11 @@ func uploadMeme(memeClient pb.MemeServiceClient, log *slog.Logger) func(w http.R
 		}
 		// get the image dimensions from imgBuf
 		imgBytes := imgBuf.Bytes()
+		if len(imgBytes) > MAX_FILE_SIZE {
+			log.Error("Uploaded file is too big", "Size", len(imgBytes))
+			http.Error(w, "Uploaded image is too big", http.StatusRequestEntityTooLarge)
+			return
+		}
 		imgReader := bytes.NewReader(imgBytes)
 		imgConfig, _, err := image.DecodeConfig(imgReader)
 		if err != nil {
@@ -186,6 +285,7 @@ func uploadMeme(memeClient pb.MemeServiceClient, log *slog.Logger) func(w http.R
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
 		resp, err := memeClient.UploadMeme(ctx, memeUpload)
+		// TODO: resize it
 		if err != nil {
 			log.Error("Error uploading the meme to meme-service", "Error", err)
 			http.Error(w, "Error uploading the meme", http.StatusInternalServerError)
@@ -334,12 +434,12 @@ func main() {
 
 	// Handle all requests to /imgs
 
-	getMemes := http.HandlerFunc(getMemes(memeServiceClient, log))
+	getMemesTimeline := http.HandlerFunc(getMemesTimeline(memeServiceClient, log))
 	uploadMeme := http.HandlerFunc(uploadMeme(memeServiceClient, log))
 	searchMemes := http.HandlerFunc(searchMemes(memeServiceClient, log))
 	serveMedia := http.HandlerFunc(serveMedia(fs, log))
 
-	http.Handle("/api/memes", corsHandler(limiter.RateLimit(getMemes)))
+	http.Handle("/api/memes", corsHandler(limiter.RateLimit(getMemesTimeline)))
 	http.Handle("/api/meme", corsHandler(limiter.RateLimit(uploadMeme)))
 	http.Handle("/api/memes/search", corsHandler(limiter.RateLimit(searchMemes)))
 	http.Handle("/imgs/", corsHandler(limiter.RateLimit(serveMedia)))
