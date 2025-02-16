@@ -52,6 +52,8 @@ services:
         environment:
             - GRPC_HOST=meme-service
             - GRPC_PORT=50051
+            - TOKEN_RATE=5
+            - TOKEN_BURST=10
         ports:
             - 8080:8080
         depends_on:

@@ -20,7 +20,9 @@ import (
 	pb "github.com/BassemHalim/memeDB/proto/memeService"
 	rateLimiter "github.com/BassemHalim/memeDB/rate-limiter/IP_ratelimiter"
 	"github.com/go-playground/validator/v10"
+	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 type MemeUpload struct {
@@ -158,7 +160,7 @@ func uploadMeme(memeClient pb.MemeServiceClient, log *slog.Logger) func(w http.R
 			}
 			defer resp.Body.Close()
 			if _, err := imgBuf.ReadFrom(resp.Body); err != nil {
-				log.Error("Error reading the image", err)
+				log.Error("Error reading the image", "Error", err)
 				http.Error(w, "Error reading the image", http.StatusBadRequest)
 				return
 			}
@@ -206,13 +208,23 @@ func searchMemes(memeClient pb.MemeServiceClient, log *slog.Logger) func(w http.
 		queryParams := r.URL.Query()
 		// tags := queryParams["tags"]
 		query := queryParams["query"]
-		log.Debug("Search Query", "Query", query)
+		page, err := strconv.Atoi(queryParams.Get("page"))
+		if err != nil {
+			log.Debug("Failed to parse page query param")
+			page = 1
+		}
+		pageSize, err := strconv.Atoi(queryParams.Get("pageSize"))
+		if err != nil {
+			log.Debug("Failed to parse pageSize query param")
+			pageSize = 10
+		}
+		log.Debug("Search Query", "Query", query, "page", page, "pageSize", pageSize)
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
 		resp, err := memeClient.SearchMemes(ctx, &pb.SearchMemesRequest{
 			Query:    query[0],
-			Page:     0,
-			PageSize: 10,
+			Page:     int32(page),
+			PageSize: int32(pageSize),
 		})
 		if err != nil {
 			log.Debug("Failed to fetch meme from memeClient", "Error", err)
@@ -251,7 +263,7 @@ func initGRPCClient() (pb.MemeServiceClient, error) {
 	// Set up a connection to the server.
 	host := os.Getenv("GRPC_HOST")
 	port := os.Getenv("GRPC_PORT")
-	conn, err := grpc.NewClient(fmt.Sprintf("%s:%s", host, port), grpc.WithInsecure())
+	conn, err := grpc.NewClient(fmt.Sprintf("%s:%s", host, port), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, err
 	}
@@ -260,10 +272,26 @@ func initGRPCClient() (pb.MemeServiceClient, error) {
 	return client, nil
 }
 
+func getEnvOrDefault(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
+}
+
 func main() {
 	serverPort := 8080
 	log := slog.New(slog.NewJSONHandler(os.Stdout, nil)).With("Service", "MEME_GATEWAY")
-	limiter := rateLimiter.NewRateLimiter(rateLimiter.REFILL_RATE, rateLimiter.BUCKET_SIZE)
+	requestRate, err := strconv.Atoi(getEnvOrDefault("TOKEN_RATE", strconv.Itoa(rateLimiter.TOKEN_RATE)))
+	if err != nil {
+		log.Error("Failed to parse TOKEN_LIMIT env")
+	}
+	burstRate, err := strconv.Atoi(getEnvOrDefault("TOKEN_BURST", strconv.Itoa(rateLimiter.TOKEN_RATE)))
+	if err != nil {
+		log.Error("Failed to parse TOKEN_BURST) env")
+	}
+	limiter := rateLimiter.NewRateLimiter(rate.Limit(requestRate), burstRate)
+	log.Info("Rate Limiter", "RATE", requestRate, "BURST", burstRate)
 	memeServiceClient, err := initGRPCClient()
 
 	if err != nil {
