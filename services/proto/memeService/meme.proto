@@ -7,6 +7,7 @@ service MemeService {
   rpc GetMeme (GetMemeRequest) returns (MemeResponse);
   rpc FilterMemesByTags(FilterMemesByTagsRequest) returns (MemesResponse);
   rpc SearchMemes(SearchMemesRequest) returns(MemesResponse);
+  rpc GetTimelineMemes(GetTimelineRequest) returns (MemesResponse);
 }
 
 message UploadMemeRequest {
@@ -19,6 +20,11 @@ message UploadMemeRequest {
 
 message GetMemeRequest {
   int64 id = 1;
+}
+message GetTimelineRequest{
+  int32 page = 1;
+  int32 page_size = 2;
+  SortOrder sort_order = 3;
 }
 
 message MemeResponse {
