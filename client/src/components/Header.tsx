@@ -1,9 +1,12 @@
 import UploadMemeForm from "@/components/UploadMemeForm";
+// import logo from "public/logo.png";
+import Image from "next/image";
 export default function Header() {
     return (
-        <header className="font-bold text-lg text-center p-5 flex justify-center items-center  relative">
-            🏛️ 2asr el memez
-            <UploadMemeForm  className="absolute right-0 mr-4 "/>
+        <header className="font-bold text-lg text-center p-2 flex justify-between items-center  relative">
+            <span>Qasr el memez</span>
+            <Image src="/logo.png" alt="qasr el memes" width={80} height={80} />
+            <UploadMemeForm className=" " />
         </header>
     );
 }

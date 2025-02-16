@@ -13,6 +13,7 @@ export default function DialogDemo({ className }: { className?: string }) {
     const options: SelectProps["options"] = [
         { label: "Movie", value: "Movie" },
         { label: "TV-Show", value: "TV-Show" },
+        { label: "Play", value: "Play" },
         { label: "blank", value: "blank" },
     ];
     const showModal = () => {
@@ -22,7 +23,6 @@ export default function DialogDemo({ className }: { className?: string }) {
         setLoading(true);
         form.validateFields()
             .then((values) => {
-                // alert(JSON.stringify(values));
                 // Call API to upload meme
                 let file, mimeType;
                 if (values.imageFile) {
@@ -52,7 +52,6 @@ export default function DialogDemo({ className }: { className?: string }) {
                                 "Failed to upload meme " + res.status
                             );
                         }
-                        alert("Meme uploaded successfully!");
                         setIsModalOpen(false);
                         form.resetFields();
                     })
@@ -153,8 +152,13 @@ export default function DialogDemo({ className }: { className?: string }) {
                         >
                             <Input />
                         </Form.Item>
-
-                        <div className="text-center">or</div>
+                        <Form.Item>
+                            <div className="flex justify-around items-center px-4">
+                                <div className="h-px border-0 w-2/5 bg-gray-300"></div>
+                                <div className="text-center mx-2">or</div>
+                                <div className="h-px border-0 w-2/5 bg-gray-300"></div>
+                            </div>
+                        </Form.Item>
 
                         <Form.Item
                             label="Upload Image"
