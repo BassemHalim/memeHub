@@ -346,28 +346,51 @@ func (s *Server) SearchMemes(ctx context.Context, req *pb.SearchMemesRequest) (*
 	query := req.Query
 	var memes []*pb.MemeResponse
 
-	rows, err := s.db.Query("Select id FROM search_memes($1)", query)
+	// Validate pagination parameters
+	if req.Page < 1 {
+		req.Page = 1
+	}
+	if req.PageSize < 1 {
+		req.PageSize = 10
+	}
+
+	// Calculate offset
+	offset := (req.Page - 1) * req.PageSize
+
+	// Get total count of search results
+	var totalCount int32
+	err := s.db.QueryRow("SELECT COUNT(*) FROM search_memes($1)", query).Scan(&totalCount)
 	if err != nil {
-		return nil, fmt.Errorf("Searching memes failed %w", err)
+		return nil, fmt.Errorf("counting search results failed %w", err)
+	}
+
+	// Fetch paginated search results
+	rows, err := s.db.Query("SELECT id FROM search_memes($1) LIMIT $2 OFFSET $3", query, req.PageSize, offset)
+	if err != nil {
+		return nil, fmt.Errorf("searching memes failed %w", err)
 	}
 	defer rows.Close()
+
 	for rows.Next() {
 		var id int64
-		err := rows.Scan(
-			&id,
-		)
+		err := rows.Scan(&id)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan meme ID %w", err)
+		}
+
 		memeResponse, err := s.GetMeme(ctx, &pb.GetMemeRequest{Id: id})
 		if err != nil {
-			return nil, fmt.Errorf("Failed to fetch meme Metadata %w", err)
+			return nil, fmt.Errorf("failed to fetch meme metadata %w", err)
 		}
 
 		memes = append(memes, memeResponse)
 	}
-	// TODO: handle pagination etc.
+
+	totalPages := (totalCount + int32(req.PageSize) - 1) / int32(req.PageSize)
 	return &pb.MemesResponse{
 		Memes:      memes,
-		TotalCount: int32(len(memes)),
-		Page:       0,
-		TotalPages: 0,
+		TotalCount: totalCount,
+		Page:       int32(req.Page),
+		TotalPages: totalPages,
 	}, nil
 }
