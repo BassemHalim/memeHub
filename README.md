@@ -30,3 +30,10 @@ The memeService currently stores the memes locally
 The backend is made of 2 services:
 - **MemeService**: which handles storing and retrieving the memes
 - **Gateway**: acts as a REST client to **MemeService** and handles rate limiting, request validations, serving the images and as a caching layer (not yet implemented)
+
+TODO:
+- [x] make rate limit and burst an env variable 
+- [x] validate download URL and add whitelist
+- [ ] get whitelisted sites from env or file instead of hardcoding
+- [ ] infinite scrolling
+- [x] docker use network
