@@ -45,6 +45,7 @@ const MAX_FILE_SIZE = 2 * 1024 * 1024
 
 var whitelisted_domains map[string]bool
 
+// loads config from 'config.json'
 func loadConfig() error {
 	data, err := os.ReadFile("config.json")
 	if err != nil {
@@ -414,6 +415,7 @@ func main() {
 	// Enable CORS for all endpoints
 	corsHandler := func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
 			w.Header().Set("Access-Control-Allow-Origin", "*")
 			w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
 			w.Header().Set("Access-Control-Allow-Headers", "Content-Type")

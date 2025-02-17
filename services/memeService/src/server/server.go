@@ -37,12 +37,12 @@ func saveImage(dir string, filename string, image []byte) error {
 	filePath := filepath.Join(dir, filename)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		logger.Error("Failed to create directory", "Dir", dir, "Error", err)
-		return fmt.Errorf("Error creating memes directory")
+		return fmt.Errorf("error creating memes directory")
 	}
 
 	if err := os.WriteFile(filePath, image, 0666); err != nil {
 		logger.Error("Failed to save image to disk due to error", "Error", err)
-		return fmt.Errorf("Error saving image to disk")
+		return fmt.Errorf("error saving image to disk")
 	}
 	return nil
 }
@@ -71,7 +71,7 @@ func (s *Server) UploadMeme(ctx context.Context, req *pb.UploadMemeRequest) (*pb
 	log := s.log
 	log.Debug("Uploading Meme")
 	if len(req.Dimensions) != 2 {
-		return nil, fmt.Errorf("Invalid image dimensions")
+		return nil, fmt.Errorf("invalid image dimensions")
 	}
 	ext, err := mimeToExtension(req.MediaType)
 	if err != nil {
@@ -79,12 +79,12 @@ func (s *Server) UploadMeme(ctx context.Context, req *pb.UploadMemeRequest) (*pb
 	}
 	filename := randomUUID() + ext
 
-		tx, err := s.db.Begin()
+	tx, err := s.db.Begin()
 	if err != nil {
-		return nil, fmt.Errorf("Error starting a transaction")
+		return nil, fmt.Errorf("error starting a transaction")
 	}
 	defer tx.Rollback()
-	mediaURL := fmt.Sprintf("/imgs/%s", filename) 
+	mediaURL := fmt.Sprintf("/imgs/%s", filename)
 
 	// save the meme in the database
 	var memeID int64
@@ -95,7 +95,7 @@ func (s *Server) UploadMeme(ctx context.Context, req *pb.UploadMemeRequest) (*pb
 	`, mediaURL, req.MediaType, req.Name, pq.Array(req.Dimensions)).Scan(&memeID)
 	if err != nil {
 		log.Error("Failed to insert meme", "Error", err)
-		return nil, fmt.Errorf("Error saving the image metadata")
+		return nil, fmt.Errorf("error saving the image metadata")
 	}
 
 	// save the tags in the database
@@ -114,7 +114,7 @@ func (s *Server) UploadMeme(ctx context.Context, req *pb.UploadMemeRequest) (*pb
         LIMIT 1
 		`, tagName).Scan(&tagID)
 		if err != nil {
-			return nil, fmt.Errorf("Error saving the tag %s", err)
+			return nil, fmt.Errorf("error saving the tag %s", err)
 		}
 		// save tag in meme_tag table
 		_, err = tx.Exec(`
@@ -122,7 +122,7 @@ func (s *Server) UploadMeme(ctx context.Context, req *pb.UploadMemeRequest) (*pb
 		VALUES ($1, $2)
 		`, memeID, tagID)
 		if err != nil {
-			return nil, fmt.Errorf("Error saving the tag %s", err)
+			return nil, fmt.Errorf("error saving the tag %s", err)
 		}
 	}
 	//  Save the image
@@ -130,7 +130,7 @@ func (s *Server) UploadMeme(ctx context.Context, req *pb.UploadMemeRequest) (*pb
 	cwd, err := os.Getwd()
 	if err != nil {
 		log.Error("Failed to get current working directory", "ERROR", err)
-		return nil, fmt.Errorf("Invalid images directory")
+		return nil, fmt.Errorf("invalid images directory")
 	}
 	uploadDir = filepath.Join(cwd, uploadDir)
 
@@ -139,7 +139,7 @@ func (s *Server) UploadMeme(ctx context.Context, req *pb.UploadMemeRequest) (*pb
 	}
 
 	if err = tx.Commit(); err != nil {
-		return nil, fmt.Errorf("Error saving the image metadata")
+		return nil, fmt.Errorf("error saving the image metadata")
 	}
 
 	// return the meme
@@ -343,102 +343,101 @@ func (s *Server) FilterMemesByTags(ctx context.Context, req *pb.FilterMemesByTag
 }
 
 func (s *Server) GetTimelineMemes(ctx context.Context, req *pb.GetTimelineRequest) (*pb.MemesResponse, error) {
-    // Validate pagination parameters
-    if req.Page < 1 {
-        req.Page = 1
-    }
-    if req.PageSize < 1 {
-        req.PageSize = 10
-    }
+	// Validate pagination parameters
+	if req.Page < 1 {
+		req.Page = 1
+	}
+	if req.PageSize < 1 {
+		req.PageSize = 10
+	}
 
-    offset := (req.Page - 1) * req.PageSize
+	offset := (req.Page - 1) * req.PageSize
 
-    // Base query without any tag filtering
-    baseQuery := `
+	// Base query without any tag filtering
+	baseQuery := `
         SELECT m.id, m.media_url, m.media_type, m.name, m.dimensions
         FROM meme m
     `
 
-    // Add timeline-specific sorting
-    switch req.SortOrder {
-    case pb.SortOrder_OLDEST:
-        baseQuery += " ORDER BY m.created_at ASC"  // Assuming created_at exists
-    default:  // NEWEST
-        baseQuery += " ORDER BY m.created_at DESC" // Fallback to creation time
-    }
+	// Add timeline-specific sorting
+	switch req.SortOrder {
+	case pb.SortOrder_OLDEST:
+		baseQuery += " ORDER BY m.created_at ASC" // Assuming created_at exists
+	default: // NEWEST
+		baseQuery += " ORDER BY m.created_at DESC" // Fallback to creation time
+	}
 
-    // Add pagination
-    baseQuery += " LIMIT $1 OFFSET $2"
+	// Add pagination
+	baseQuery += " LIMIT $1 OFFSET $2"
 
-    // Get total count
-    var totalCount int32
-    countQuery := "SELECT COUNT(*) FROM meme"
-    err := s.db.QueryRow(countQuery).Scan(&totalCount)
-    if err != nil {
-        return nil, fmt.Errorf("error counting memes: %v", err)
-    }
+	// Get total count
+	var totalCount int32
+	countQuery := "SELECT COUNT(*) FROM meme"
+	err := s.db.QueryRow(countQuery).Scan(&totalCount)
+	if err != nil {
+		return nil, fmt.Errorf("error counting memes: %v", err)
+	}
 
-    // Execute main query
-    rows, err := s.db.Query(baseQuery, req.PageSize, offset)
-    if err != nil {
-        return nil, fmt.Errorf("error querying memes: %v", err)
-    }
-    defer rows.Close()
+	// Execute main query
+	rows, err := s.db.Query(baseQuery, req.PageSize, offset)
+	if err != nil {
+		return nil, fmt.Errorf("error querying memes: %v", err)
+	}
+	defer rows.Close()
 
-    // Process results
-    var memes []*pb.MemeResponse
-    for rows.Next() {
-        meme := &pb.MemeResponse{}
-        var dimensions pq.Int32Array
-        if err := rows.Scan(
-            &meme.Id,
-            &meme.MediaUrl,
-            &meme.MediaType,
-            &meme.Name,
-            &dimensions,
-        ); err != nil {
-            return nil, fmt.Errorf("error scanning meme: %v", err)
-        }
-        meme.Dimensions = dimensions
+	// Process results
+	var memes []*pb.MemeResponse
+	for rows.Next() {
+		meme := &pb.MemeResponse{}
+		var dimensions pq.Int32Array
+		if err := rows.Scan(
+			&meme.Id,
+			&meme.MediaUrl,
+			&meme.MediaType,
+			&meme.Name,
+			&dimensions,
+		); err != nil {
+			return nil, fmt.Errorf("error scanning meme: %v", err)
+		}
+		meme.Dimensions = dimensions
 
-        // Get tags (maintain existing tag loading logic)
-        tagRows, err := s.db.Query(`
+		// Get tags (maintain existing tag loading logic)
+		tagRows, err := s.db.Query(`
             SELECT t.name
             FROM tag t
             JOIN meme_tag mt ON t.id = mt.tag_id
             WHERE mt.meme_id = $1
         `, meme.Id)
-        if err != nil {
-            return nil, fmt.Errorf("error getting tags: %v", err)
-        }
-        defer tagRows.Close()
+		if err != nil {
+			return nil, fmt.Errorf("error getting tags: %v", err)
+		}
+		defer tagRows.Close()
 
-        var tags []string
-        for tagRows.Next() {
-            var tag string
-            if err := tagRows.Scan(&tag); err != nil {
-                return nil, fmt.Errorf("error scanning tag: %v", err)
-            }
-            tags = append(tags, tag)
-        }
-        meme.Tags = tags
-        memes = append(memes, meme)
-    }
+		var tags []string
+		for tagRows.Next() {
+			var tag string
+			if err := tagRows.Scan(&tag); err != nil {
+				return nil, fmt.Errorf("error scanning tag: %v", err)
+			}
+			tags = append(tags, tag)
+		}
+		meme.Tags = tags
+		memes = append(memes, meme)
+	}
 
-    // Calculate total pages
-    totalPages := totalCount / req.PageSize
-    if totalCount%req.PageSize != 0 {
-        totalPages++
-    }
+	// Calculate total pages
+	totalPages := totalCount / req.PageSize
+	if totalCount%req.PageSize != 0 {
+		totalPages++
+	}
 
-    return &pb.MemesResponse{
-        Memes:      memes,
-        TotalCount: totalCount,
-        Page:       int32(req.Page),
-        TotalPages: totalPages,
-    }, nil
+	return &pb.MemesResponse{
+		Memes:      memes,
+		TotalCount: totalCount,
+		Page:       int32(req.Page),
+		TotalPages: totalPages,
+	}, nil
 }
-
 
 func (s *Server) SearchMemes(ctx context.Context, req *pb.SearchMemesRequest) (*pb.MemesResponse, error) {
 	query := req.Query
