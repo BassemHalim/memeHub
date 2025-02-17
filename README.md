@@ -34,6 +34,10 @@ The backend is made of 2 services:
 TODO:
 - [x] make rate limit and burst an env variable 
 - [x] validate download URL and add whitelist
-- [ ] get whitelisted sites from env or file instead of hardcoding
+- [x] get whitelisted sites from env or file instead of hardcoding
 - [ ] infinite scrolling
 - [x] docker use network
+- [ ] switch to shadcn/ui
+- [ ] ar/en switch
+- [ ] search result filter UI 
+- [ ] 
