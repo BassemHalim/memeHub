@@ -1,5 +1,3 @@
-"use client";
-
 import { Meme } from "@/types/Meme";
 import { DownloadOutlined } from "@ant-design/icons";
 import Image from "next/image";
@@ -11,7 +9,8 @@ import Image from "next/image";
 // };
 
 export default function MemeCard({ meme }: { meme: Meme; size: string }) {
-    meme.media_url = new URL(meme.media_url, "http://localhost:8080").href;
+    meme.media_url = new URL(meme.media_url, "http://gateway:8080").href;
+
     const handleDownload = async () => {
         try {
             const response = await fetch(meme.media_url, {

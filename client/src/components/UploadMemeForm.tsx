@@ -51,7 +51,11 @@ export default function DialogDemo({ className }: { className?: string }) {
                 if (file) {
                     body.append("image", file);
                 }
-                fetch(process.env.NEXT_PUBLIC_API_HOST + "/meme", {
+                const endpoint = new URL(
+                    "/api/meme",
+                    process.env.NEXT_PUBLIC_API_HOST
+                );
+                fetch(endpoint, {
                     method: "POST",
                     body: body,
                 })

@@ -8,7 +8,7 @@ interface MemesResponse {
 }
 
 export function useFetchMemes() {
-  const [memes, setMemes] = useState<Meme[]>([]); // Replace 'any' with your meme type
+  const [memes, setMemes] = useState<Meme[]>([]); 
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -19,7 +19,7 @@ export function useFetchMemes() {
         url.searchParams.append('page', '1');
         url.searchParams.append('pageSize', '100');
         url.searchParams.append('sort', 'newest');
-
+        console.log('fetching from ', url.href)
         const response = await fetch(url);
         
         if (!response.ok) {
