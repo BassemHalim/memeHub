@@ -61,12 +61,22 @@ services:
         networks:
             - memedb_network
         ports:
-            -  "127.0.0.1:8080:8080"
+            - "127.0.0.1:8080:8080"
         depends_on:
             - meme-service
         volumes:
             - ./images:/app/images:ro
             - ./config.json:/app/config.json
+    client:
+        build:
+            context: ../client
+            dockerfile: Dockerfile
+        container_name: nextjs-client
+        ports:
+            - "127.0.0.1:3000:3000"
+        networks:
+            - memedb_network
+       
 
 volumes:
     postgres_data:
