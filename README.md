@@ -40,4 +40,11 @@ TODO:
 - [ ] switch to shadcn/ui
 - [ ] ar/en switch
 - [ ] search result filter UI 
-- [ ] 
+- [ ] endpoint to get tags based on a query
+- [ ] determine if a similar meme already exists
+- [ ] use ocr to get text from images
+- [ ] filtering offensive content
+- [ ] endpoint to delete a meme
+- [ ] endpoint to update a meme tags or name
+ 
+
