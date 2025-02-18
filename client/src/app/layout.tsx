@@ -1,6 +1,7 @@
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import "@ant-design/v5-patch-for-react-19";
+import { GoogleAnalytics } from "@next/third-parties/google";
 import type { Metadata } from "next";
 import "./globals.css";
 
@@ -23,6 +24,9 @@ export default function RootLayout({
                 </main>
                 <Footer />
             </body>
+            <GoogleAnalytics
+                gaId={process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_TAG!}
+            />
         </html>
     );
 }

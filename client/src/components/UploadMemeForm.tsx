@@ -1,9 +1,9 @@
 "use client";
 
 import { UploadOutlined, WarningTwoTone } from "@ant-design/icons";
+import { sendGTMEvent } from "@next/third-parties/google";
 import { Button, Form, Input, Modal, Select, SelectProps, Upload } from "antd";
 import { useState } from "react";
-
 export default function DialogDemo({ className }: { className?: string }) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -18,6 +18,7 @@ export default function DialogDemo({ className }: { className?: string }) {
     ];
     const showModal = () => {
         setIsModalOpen(true);
+        sendGTMEvent({ event: "meme-upload" });
     };
     const submitForm = () => {
         setLoading(true);
