@@ -24,6 +24,11 @@ const nextConfig: NextConfig = {
                   ]
                 : [
                       {
+                          protocol: "https" as const,
+                          hostname: "18.118.4.126.sslip.io",
+                          pathname: "/imgs/**",
+                      },
+                      {
                           protocol: "http" as const,
                           hostname: "gateway",
                           port: "8080",

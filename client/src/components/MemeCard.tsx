@@ -9,8 +9,14 @@ import Image from "next/image";
 // };
 
 export default function MemeCard({ meme }: { meme: Meme; size: string }) {
-    meme.media_url = new URL(meme.media_url, "http://gateway:8080").href;
-
+    meme.media_url = new URL(
+        meme.media_url,
+        "https://18.118.4.126.sslip.io"
+    ).href; // TODO: fix
+    const parts = meme.media_url.split(".")
+    const extension = parts[parts.length-1]
+    console.log("Media URL", meme.media_url)
+    
     const handleDownload = async () => {
         try {
             const response = await fetch(meme.media_url, {
@@ -25,7 +31,7 @@ export default function MemeCard({ meme }: { meme: Meme; size: string }) {
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
-            a.download = `${meme.name.replaceAll(" ", "_")}.jpg`; // TODO: use the correct extension type
+            a.download = `${meme.name.replaceAll(" ", "_")}.${extension}`; // TODO: use the correct extension type
             document.body.appendChild(a);
             a.click();
             window.URL.revokeObjectURL(url);
@@ -44,6 +50,8 @@ export default function MemeCard({ meme }: { meme: Meme; size: string }) {
                 height={meme.dimensions[1]}
                 width={meme.dimensions[0]}
                 className="w-full"
+                unoptimized={meme.media_url.endsWith('.gif')}
+
             />
             <div className="absolute bottom-0 left-0 right-0 bg-gray-800/40 text-white text-xs p-2 group-hover:hidden flex flex-wrap">
                 {meme.tags.map((tag: string) => {
