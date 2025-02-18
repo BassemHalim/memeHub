@@ -4,3 +4,6 @@
 .vscode/** 
 /*.jpeg
 **/*.env
+
+Docker/VPS
+**/*.tar
