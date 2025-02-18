@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -30,11 +31,15 @@ type RateLimiter struct {
 }
 
 func NewRateLimiter(rate rate.Limit, burst int) *RateLimiter {
+	opts := &slog.HandlerOptions{
+
+		Level: slog.LevelDebug,
+	}
 	handler := RateLimiter{
 		clients: make(map[string]*ClientLimiter),
 		rate:    rate,
 		burst:   burst,
-		log:     slog.New(slog.NewJSONHandler(os.Stdout, nil)).With("MODULE", "RATE_LIMITER"),
+		log:     slog.New(slog.NewJSONHandler(os.Stdout, opts)).With("MODULE", "RATE_LIMITER"),
 	}
 
 	go handler.cleanUp()
@@ -77,13 +82,32 @@ func (h *RateLimiter) getClientLimiter(ip string) *rate.Limiter {
 	return client.limiter
 }
 
+func (h *RateLimiter) getIP(r *http.Request) string {
+	// Check common proxy headers
+	realIP := r.Header.Get("X-Real-IP")
+	h.log.Debug("real ip", "X-Real-IP", realIP)
+	if realIP != "" {
+		return realIP
+	}
+
+	forwardedFor := r.Header.Get("X-Forwarded-For")
+	h.log.Debug("forwarded ip", "X-Forwarded-For", forwardedFor)
+
+	if forwardedFor != "" {
+		// Take first IP in X-Forwarded-For list
+		if ips := strings.SplitN(forwardedFor, ",", 2); len(ips) > 0 {
+			return strings.TrimSpace(ips[0])
+		}
+	}
+
+	// Fallback to remote address
+	ip, _, _ := net.SplitHostPort(r.RemoteAddr)
+	return ip
+}
+
 func (h *RateLimiter) RateLimit(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ip, _, err := net.SplitHostPort(r.RemoteAddr)
-		if err != nil {
-			http.Error(w, "Invalid client address", http.StatusBadRequest)
-			return
-		}
+		ip := h.getIP(r)
 
 		limiter := h.getClientLimiter(ip)
 		h.log.Info("Received request", "IP", ip, "tokens_available", limiter.Tokens())
