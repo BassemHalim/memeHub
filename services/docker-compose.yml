@@ -76,7 +76,8 @@ services:
             - "127.0.0.1:3000:3000"
         networks:
             - memedb_network
-       
+        environment:
+            - NEXT_PUBLIC_API_HOST=https://18.118.4.126.sslip.io
 
 volumes:
     postgres_data:
