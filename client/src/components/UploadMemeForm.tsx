@@ -1,8 +1,8 @@
 "use client";
 
-import { UploadOutlined, WarningTwoTone } from "@ant-design/icons";
 import { sendGTMEvent } from "@next/third-parties/google";
 import { Button, Form, Input, Modal, Select, SelectProps, Upload } from "antd";
+import { TriangleAlert, Upload as UploadIcon } from "lucide-react";
 import { useState } from "react";
 export default function DialogDemo({ className }: { className?: string }) {
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -38,7 +38,10 @@ export default function DialogDemo({ className }: { className?: string }) {
                 } else {
                     mimeType = "image/jpeg";
                 }
-
+                if (!file && !values.imageUrl) {
+                    setError("You must upload an image either a url or file");
+                    throw new Error("Missing media");
+                }
                 const body: FormData = new FormData();
                 body.append(
                     "meme",
@@ -88,10 +91,10 @@ export default function DialogDemo({ className }: { className?: string }) {
     return (
         <div className={className}>
             <button
-                className="bg-gray-200 text-gray-800 p-1 px-2 py-1 rounded-lg"
+                className="bg-gray-200 text-gray-800 p-1 px-2 py-1 rounded-lg flex justify-center items-center gap-2"
                 onClick={showModal}
             >
-                Upload <UploadOutlined className="text-lg" />{" "}
+                Upload <UploadIcon />
             </button>
             <Modal
                 title="Upload Meme"
@@ -184,7 +187,7 @@ export default function DialogDemo({ className }: { className?: string }) {
                                 accept="image/*"
                                 beforeUpload={() => false}
                             >
-                                <Button icon={<UploadOutlined />}>
+                                <Button icon={<UploadIcon size={20} />}>
                                     Upload
                                 </Button>
                             </Upload>
@@ -192,10 +195,12 @@ export default function DialogDemo({ className }: { className?: string }) {
                     </Form>
                 ) : (
                     <div className="text-center">
-                        <WarningTwoTone
-                            twoToneColor={"#cb3c71"}
-                            className="text-5xl"
+                        <TriangleAlert
+                            size={100}
+                            className="mx-auto"
+                            color="#cb3c71"
                         />
+
                         <h2 className="font-bold text-lg">
                             Failed to upload Meme
                         </h2>
@@ -204,7 +209,7 @@ export default function DialogDemo({ className }: { className?: string }) {
                             <br />
                             Try uploading the image instead of its url
                             <br />
-                            {error}
+                            Error: {error}
                         </p>
                     </div>
                 )}

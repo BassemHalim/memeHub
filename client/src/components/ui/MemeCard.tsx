@@ -1,5 +1,6 @@
 import { Meme } from "@/types/Meme";
-import { DownloadOutlined } from "@ant-design/icons";
+import { Download } from "lucide-react";
+
 import Image from "next/image";
 
 // const sizeToHeight: Record<string, string> = {
@@ -15,7 +16,7 @@ export default function MemeCard({ meme }: { meme: Meme; size: string }) {
     ).href; // TODO: fix
     const parts = meme.media_url.split(".")
     const extension = parts[parts.length-1]
-    console.log("Media URL", meme.media_url)
+    // console.log("Media URL", meme.media_url)
     
     const handleDownload = async () => {
         try {
@@ -70,7 +71,8 @@ export default function MemeCard({ meme }: { meme: Meme; size: string }) {
                 onClick={handleDownload}
                 className="hidden absolute group-hover:block top-1 right-1 bg-slate-200 text-black rounded-full p-2 flex items-center justify-center w-9 h-9"
             >
-                <DownloadOutlined className="text-lg" />
+                {/* <DownloadOutlined className="text-lg" /> */}
+                <Download />
             </button>
         </div>
     );
