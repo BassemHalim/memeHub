@@ -25,6 +25,8 @@ import (
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
 type MemeUpload struct {
@@ -335,6 +337,36 @@ func searchMemes(memeClient pb.MemeServiceClient, log *slog.Logger) func(w http.
 
 	}
 }
+func deleteMeme(memeClient pb.MemeServiceClient, log *slog.Logger) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodDelete {
+			http.Error(w, "Invalid Method", http.StatusBadRequest)
+			return
+		}
+		// parse query parameters
+		idString := r.PathValue("id")
+		// convert string to int
+		id, err := strconv.Atoi(idString)
+		if err != nil {
+			log.Debug("Failed to parse ID", "ID", idString)
+			http.Error(w, "Invalid ID", http.StatusBadRequest)
+			return
+		}
+
+		log.Info("Delete Meme", "ID", idString)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		_, err = memeClient.DeleteMeme(ctx, &pb.DeleteMemeRequest{
+			Id: int64(id),
+		})
+		if err != nil {
+			log.Debug("Failed to delete meme", "Error", err)
+			http.Error(w, "Failed to delete meme", http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}
+}
 func serveMedia(fs http.Handler, log *slog.Logger) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log.Info("/imgs", "IMAGE_PATH", r.URL.Path)
@@ -374,6 +406,44 @@ func getEnvOrDefault(key, defaultValue string) string {
 		return value
 	}
 	return defaultValue
+}
+
+func AuthMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Check if the request has the correct authorization header
+		authHeader := r.Header.Get("Authorization")
+		authType := strings.Split(authHeader, " ")[0]
+		if authHeader == "" || authType != "Bearer" {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+		authToken := strings.Split(authHeader, " ")[1]
+		token, err := jwt.Parse(authToken, func(token *jwt.Token) (interface{}, error) {
+			// Don't forget to validate the alg is what you expect:
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+
+				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+			}
+			key := getEnvOrDefault("JWT_SECRET", "a-string-secret-at-least-256-bits-long")
+			if key == "a-string-secret-at-least-256-bits-long" {
+				fmt.Println("=========================NO SECRET KEY PROVIDED a placeholder is used being used =========================")
+			}
+			return []byte(key), nil 
+		})
+		if err != nil || !token.Valid {
+			fmt.Println("Unauthorized request", "Error", err, token)
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+		if claims, ok := token.Claims.(jwt.MapClaims); ok {
+			if claims["role"] != "admin" {
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
+		}
+
+		next.ServeHTTP(w, r)
+	})
 }
 
 func main() {
@@ -428,7 +498,6 @@ func main() {
 	}
 
 	uploadDir := "images"
-
 	// Ensure the upload directory is relative to the current working directory
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -438,17 +507,19 @@ func main() {
 	uploadDir = filepath.Join(cwd, uploadDir)
 	fs := http.FileServer(http.Dir(uploadDir))
 
-	// Handle all requests to /imgs
-
 	getMemesTimeline := http.HandlerFunc(getMemesTimeline(memeServiceClient, log))
 	uploadMeme := http.HandlerFunc(uploadMeme(memeServiceClient, log))
 	searchMemes := http.HandlerFunc(searchMemes(memeServiceClient, log))
 	serveMedia := http.HandlerFunc(serveMedia(fs, log))
+	deleteMeme := http.HandlerFunc(deleteMeme(memeServiceClient, log))
 
 	http.Handle("/api/memes", corsHandler(limiter.RateLimit(getMemesTimeline)))
 	http.Handle("/api/meme", corsHandler(limiter.RateLimit(uploadMeme)))
 	http.Handle("/api/memes/search", corsHandler(limiter.RateLimit(searchMemes)))
 	http.Handle("/imgs/", corsHandler(limiter.RateLimit(serveMedia)))
+
+	http.Handle("DELETE /api/meme/{id}", corsHandler(limiter.RateLimit(AuthMiddleware(deleteMeme))))
+
 	// Start server
 	log.Info("Starting server", "PORT", serverPort)
 	if err := http.ListenAndServe(fmt.Sprintf(":%d", serverPort), nil); err != nil {

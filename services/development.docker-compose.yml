@@ -42,8 +42,8 @@ services:
             - DB_NAME=memedb
         networks:
             - memedb_network
-        expose:
-            - "50051"
+        ports:
+            - "50051:50051"
         depends_on:
             - postgres
         volumes:
