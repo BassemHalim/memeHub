@@ -21,9 +21,10 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	MemeService_UploadMeme_FullMethodName        = "/meme.MemeService/UploadMeme"
 	MemeService_GetMeme_FullMethodName           = "/meme.MemeService/GetMeme"
+	MemeService_DeleteMeme_FullMethodName        = "/meme.MemeService/DeleteMeme"
+	MemeService_GetTimelineMemes_FullMethodName  = "/meme.MemeService/GetTimelineMemes"
 	MemeService_FilterMemesByTags_FullMethodName = "/meme.MemeService/FilterMemesByTags"
 	MemeService_SearchMemes_FullMethodName       = "/meme.MemeService/SearchMemes"
-	MemeService_GetTimelineMemes_FullMethodName  = "/meme.MemeService/GetTimelineMemes"
 )
 
 // MemeServiceClient is the client API for MemeService service.
@@ -32,9 +33,10 @@ const (
 type MemeServiceClient interface {
 	UploadMeme(ctx context.Context, in *UploadMemeRequest, opts ...grpc.CallOption) (*MemeResponse, error)
 	GetMeme(ctx context.Context, in *GetMemeRequest, opts ...grpc.CallOption) (*MemeResponse, error)
+	DeleteMeme(ctx context.Context, in *DeleteMemeRequest, opts ...grpc.CallOption) (*DeleteMemeResponse, error)
+	GetTimelineMemes(ctx context.Context, in *GetTimelineRequest, opts ...grpc.CallOption) (*MemesResponse, error)
 	FilterMemesByTags(ctx context.Context, in *FilterMemesByTagsRequest, opts ...grpc.CallOption) (*MemesResponse, error)
 	SearchMemes(ctx context.Context, in *SearchMemesRequest, opts ...grpc.CallOption) (*MemesResponse, error)
-	GetTimelineMemes(ctx context.Context, in *GetTimelineRequest, opts ...grpc.CallOption) (*MemesResponse, error)
 }
 
 type memeServiceClient struct {
@@ -65,6 +67,26 @@ func (c *memeServiceClient) GetMeme(ctx context.Context, in *GetMemeRequest, opt
 	return out, nil
 }
 
+func (c *memeServiceClient) DeleteMeme(ctx context.Context, in *DeleteMemeRequest, opts ...grpc.CallOption) (*DeleteMemeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteMemeResponse)
+	err := c.cc.Invoke(ctx, MemeService_DeleteMeme_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *memeServiceClient) GetTimelineMemes(ctx context.Context, in *GetTimelineRequest, opts ...grpc.CallOption) (*MemesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MemesResponse)
+	err := c.cc.Invoke(ctx, MemeService_GetTimelineMemes_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *memeServiceClient) FilterMemesByTags(ctx context.Context, in *FilterMemesByTagsRequest, opts ...grpc.CallOption) (*MemesResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(MemesResponse)
@@ -85,25 +107,16 @@ func (c *memeServiceClient) SearchMemes(ctx context.Context, in *SearchMemesRequ
 	return out, nil
 }
 
-func (c *memeServiceClient) GetTimelineMemes(ctx context.Context, in *GetTimelineRequest, opts ...grpc.CallOption) (*MemesResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(MemesResponse)
-	err := c.cc.Invoke(ctx, MemeService_GetTimelineMemes_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // MemeServiceServer is the server API for MemeService service.
 // All implementations must embed UnimplementedMemeServiceServer
 // for forward compatibility.
 type MemeServiceServer interface {
 	UploadMeme(context.Context, *UploadMemeRequest) (*MemeResponse, error)
 	GetMeme(context.Context, *GetMemeRequest) (*MemeResponse, error)
+	DeleteMeme(context.Context, *DeleteMemeRequest) (*DeleteMemeResponse, error)
+	GetTimelineMemes(context.Context, *GetTimelineRequest) (*MemesResponse, error)
 	FilterMemesByTags(context.Context, *FilterMemesByTagsRequest) (*MemesResponse, error)
 	SearchMemes(context.Context, *SearchMemesRequest) (*MemesResponse, error)
-	GetTimelineMemes(context.Context, *GetTimelineRequest) (*MemesResponse, error)
 	mustEmbedUnimplementedMemeServiceServer()
 }
 
@@ -120,14 +133,17 @@ func (UnimplementedMemeServiceServer) UploadMeme(context.Context, *UploadMemeReq
 func (UnimplementedMemeServiceServer) GetMeme(context.Context, *GetMemeRequest) (*MemeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetMeme not implemented")
 }
+func (UnimplementedMemeServiceServer) DeleteMeme(context.Context, *DeleteMemeRequest) (*DeleteMemeResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteMeme not implemented")
+}
+func (UnimplementedMemeServiceServer) GetTimelineMemes(context.Context, *GetTimelineRequest) (*MemesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetTimelineMemes not implemented")
+}
 func (UnimplementedMemeServiceServer) FilterMemesByTags(context.Context, *FilterMemesByTagsRequest) (*MemesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method FilterMemesByTags not implemented")
 }
 func (UnimplementedMemeServiceServer) SearchMemes(context.Context, *SearchMemesRequest) (*MemesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SearchMemes not implemented")
-}
-func (UnimplementedMemeServiceServer) GetTimelineMemes(context.Context, *GetTimelineRequest) (*MemesResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetTimelineMemes not implemented")
 }
 func (UnimplementedMemeServiceServer) mustEmbedUnimplementedMemeServiceServer() {}
 func (UnimplementedMemeServiceServer) testEmbeddedByValue()                     {}
@@ -186,6 +202,42 @@ func _MemeService_GetMeme_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
+func _MemeService_DeleteMeme_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteMemeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MemeServiceServer).DeleteMeme(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MemeService_DeleteMeme_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MemeServiceServer).DeleteMeme(ctx, req.(*DeleteMemeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MemeService_GetTimelineMemes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetTimelineRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MemeServiceServer).GetTimelineMemes(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MemeService_GetTimelineMemes_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MemeServiceServer).GetTimelineMemes(ctx, req.(*GetTimelineRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _MemeService_FilterMemesByTags_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(FilterMemesByTagsRequest)
 	if err := dec(in); err != nil {
@@ -222,24 +274,6 @@ func _MemeService_SearchMemes_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
-func _MemeService_GetTimelineMemes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetTimelineRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(MemeServiceServer).GetTimelineMemes(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: MemeService_GetTimelineMemes_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MemeServiceServer).GetTimelineMemes(ctx, req.(*GetTimelineRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // MemeService_ServiceDesc is the grpc.ServiceDesc for MemeService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -256,16 +290,20 @@ var MemeService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _MemeService_GetMeme_Handler,
 		},
 		{
+			MethodName: "DeleteMeme",
+			Handler:    _MemeService_DeleteMeme_Handler,
+		},
+		{
+			MethodName: "GetTimelineMemes",
+			Handler:    _MemeService_GetTimelineMemes_Handler,
+		},
+		{
 			MethodName: "FilterMemesByTags",
 			Handler:    _MemeService_FilterMemesByTags_Handler,
 		},
 		{
 			MethodName: "SearchMemes",
 			Handler:    _MemeService_SearchMemes_Handler,
-		},
-		{
-			MethodName: "GetTimelineMemes",
-			Handler:    _MemeService_GetTimelineMemes_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

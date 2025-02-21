@@ -5,9 +5,10 @@ option go_package = "github.com/BassemHalim/memeDB/proto/memeService";
 service MemeService {
   rpc UploadMeme (UploadMemeRequest) returns (MemeResponse);
   rpc GetMeme (GetMemeRequest) returns (MemeResponse);
+  rpc DeleteMeme (DeleteMemeRequest) returns (DeleteMemeResponse);
+  rpc GetTimelineMemes(GetTimelineRequest) returns (MemesResponse);
   rpc FilterMemesByTags(FilterMemesByTagsRequest) returns (MemesResponse);
   rpc SearchMemes(SearchMemesRequest) returns(MemesResponse);
-  rpc GetTimelineMemes(GetTimelineRequest) returns (MemesResponse);
 }
 
 message UploadMemeRequest {
@@ -21,19 +22,14 @@ message UploadMemeRequest {
 message GetMemeRequest {
   int64 id = 1;
 }
+message DeleteMemeRequest{
+  int64 id = 1;
+}
+
 message GetTimelineRequest{
   int32 page = 1;
   int32 page_size = 2;
   SortOrder sort_order = 3;
-}
-
-message MemeResponse {
-  int64 id = 1;
-  string media_url = 2;
-  string media_type = 3;
-  string name = 4;
-  repeated string tags = 5;
-  repeated int32 dimensions = 6;
 }
 
 message FilterMemesByTagsRequest {
@@ -49,12 +45,28 @@ message SearchMemesRequest{
   int32 page = 3;
   int32 page_size = 4;
 }
+
+// Response messages
+message MemeResponse {
+  int64 id = 1;
+  string media_url = 2;
+  string media_type = 3;
+  string name = 4;
+  repeated string tags = 5;
+  repeated int32 dimensions = 6;
+}
+
+message DeleteMemeResponse{
+  bool success = 1;
+}
+
 message MemesResponse {
   repeated MemeResponse memes = 1;
   int32 total_count = 2;
   int32 page = 3;
   int32 total_pages = 4;
 }
+
 
 enum TagMatchType {
   ANY = 0;  // Match memes that have any of the specified tags
