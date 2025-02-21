@@ -32,6 +32,15 @@ type Meme struct {
 
 var logger *slog.Logger = slog.Default()
 
+func getUploadDir() string {
+	uploadDir := "images"
+	cwd, err := os.Getwd()
+	if err != nil {
+		return "./images" // return the relative path
+	}
+	return filepath.Join(cwd, uploadDir)
+}
+
 // Saves image with filename and dir at dir/filename
 func saveImage(dir string, filename string, image []byte) error {
 	filePath := filepath.Join(dir, filename)
@@ -43,6 +52,17 @@ func saveImage(dir string, filename string, image []byte) error {
 	if err := os.WriteFile(filePath, image, 0666); err != nil {
 		logger.Error("Failed to save image to disk due to error", "Error", err)
 		return fmt.Errorf("error saving image to disk")
+	}
+	return nil
+}
+
+// Soft deletes the image at dir/filename by just renaming it to deleted_filename
+func softDeleteImage(dir string, filename string) error {
+	oldPath := filepath.Join(dir, filename)
+	newPath := filepath.Join(dir, "deleted_"+filename)
+	if err := os.Rename(oldPath, newPath); err != nil {
+		logger.Error("Failed to delete image", "Error", err)
+		return fmt.Errorf("error deleting image")
 	}
 	return nil
 }
@@ -490,4 +510,33 @@ func (s *Server) SearchMemes(ctx context.Context, req *pb.SearchMemesRequest) (*
 		Page:       int32(req.Page),
 		TotalPages: totalPages,
 	}, nil
+}
+
+// deletes the meme and it's meme-tag relations (tags are not deleted) as well as the image
+func (s *Server) DeleteMeme(ctx context.Context, req *pb.DeleteMemeRequest) (*pb.DeleteMemeResponse, error) {
+	txn, err := s.db.Begin()
+	if err != nil {
+		return &pb.DeleteMemeResponse{Success: false}, fmt.Errorf("error starting a transaction")
+	}
+	defer txn.Rollback()
+	resp, err := s.GetMeme(ctx, &pb.GetMemeRequest{Id: req.Id})
+	if err != nil {
+		return &pb.DeleteMemeResponse{Success: false}, fmt.Errorf("error getting meme: %v", err)
+	}
+	// delete the image
+	s.log.Info("Deleting image", "Image", resp)
+	softDeleteImage(getUploadDir(), filepath.Base(resp.MediaUrl))
+	_, err = txn.Exec("DELETE FROM meme_tag WHERE meme_id = $1", req.Id)
+	if err != nil {
+		s.log.Error("Failed to delete meme_tag", "Error", err)
+		return &pb.DeleteMemeResponse{Success: false}, fmt.Errorf("error deleting meme_tags: %v", err)
+	}
+
+	_, err = txn.Exec("DELETE FROM meme WHERE id = $1", req.Id)
+	if err != nil {
+		s.log.Error("Failed to delete meme", "Error", err)
+		return &pb.DeleteMemeResponse{Success: false}, fmt.Errorf("error deleting meme: %v", err)
+	}
+	txn.Commit()
+	return &pb.DeleteMemeResponse{Success: true}, nil
 }
