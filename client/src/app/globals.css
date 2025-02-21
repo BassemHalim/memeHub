@@ -21,8 +21,8 @@ body {
 
 @layer base {
     :root {
-        --background: #eeeeee;
-        --foreground: #222831;
+        --background: #222831;
+        --foreground: #eeeeee;
         --card: 0 0% 100%;
         --card-foreground: 20 14.3% 4.1%;
         --popover: 0 0% 100%;
@@ -82,6 +82,4 @@ body {
     body {
         @apply bg-background text-foreground;
     }
-
- 
 }
