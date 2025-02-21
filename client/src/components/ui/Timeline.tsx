@@ -1,10 +1,19 @@
 "use client";
 
-import InfiniteScroll from "@/components/ui/InfiniteScroll";
 import MemeCard from "@/components/ui/MemeCard";
 import { Meme } from "@/types/Meme";
 import { Loader2 } from "lucide-react";
-import MasonryGrid from "./MasonryGrid";
+import { MasonryProps, useInfiniteLoader } from "masonic";
+import dynamic from "next/dynamic";
+import { ComponentType, useState } from "react";
+
+function MasonryItem({ data }: { data: Meme; index: number; width: number }) {
+    return MemeCard({ meme: data, size: "medium" });
+}
+const Masonry: ComponentType<MasonryProps<Meme>> = dynamic(
+    () => import("masonic").then((mod) => mod.Masonry),
+    { ssr: false }
+);
 
 interface TimelineProps {
     memes: Meme[];
@@ -19,31 +28,43 @@ export default function Timeline({
     hasMore = false,
     next = () => {},
 }: TimelineProps) {
-    console.log("Rendering timeline");
-    console.log(memes, isLoading, hasMore, next);
+    const [lastStartIndex, setLastStartIndex] = useState(-1);
+    const loadMore = useInfiniteLoader(
+        async (startIndex) => {
+            if (lastStartIndex === startIndex || isLoading) {
+                return;
+            }
+            setLastStartIndex(startIndex);
+            if (!hasMore) {
+                console.log("No more items to load");
+                return;
+            }
+            next();
+        },
+
+        {
+            isItemLoaded: (index, items) =>
+                hasMore ? (index < items.length ? true : false) : true,
+            minimumBatchSize: 4,
+            threshold: 1, // new data should be loaded when the user scrolls within 4 items of the end
+            // totalItems: 50
+        }
+    );
     return (
         <section className="container mx-auto py-8 px-4 grow-2">
             <div>
-                <div className="columns-1 sm:columns-2 lg:columns-4 gap-6">
-                {/* <MasonryGrid columns={4} gap={32}> */}
-                    {memes.map((meme) => (
-                        <div key={meme.id} className="mb-6 break-inside-avoid">
-                            <MemeCard meme={meme} size="medium" />
-                        </div>
-                    ))}
-                {/* </MasonryGrid> */}
-                </div>
+                <Masonry
+                    items={memes}
+                    render={MasonryItem}
+                    columnWidth={350}
+                    columnGutter={20}
+                    onRender={loadMore}
+                    itemKey={(data) => data.id}
+                />
 
-                <InfiniteScroll
-                    hasMore={hasMore}
-                    isLoading={isLoading}
-                    next={next}
-                    threshold={1}
-                >
-                    {hasMore && (
-                        <Loader2 className="my-4 h-8 w-8 animate-spin" />
-                    )}
-                </InfiniteScroll>
+                {isLoading && (
+                    <Loader2 className="my-4 h-8 w-8 animate-spin mx-auto" />
+                )}
             </div>
         </section>
     );

@@ -22,7 +22,7 @@ export function useFetchMemes() {
             setError(null);
             const url = new URL("/api/memes", process.env.NEXT_PUBLIC_API_HOST);
             url.searchParams.append("page", pageNum.toString());
-            url.searchParams.append("pageSize", "8");
+            url.searchParams.append("pageSize", "4");
             url.searchParams.append("sort", "newest");
 
             const response = await fetch(url);

@@ -25,6 +25,7 @@ const HeroSearch = () => {
             <section className="relative h-[400px] w-full mb-12">
                 <div className="absolute inset-0">
                     <Image
+                        priority
                         src="/ali_rabi3.jpg"
                         height={500}
                         width={1000}
