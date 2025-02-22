@@ -337,6 +337,48 @@ func searchMemes(memeClient pb.MemeServiceClient, log *slog.Logger) func(w http.
 
 	}
 }
+
+func searchTags(memeClient pb.MemeServiceClient, log* slog.Logger) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet{
+			http.Error(w, "Invalid Method", http.StatusBadRequest)
+			return
+		}
+		// parse query parameters
+		queryParams := r.URL.Query()
+		query := queryParams.Get("query")
+		limit := queryParams.Get("limit")
+		if len(query) < 3 {
+			http.Error(w, "Invalid query parameters", http.StatusBadRequest)
+			return
+		}
+		if len(limit) == 0 {
+			limit = "5"
+		}
+		limitVal, err := strconv.Atoi(limit)
+		if err != nil {
+			log.Debug("Failed to parse limit", "Limit", limit)
+			http.Error(w, "Invalid limit", http.StatusBadRequest)
+			return
+		}
+		log.Debug("Search Tags", "Query", query, "Limit", limit)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		resp, err := memeClient.SearchTags(ctx, &pb.SearchTagsRequest{
+			Query: query,
+			Limit: int32(limitVal),
+		})
+		if err != nil {
+			log.Debug("Failed to fetch tags from memeClient", "Error", err)
+			http.Error(w, "Failed to fetch tags", http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(resp)
+	}
+}
+
 func deleteMeme(memeClient pb.MemeServiceClient, log *slog.Logger) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodDelete {
@@ -473,15 +515,6 @@ func main() {
 		log.Error("failed to connect to memeService", "ERROR", err)
 		return
 	}
-	// RequestLogger middleware logs all HTTP requests
-	// requestLogger := func(next http.Handler) http.Handler {
-	// 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-	// 		start := time.Now()
-	// 		log.Printf("Started %s %s\n", r.Method, r.URL.Path)
-	// 		next.ServeHTTP(w, r)
-	// 		log.Printf("Completed %s %s in %v\n", r.Method, r.URL.Path, time.Since(start))
-	// 	})
-	// }
 	// Enable CORS for all endpoints
 	corsHandler := func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -512,10 +545,12 @@ func main() {
 	searchMemes := http.HandlerFunc(searchMemes(memeServiceClient, log))
 	serveMedia := http.HandlerFunc(serveMedia(fs, log))
 	deleteMeme := http.HandlerFunc(deleteMeme(memeServiceClient, log))
+	searchTags := http.HandlerFunc(searchTags(memeServiceClient, log))
 
 	http.Handle("/api/memes", corsHandler(limiter.RateLimit(getMemesTimeline)))
 	http.Handle("/api/meme", corsHandler(limiter.RateLimit(uploadMeme)))
 	http.Handle("/api/memes/search", corsHandler(limiter.RateLimit(searchMemes)))
+	http.Handle("/api/tags/search", corsHandler(limiter.RateLimit(searchTags)))
 	http.Handle("/imgs/", corsHandler(limiter.RateLimit(serveMedia)))
 
 	http.Handle("DELETE /api/meme/{id}", corsHandler(limiter.RateLimit(AuthMiddleware(deleteMeme))))
