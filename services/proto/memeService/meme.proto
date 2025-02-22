@@ -9,6 +9,7 @@ service MemeService {
   rpc GetTimelineMemes(GetTimelineRequest) returns (MemesResponse);
   rpc FilterMemesByTags(FilterMemesByTagsRequest) returns (MemesResponse);
   rpc SearchMemes(SearchMemesRequest) returns(MemesResponse);
+  rpc SearchTags(SearchTagsRequest) returns(TagsResponse);
 }
 
 message UploadMemeRequest {
@@ -44,6 +45,15 @@ message SearchMemesRequest{
   string query = 1;
   int32 page = 3;
   int32 page_size = 4;
+}
+
+message SearchTagsRequest{
+  string query = 1;
+  int32 limit = 2;
+}
+
+message TagsResponse{
+  repeated string tags = 1;
 }
 
 // Response messages

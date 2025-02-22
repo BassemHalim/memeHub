@@ -540,3 +540,34 @@ func (s *Server) DeleteMeme(ctx context.Context, req *pb.DeleteMemeRequest) (*pb
 	txn.Commit()
 	return &pb.DeleteMemeResponse{Success: true}, nil
 }
+
+func (s *Server) SearchTags(ctx context.Context, req *pb.SearchTagsRequest) (*pb.TagsResponse, error) {
+	// TODO: use text search
+	query := req.Query
+	limit := req.Limit
+	if len(query) < 3 {
+		return nil, fmt.Errorf("query must be at least 3 characters long")
+	}
+	if limit < 1 {
+		limit = 5
+	}
+
+	var tags []string
+	pattern := "%" + query + "%"
+	rows, err := s.db.Query("SELECT name FROM tag WHERE name ILIKE $1 LIMIT $2", pattern, limit)
+	if err != nil {
+		s.log.Error("Failed to search tags", "Error", err, "pattern", pattern)
+		return nil, fmt.Errorf("error searching tags: %v", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var tag string
+		if err := rows.Scan(&tag); err != nil {
+			return nil, fmt.Errorf("error scanning tag: %v", err)
+		}
+		tags = append(tags, tag)
+	}
+
+	return &pb.TagsResponse{Tags: tags}, nil
+}
