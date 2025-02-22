@@ -1,26 +1,57 @@
 "use client";
 
+import Loader from "@/components/ui/loader";
+import MultipleSelector, { Option } from "@/components/ui/multipleSelector";
 import { sendGTMEvent } from "@next/third-parties/google";
-import { Button, Form, Input, Modal, Select, SelectProps, Upload } from "antd";
+import { Button, Form, Input, Modal, Upload } from "antd";
 import { TriangleAlert, Upload as UploadIcon } from "lucide-react";
 import { useState } from "react";
+
+const OPTIONS: Option[] = [
+    { label: "Movie", value: "Movie" },
+    { label: "TV-Show", value: "TV-Show" },
+    { label: "Play", value: "Play" },
+    { label: "blank", value: "blank" },
+];
+
 export default function DialogDemo({ className }: { className?: string }) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [form] = Form.useForm();
 
-    const options: SelectProps["options"] = [
-        { label: "Movie", value: "Movie" },
-        { label: "TV-Show", value: "TV-Show" },
-        { label: "Play", value: "Play" },
-        { label: "blank", value: "blank" },
-    ];
     const showModal = () => {
         setIsModalOpen(true);
         sendGTMEvent({ event: "meme-upload" });
     };
-    const submitForm = () => {
+    const searchTags = async (input: string) :Promise<Option[]> => {
+        if (input.length < 3) {
+            return OPTIONS;
+        }
+        const url = new URL("/api/tags/search", process.env.NEXT_PUBLIC_API_HOST);
+        url.searchParams.append("query", input)
+        return fetch(url).then(async (res) => {
+            if (!res.ok) {
+                throw new Error("Failed to fetch tags");
+            }
+            const data = await res.json();
+            return data;
+        }).then((data) => {
+            if (!data.tags) {
+                return OPTIONS;
+            }
+            return data.tags?.map((tag: string) => ({ label: tag, value: tag }));
+        }).catch((err) => {
+            console.error(err);
+            return OPTIONS;
+        });
+        
+        // return OPTIONS.filter((option) =>
+        //     option.label.toLowerCase().includes(input.toLowerCase())
+        // );
+    };
+
+    const handleSubmit = () => {
         setLoading(true);
         form.validateFields()
             .then((values) => {
@@ -100,7 +131,7 @@ export default function DialogDemo({ className }: { className?: string }) {
                 title="Upload Meme"
                 open={isModalOpen}
                 confirmLoading={loading}
-                onOk={submitForm}
+                onOk={handleSubmit}
                 onCancel={handleCancel}
                 footer={[
                     <Button key="back" onClick={handleCancel}>
@@ -111,7 +142,7 @@ export default function DialogDemo({ className }: { className?: string }) {
                             key="submit"
                             type="primary"
                             loading={loading}
-                            onClick={submitForm}
+                            onClick={handleSubmit}
                         >
                             Submit
                         </Button>
@@ -121,7 +152,7 @@ export default function DialogDemo({ className }: { className?: string }) {
                 {!error ? (
                     <Form
                         form={form}
-                        onFinish={submitForm}
+                        onFinish={handleSubmit}
                         layout="vertical"
                         initialValues={{
                             name: "",
@@ -154,11 +185,18 @@ export default function DialogDemo({ className }: { className?: string }) {
                                 },
                             ]}
                         >
-                            <Select
+                            {/* <Select
                                 mode="tags"
                                 style={{ width: "100%" }}
                                 placeholder="Add tags..."
                                 options={options}
+                            /> */}
+                            <MultipleSelector
+                                onSearch={async (input) => searchTags(input)}
+                                defaultOptions={OPTIONS}
+                                creatable
+                                placeholder="Add tags..."
+                                loadingIndicator={<Loader />}
                             />
                         </Form.Item>
 
