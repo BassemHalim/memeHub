@@ -1,11 +1,11 @@
 "use client";
 
 import MemeCard from "@/components/ui/MemeCard";
-import { Meme } from "@/types/Meme";
 import { Loader2 } from "lucide-react";
 import { MasonryProps, useInfiniteLoader } from "masonic";
 import dynamic from "next/dynamic";
 import { ComponentType, useState } from "react";
+import { Meme } from "../../types/Meme";
 
 function MasonryItem({ data }: { data: Meme; index: number; width: number }) {
     return MemeCard({ meme: data, size: "medium" });

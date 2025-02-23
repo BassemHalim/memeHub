@@ -1,6 +1,6 @@
 "use client";
-import { Meme } from "@/types/Meme";
 import { useCallback, useEffect, useState } from "react";
+import { Meme } from "../types/Meme";
 
 interface MemesResponse {
     memes: Meme[];
@@ -49,7 +49,7 @@ export function useFetchMemes() {
         if (currentPage === 1) {
             fetchMemes(1);
         }
-    }, [fetchMemes]);
+    }, [fetchMemes, currentPage]);
 
     const next = useCallback(() => {
         if (!hasMore || isLoading) return;

@@ -39,19 +39,26 @@ const formSchema = z
                 })
             )
             .min(1, "At least one tag is required"),
-        imageUrl: z.string().optional(),
+        imageUrl: z.union([z.literal(""), z.string().trim().url()]),
         imageFile: z
             .instanceof(File)
             .refine((file) => file.size < MAX_FILE_SIZE, {
                 message: "Your image must be less than 2MB.",
-            }),
+            })
+            .optional(),
     })
-    .refine((data) => data.imageUrl || data.imageFile, {
-        message: "You must provide an image url or upload an image",
-        path: ["imageUrl", "imageFile"],
-    });
+    .refine(
+        (data) => {
+            return data.imageUrl !== "" || data.imageFile != undefined;
+        },
 
-export default function UPloadForm({ className }: { className?: string }) {
+        {
+            message: "You must provide an image url or upload an image",
+            path: ["root"],
+        }
+    );
+
+export default function DialogDemo({ className }: { className?: string }) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
@@ -104,6 +111,7 @@ export default function UPloadForm({ className }: { className?: string }) {
     };
 
     const onSubmit = (values: z.infer<typeof formSchema>) => {
+       
         setLoading(true);
         const tags = values.tags.map((tag) => tag.value);
         // Call API to upload meme

@@ -1,9 +1,9 @@
 "use client";
 import Timeline from "@/components/ui/Timeline";
-import { Meme } from "@/types/Meme";
 import { Search as SearchIcon } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, Suspense, useEffect, useState } from "react";
+import { Meme } from '@/types/Meme'
 
 function SearchComponent() {
     const [memes, setMemes] = useState<Meme[]>([]);
@@ -106,7 +106,7 @@ function SearchComponent() {
                     </h2>
                 </div>
             ) : null}
-            <Timeline memes={memes} isLoading={isLoading}  />
+            <Timeline memes={memes} isLoading={isLoading} />
         </section>
     );
 }
