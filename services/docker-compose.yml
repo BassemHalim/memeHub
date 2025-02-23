@@ -58,6 +58,7 @@ services:
             - GRPC_PORT=50051
             - TOKEN_RATE=100
             - TOKEN_BURST=10
+            - JWT_SECRET=use-openssl-rand--base64-128
         networks:
             - memedb_network
         ports:
@@ -77,7 +78,7 @@ services:
         networks:
             - memedb_network
         environment:
-            - NEXT_PUBLIC_API_HOST=
+            - NEXT_PUBLIC_API_HOST=http://localhost:8080
 
 volumes:
     postgres_data:
