@@ -85,13 +85,13 @@ func (h *RateLimiter) getClientLimiter(ip string) *rate.Limiter {
 func (h *RateLimiter) getIP(r *http.Request) string {
 	// Check common proxy headers
 	realIP := r.Header.Get("X-Real-IP")
-	h.log.Debug("real ip", "X-Real-IP", realIP)
+	// h.log.Debug("real ip", "X-Real-IP", realIP)
 	if realIP != "" {
 		return realIP
 	}
 
 	forwardedFor := r.Header.Get("X-Forwarded-For")
-	h.log.Debug("forwarded ip", "X-Forwarded-For", forwardedFor)
+	// h.log.Debug("forwarded ip", "X-Forwarded-For", forwardedFor)
 
 	if forwardedFor != "" {
 		// Take first IP in X-Forwarded-For list
