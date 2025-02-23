@@ -40,12 +40,13 @@ TODO:
 -   [x] google analytics
 -   [x] infinite scrolling
 -   [x] docker use network
--   [ ] switch to shadcn/ui
+-   [ ] switch to shadcn/ui (90%done)
 -   [ ] ar/en switch
 -   [ ] search result filter UI
--   [ ] endpoint to get tags based on a query
+-   [x] endpoint to get tags based on a query
 -   [ ] determine if a similar meme already exists (https://github.com/qarmin/czkawka)
 -   [ ] use ocr to get text from images
--   [ ] filtering offensive content
--   [ ] endpoint to delete a meme
+-   [ ] filtering offensive content 
+-   [x] endpoint to delete a meme
 -   [ ] endpoint to update a meme tags or name
+-   [ ] Refactor go to follow recommended project structure /cmd /internal etc.
