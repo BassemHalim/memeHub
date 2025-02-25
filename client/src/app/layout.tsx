@@ -6,7 +6,22 @@ import "./globals.css";
 
 export const metadata: Metadata = {
     title: "Qasr El Memez",
-    description: "The home of your memes",
+    description: "The home of your egyptiann memes",
+    openGraph: {
+        type: "website",
+        url: "https://qasrelmemez.com",
+        title: "Qasr El Memez",
+        description: "Qasr el Memez | Your daily dose of authentic Egyptian humor, viral content, and relatable local memes. Share, laugh, and connect with the best of Egyptian internet culture.",
+        images: [
+            {
+                url: "https://qasrelmemez.com/logo.png",
+                width: 588,
+                height: 588,
+                alt: "Qasr El Memez",
+            },
+        ],
+    },
+        
 };
 
 export default function RootLayout({

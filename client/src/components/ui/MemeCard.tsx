@@ -1,23 +1,28 @@
-import { Download } from "lucide-react";
+import { ClipboardCheck, Download, Share2 } from "lucide-react";
 import { Meme } from "../../types/Meme";
 
+import { Card } from "@/components/ui/card";
 import Image from "next/image";
-
-// const sizeToHeight: Record<string, string> = {
-//     small: "h-[200px]",
-//     medium: "h-[300px]",
-//     large: "h-[400px]",
-// };
+import { useState } from "react";
 
 export default function MemeCard({ meme }: { meme: Meme; size: string }) {
-    meme.media_url = new URL(
-        meme.media_url,
-        "https://18.118.4.126.sslip.io"
-    ).href; // TODO: fix
+    const [shareLogo, setShareLogo] = useState(<Share2 scale={50} />);
+    meme.media_url = new URL(meme.media_url, "https://qasrelmemez.com").href;
     const parts = meme.media_url.split(".");
     const extension = parts[parts.length - 1];
     // console.log("Media URL", meme.media_url)
-
+    const tags = new Set(meme.tags.map((tag) => tag.toLowerCase()));
+    tags.add(meme.name.toLowerCase());
+    const badges = Array.from(tags);
+    const handleShare = async () => {
+        await navigator.clipboard.writeText(meme.media_url);
+        setShareLogo(
+            <ClipboardCheck scale={50} className="animate-fade-in-scale" />
+        );
+        setTimeout(() => {
+            setShareLogo(<Share2 scale={50} />);
+        }, 1500);
+    };
     const handleDownload = async () => {
         try {
             const response = await fetch(meme.media_url, {
@@ -42,37 +47,50 @@ export default function MemeCard({ meme }: { meme: Meme; size: string }) {
         }
     };
     return (
-        <div
-            className={`container group relative rounded-lg overflow-hidden shadow-lg  w-full`}
+        <Card
+            className={`container relative overflow-hidden shadow-lg  w-full`}
         >
-            <Image
-                src={meme.media_url}
-                alt={meme.name}
-                height={meme.dimensions[1]}
-                width={meme.dimensions[0]}
-                className="w-full"
-                unoptimized={meme.media_url.endsWith(".gif")}
-            />
-            <div className="absolute bottom-0 left-0 right-0 bg-gray-800/40 text-white text-xs p-2 group-hover:hidden flex flex-wrap">
-                {meme.tags.map((tag: string) => {
-                    return (
-                        <span
-                            key={tag}
-                            className="text-xs bg-gray-200 text-gray-800 text-xs px-2 py-1 rounded-lg mx-[4px] my-[2px]"
-                        >
-                            {tag}
-                        </span>
-                    );
-                })}
+            <div className="relative group">
+                <Image
+                    src={meme.media_url}
+                    alt={meme.name}
+                    height={meme.dimensions[1]}
+                    width={meme.dimensions[0]}
+                    className="w-full"
+                    unoptimized={meme.media_url.endsWith(".gif")}
+                />
+                <div className="hidden absolute group-hover:flex top-1 right-2 m-2">
+                    <button
+                        onClick={handleDownload}
+                        className="bg-primary border-transparent bg-primary text-primary-foreground shadow  rounded-full p-1 flex items-center justify-center w-6 h-6 mr-3"
+                    >
+                        <Download scale={50} />
+                    </button>
+                    <button
+                        onClick={handleShare}
+                        className="bg-primary border-transparent bg-primary text-primary-foreground shadow  rounded-full p-1 flex items-center justify-center w-6 h-6"
+                    >
+                        {shareLogo}
+                    </button>
+                </div>
+
+                {/* <div className="flex items-center flex-wrap p-2"> */}
+                    <div className="hidden absolute bottom-0 left-0 right-0 bg-gray-800/50 text-white text-xs p-2 group-hover:flex flex-wrap backdrop-blur-sm">
+                    {badges.map((tag: string) => {
+                        return (
+                            <span
+                                key={tag}
+                                className="text-xs mx-[4px] my-[2px]"
+                                dir={
+                                    /[\u0600-\u06FF]/.test(tag) ? "rtl" : "ltr"
+                                }
+                            >
+                                #{tag.replaceAll(" ", "_")}
+                            </span>
+                        );
+                    })}
+                </div>
             </div>
-            {/* download button */}
-            <button
-                onClick={handleDownload}
-                className="hidden absolute group-hover:block top-1 right-1 bg-slate-200 text-black rounded-full p-2 flex items-center justify-center w-9 h-9"
-            >
-                {/* <DownloadOutlined className="text-lg" /> */}
-                <Download />
-            </button>
-        </div>
+        </Card>
     );
 }

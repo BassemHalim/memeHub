@@ -10,7 +10,7 @@ const UploadMemeForm = dynamic(
 )
 export default function Header() {
     return (
-        <header className="font-bold text-lg text-center p-2 flex justify-between items-center  relative">
+        <header className="font-bold text-lg text-center p-1 px-4 flex justify-between items-center  relative sticky top-0 bg-[#060c18]/80 z-10  backdrop-blur-md border-b-2  shadow-border ">
             <Link href="/" className="hidden md:block">
                 Qasr el memez
             </Link>
@@ -18,8 +18,8 @@ export default function Header() {
                 <Image
                     src="/logo.png"
                     alt="qasr el memes"
-                    width={80}
-                    height={80}
+                    width={70}
+                    height={70}
                 />
             </Link>
             <UploadMemeForm className=" " />

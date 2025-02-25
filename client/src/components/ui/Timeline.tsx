@@ -51,13 +51,13 @@ export default function Timeline({
         }
     );
     return (
-        <section className="container mx-auto py-8 px-4 grow-2">
+        <section className="container mx-auto py-4 px-4 grow-2">
             <div>
                 <Masonry
                     items={memes}
                     render={MasonryItem}
                     columnWidth={350}
-                    columnGutter={20}
+                    columnGutter={10}
                     onRender={loadMore}
                     itemKey={(data) => data.id}
                 />

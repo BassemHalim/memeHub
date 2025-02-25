@@ -8,7 +8,7 @@ export default function Home() {
     const { memes, isLoading, hasMore, next } = useFetchMemes();
 
     return (
-        <section className="w-full flex flex-col">
+        <div className="w-full flex flex-col">
             <HeroSearch />
             <Timeline
                 memes={memes}
@@ -16,6 +16,6 @@ export default function Home() {
                 hasMore={hasMore}
                 next={next}
             />
-        </section>
+        </div>
     );
 }

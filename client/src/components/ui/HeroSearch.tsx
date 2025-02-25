@@ -22,7 +22,7 @@ const HeroSearch = () => {
 
     return (
         <div>
-            <section className="relative h-[400px] w-full mb-12">
+            <section className="relative h-[400px] w-full mb-6 shadow-md shadow-secondary" >
                 <div className="absolute inset-0">
                     <Image
                         priority
