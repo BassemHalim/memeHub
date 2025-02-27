@@ -4,6 +4,7 @@ import { ClipboardCheck, Download, Share2 } from "lucide-react";
 import { cn } from "@/components/lib/utils";
 import { Card } from "@/components/ui/card";
 import Image from "next/image";
+import Link from "next/link";
 import { MouseEventHandler, useState } from "react";
 
 export default function MemeCard({ meme }: { meme: Meme; size: string }) {
@@ -22,7 +23,7 @@ export default function MemeCard({ meme }: { meme: Meme; size: string }) {
     const tags = new Set(meme.tags.map((tag) => tag.toLowerCase()));
     tags.add(meme.name.toLowerCase());
     const badges = Array.from(tags);
-    const handleShare:MouseEventHandler = (e) => {
+    const handleShare: MouseEventHandler = (e) => {
         e.stopPropagation();
         navigator.clipboard.writeText(meme.media_url).then(() => {
             setShareLogo(
@@ -33,7 +34,7 @@ export default function MemeCard({ meme }: { meme: Meme; size: string }) {
             }, 1500);
         });
     };
-    const handleDownload:MouseEventHandler = async (e) => {
+    const handleDownload: MouseEventHandler = async (e) => {
         e.stopPropagation();
         try {
             const response = await fetch(meme.media_url, {
@@ -102,16 +103,19 @@ export default function MemeCard({ meme }: { meme: Meme; size: string }) {
                 >
                     {badges.map((tag: string) => {
                         return (
-                            <span
+                            <Link
+                                href={
+                                    "/search?" +
+                                    new URLSearchParams([["query", tag]])
+                                }
                                 key={tag}
-                                className="text-xs mx-[4px] my-[2px]"
+                                className="text-xs mx-[4px] my-[2px] hover:text-amber-400"
                                 dir={
                                     /[\u0600-\u06FF]/.test(tag) ? "rtl" : "ltr"
                                 }
                             >
                                 #{tag.replaceAll(" ", "_")}
-                            </span>
-                            //TODO: mobile slider for tags and download/share buttons
+                            </Link>
                         );
                     })}
                 </div>
