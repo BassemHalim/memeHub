@@ -1,12 +1,28 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
-import { Meme } from "../types/Meme";
+import Ajv from "ajv";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Meme, MemesResponse, memesResponseSchema } from "../types/Meme";
 
-interface MemesResponse {
-    memes: Meme[];
-    total_count: number;
-    page: number;
-    total_pages: number;
+const ajv = new Ajv();
+async function fetchMemes(pageNum: number): Promise<MemesResponse> {
+    const url = new URL("/api/memes", process.env.NEXT_PUBLIC_API_HOST);
+    url.searchParams.append("page", pageNum.toString());
+    url.searchParams.append("pageSize", "4");
+    url.searchParams.append("sort", "newest");
+
+    const res = await fetch(url);
+    if (!res.ok) {
+        throw new Error("Failed to fetch memes");
+    }
+    const data = await res.json();
+
+    const validate = ajv.compile(memesResponseSchema);
+    const valid = validate(data);
+    if (!valid) {
+        console.log(validate.errors);
+        throw new Error("Invalid response format");
+    }
+    return data;
 }
 
 export function useFetchMemes() {
@@ -14,49 +30,40 @@ export function useFetchMemes() {
     const [isLoading, setIsLoading] = useState(false);
     const [hasMore, setHasMore] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [currentPage, setCurrentPage] = useState(1);
+    const page = useRef(0) // page is not rendered to it doesn't need a state
+    const initialized = useRef(false)
+    const loadMoreMemes = useCallback(async () => {
+        const currentPage = page.current
+        console.log("loading page", currentPage + 1);
 
-    const fetchMemes = useCallback(async (pageNum: number) => {
-        try {
-            setIsLoading(true);
-            setError(null);
-            const url = new URL("/api/memes", process.env.NEXT_PUBLIC_API_HOST);
-            url.searchParams.append("page", pageNum.toString());
-            url.searchParams.append("pageSize", "4");
-            url.searchParams.append("sort", "newest");
-
-            const response = await fetch(url);
-            if (!response.ok) throw new Error("Failed to fetch memes");
-
-            const data = (await response.json()) as MemesResponse;
-
-            setMemes((prev) => {
-                const seen = new Set(prev.map((m) => m.id));
-                return [...prev, ...data.memes.filter((m) => !seen.has(m.id))];
+        setIsLoading(true);
+        setError(null);
+        fetchMemes(currentPage + 1)
+            .then((memesResp) => {
+                const newMemes = memesResp.memes;
+                setMemes((prev) => [...prev, ...newMemes]);
+                page.current +=1
+                if (memesResp.page === memesResp.total_pages) {
+                    setHasMore(false);
+                }
+            })
+            .catch((err) => {
+                setError("Failed to get Memes");
+                console.log(err);
+            })
+            .finally(() => {
+                setIsLoading(false);
             });
-
-            if (data.page >= data.total_pages) {
-                setHasMore(false);
-            }
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "An error occurred");
-        } finally {
-            setIsLoading(false);
-        }
     }, []);
 
     useEffect(() => {
-        if (currentPage === 1) {
-            fetchMemes(1);
+        console.log('here')
+        if (!initialized.current) {
+            console.log("loading memes");
+            loadMoreMemes();
+            initialized.current = true;
         }
-    }, [fetchMemes, currentPage]);
+    }, [loadMoreMemes]);
 
-    const next = useCallback(() => {
-        if (!hasMore || isLoading) return;
-        const nextPage = currentPage + 1;
-        setCurrentPage(nextPage);
-        fetchMemes(nextPage);
-    }, [hasMore, isLoading, currentPage, fetchMemes]);
-
-    return { memes, error, isLoading, hasMore, next };
+    return { memes, error, isLoading, hasMore, next: loadMoreMemes };
 }
