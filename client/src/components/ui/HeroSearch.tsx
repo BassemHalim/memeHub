@@ -45,7 +45,7 @@ const HeroSearch = () => {
                                 name="query"
                                 type="text"
                                 placeholder="Search memes..."
-                                className={`w-full px-6 py-4 rounded-lg text-lg shadow-lg pr-14`}
+                                className={`w-full px-6 py-4 rounded-lg text-lg shadow-lg pr-14 font-medium bg-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring`}
                             />
                             <button type="submit">
                                 <Search className="absolute right-4 top-0 mt-4 text-gray-400 h-6 w-6" />

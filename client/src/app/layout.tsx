@@ -4,9 +4,11 @@ import { GoogleAnalytics } from "@next/third-parties/google";
 import type { Metadata } from "next";
 import "./globals.css";
 
+
+
 export const metadata: Metadata = {
     title: "Qasr El Memez",
-    description: "The home of your egyptiann memes",
+    description: "The home of your egyptian memes",
     openGraph: {
         type: "website",
         url: "https://qasrelmemez.com",
