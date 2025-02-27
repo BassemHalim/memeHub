@@ -240,8 +240,8 @@ func uploadMeme(memeClient pb.MemeServiceClient, log *slog.Logger) func(w http.R
 
 			memeURL := meme.MediaURL
 			if !memeURLValid(memeURL) {
-				log.Error("Invalid meme url", "URL", memeURL, "IP", r.RemoteAddr)
-				http.Error(w, "Invalid media URL", http.StatusBadRequest)
+				log.Error("Invalid meme url or too big", "URL", memeURL, "IP", r.RemoteAddr)
+				http.Error(w, "Invalid media URL or file is too big files should be <2MB", http.StatusBadRequest)
 				return
 			}
 
@@ -539,7 +539,6 @@ func main() {
 	}
 	uploadDir = filepath.Join(cwd, uploadDir)
 	fs := http.FileServer(http.Dir(uploadDir))
-
 	getMemesTimeline := http.HandlerFunc(getMemesTimeline(memeServiceClient, log))
 	uploadMeme := http.HandlerFunc(uploadMeme(memeServiceClient, log))
 	searchMemes := http.HandlerFunc(searchMemes(memeServiceClient, log))
