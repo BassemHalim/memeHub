@@ -2,6 +2,16 @@
 
 import { Button } from "@/components/ui/button";
 import {
+    Dialog,
+    DialogClose,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
+import {
     Form,
     FormControl,
     FormDescription,
@@ -15,17 +25,6 @@ import Loader from "@/components/ui/loader";
 import MultipleSelector, { Option } from "@/components/ui/multipleSelector";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { sendGTMEvent } from "@next/third-parties/google";
-import {
-    Dialog,
-    DialogClose,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from "@/components/ui/dialog";
-
 import { TriangleAlert, Upload as UploadIcon } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -178,14 +177,14 @@ export default function UploadMeme({ className }: { className?: string }) {
         <div className={className}>
             <Dialog>
                 <DialogTrigger asChild>
-                    <button
+                    <Button
                         className="bg-gray-200 text-gray-800 p-1 px-2 py-1 rounded-lg flex justify-center items-center gap-2"
                         onClick={showModal}
                     >
                         Upload <UploadIcon />
-                    </button>
+                    </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-[425px]">
+                <DialogContent className="sm:max-w-[425px] overflow-y-auto max-h-[80vh] pb-96 sm:p-6 md:max-h-[90vh] ">
                     <DialogHeader>
                         <DialogTitle>Upload a Meme</DialogTitle>
                         <DialogDescription>
@@ -198,7 +197,7 @@ export default function UploadMeme({ className }: { className?: string }) {
                             <Form {...form}>
                                 <form
                                     onSubmit={form.handleSubmit(onSubmit)}
-                                    className="space-y-8"
+                                    className="space-y-1"
                                 >
                                     <FormField
                                         control={form.control}
@@ -332,7 +331,7 @@ export default function UploadMeme({ className }: { className?: string }) {
                             </div>
                         )}
                     </div>
-                    <DialogFooter>
+                    <DialogFooter className="gap-2">
                         <DialogClose asChild>
                             <Button
                                 className=""
@@ -343,12 +342,12 @@ export default function UploadMeme({ className }: { className?: string }) {
                             </Button>
                         </DialogClose>
                         <Button
-                            className="mx-2 "
                             key="submit"
                             onClick={form.handleSubmit(onSubmit)}
                             disabled={
                                 loading ||
-                                !form.formState.isValid || form.formState.isValidating
+                                !form.formState.isValid ||
+                                form.formState.isValidating
                             }
                         >
                             Submit
