@@ -9,7 +9,6 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
-    DialogTrigger,
 } from "@/components/ui/dialog";
 import {
     Form,
@@ -24,11 +23,11 @@ import { Input } from "@/components/ui/input";
 import Loader from "@/components/ui/loader";
 import MultipleSelector, { Option } from "@/components/ui/multipleSelector";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { sendGTMEvent } from "@next/third-parties/google";
-import { TriangleAlert, Upload as UploadIcon } from "lucide-react";
-import { useState } from "react";
+import { TriangleAlert } from "lucide-react";
+import { Dispatch, SetStateAction, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { validateImage } from "./lib/imgUtils";
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024;
 const OPTIONS: Option[] = [
@@ -49,12 +48,15 @@ const formSchema = z
             )
             .min(1, "At least one tag is required"),
         imageUrl: z.union([z.literal(""), z.string().trim().url()]),
-        imageFile: z
-            .instanceof(File)
-            .refine((file) => file.size < MAX_FILE_SIZE, {
-                message: "Your image must be less than 2MB.",
-            })
-            .optional(),
+        imageFile:
+            typeof window === "undefined"
+                ? z.any()
+                : z
+                      .instanceof(File)
+                      .refine((file) => file.size < MAX_FILE_SIZE, {
+                          message: "Your image must be less than 2MB.",
+                      })
+                      .optional(),
     })
     .refine(
         (data) => {
@@ -67,10 +69,17 @@ const formSchema = z
         }
     );
 
-export default function UploadMeme({ className }: { className?: string }) {
+export default function UploadMeme({
+    className,
+    open,
+    onOpen,
+}: {
+    className?: string;
+    open: boolean;
+    onOpen: Dispatch<SetStateAction<boolean>>;
+}) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
-    // const [form] = Form.useForm();
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -82,9 +91,6 @@ export default function UploadMeme({ className }: { className?: string }) {
         },
     });
 
-    const showModal = () => {
-        sendGTMEvent({ event: "meme-upload" });
-    };
     const searchTags = async (input: string): Promise<Option[]> => {
         if (input.length < 3) {
             return OPTIONS;
@@ -117,56 +123,73 @@ export default function UploadMeme({ className }: { className?: string }) {
             });
     };
 
-    const onSubmit = (values: z.infer<typeof formSchema>) => {
-        setLoading(true);
-        const tags = values.tags.map((tag) => tag.value);
-        // Call API to upload meme
-        let file: File | undefined, mimeType;
-        if (values.imageFile) {
-            file = values.imageFile;
-            if (file) {
-                if (file.size > MAX_FILE_SIZE) {
-                    setError("Image is too big");
-                    throw new Error("Upload file too large");
+    const onSubmit = async (values: z.infer<typeof formSchema>) => {
+        try {
+            setLoading(true);
+            const tags = values.tags.map((tag) => tag.value);
+            // Call API to upload meme
+            let file: File | undefined, mimeType;
+            if (values.imageFile) {
+                file = values.imageFile;
+                if (file) {
+                    if (file.size > MAX_FILE_SIZE) {
+                        form.setError("imageFile", {
+                            message: "Image is too big",
+                        });
+                        throw new Error("image too big")
+                    }
+                    await validateImage(file).catch(() => {
+                        form.setError("imageFile", {
+                            message: "invalid image",
+                        });
+                        throw new Error("Bad image")
+                    });
+
+                    mimeType = file.type;
                 }
-                mimeType = file.type;
+            } else {
+                mimeType = "image/jpeg";
             }
-        } else {
-            mimeType = "image/jpeg";
-        }
-        if (!file && !values.imageUrl) {
-            setError("You must upload an image either a url or file");
-            throw new Error("Missing media");
-        }
-        const body: FormData = new FormData();
-        body.append(
-            "meme",
-            JSON.stringify({
-                name: values.name,
-                media_url: values.imageUrl,
-                mime_type: mimeType,
-                tags: tags,
+            if (!file && !values.imageUrl) {
+                setError("You must upload an image either a url or file");
+                throw new Error("Missing media");
+            }
+            const body: FormData = new FormData();
+            body.append(
+                "meme",
+                JSON.stringify({
+                    name: values.name,
+                    media_url: values.imageUrl,
+                    mime_type: mimeType,
+                    tags: tags,
+                })
+            );
+            if (file) {
+                body.append("image", file);
+            }
+            const endpoint = new URL(
+                "/api/meme",
+                process.env.NEXT_PUBLIC_API_HOST
+            );
+            fetch(endpoint, {
+                method: "POST",
+                body: body,
             })
-        );
-        if (file) {
-            body.append("image", file);
+                .then(async (res) => {
+                    if (!res.ok) {
+                        const errorData = await res.text();
+                        throw new Error("Failed to upload meme " + errorData);
+                    }
+                    form.reset();
+                    onOpen(false);
+                })
+                .catch((err: Error) => {
+                    console.log(err);
+                    setError(err.message);
+                });
+        } catch (error) {
+            console.log(error);
         }
-        const endpoint = new URL("/api/meme", process.env.NEXT_PUBLIC_API_HOST);
-        fetch(endpoint, {
-            method: "POST",
-            body: body,
-        })
-            .then(async (res) => {
-                if (!res.ok) {
-                    const errorData = await res.text();
-                    throw new Error("Failed to upload meme " + errorData);
-                }
-                form.reset();
-            })
-            .catch((err: Error) => {
-                console.log(err);
-                setError(err.message);
-            });
         setLoading(false);
     };
     const handleCancel = () => {
@@ -175,15 +198,7 @@ export default function UploadMeme({ className }: { className?: string }) {
     };
     return (
         <div className={className}>
-            <Dialog>
-                <DialogTrigger asChild>
-                    <Button
-                        className="bg-gray-200 text-gray-800 p-1 px-2 py-1 rounded-lg flex justify-center items-center gap-2"
-                        onClick={showModal}
-                    >
-                        Upload <UploadIcon />
-                    </Button>
-                </DialogTrigger>
+            <Dialog open={open} onOpenChange={onOpen}>
                 <DialogContent className="sm:max-w-[425px] overflow-y-auto max-h-[80vh] pb-96 sm:p-6 md:max-h-[90vh] ">
                     <DialogHeader>
                         <DialogTitle>Upload a Meme</DialogTitle>
@@ -304,6 +319,7 @@ export default function UploadMeme({ className }: { className?: string }) {
                                                         }
                                                     />
                                                 </FormControl>
+                                                <FormMessage />
                                             </FormItem>
                                         )}
                                     />

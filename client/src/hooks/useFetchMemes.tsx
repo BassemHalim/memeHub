@@ -57,7 +57,6 @@ export function useFetchMemes() {
     }, []);
 
     useEffect(() => {
-        console.log('here')
         if (!initialized.current) {
             console.log("loading memes");
             loadMoreMemes();
