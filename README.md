@@ -4,9 +4,6 @@
 
 A microservice-based meme sharing platform for uploading and searching for relevant memes.
 
-**Work in Progress**
-This is a work in progress project. The service can currently upload memes and list all memes. The search functionality is still being implemented
-
 The choice to use a microservice architecture is for learning purposes and is not the most ideal choice.
 The memeService currently stores the memes locally
 
@@ -23,7 +20,6 @@ The memeService currently stores the memes locally
     - Next.js
     - TypeScript
     - TailwindCSS
-    - ant.design
 
 ## Architecture:
 
@@ -34,19 +30,16 @@ The backend is made of 2 services:
 
 TODO:
 
--   [x] make rate limit and burst an env variable
--   [x] validate download URL and add whitelist
--   [x] get whitelisted sites from env or file instead of hardcoding
--   [x] google analytics
--   [x] infinite scrolling
--   [x] docker use network
--   [ ] switch to shadcn/ui (90%done)
+-   [x] endpoint to get tags based on a query
+-   [x] Refactor go to follow recommended project structure /cmd /internal etc. (gateway done)
+-   [x] endpoint to delete a meme
 -   [ ] ar/en switch
 -   [ ] search result filter UI
--   [x] endpoint to get tags based on a query
 -   [ ] determine if a similar meme already exists (https://github.com/qarmin/czkawka)
 -   [ ] use ocr to get text from images
 -   [ ] filtering offensive content 
--   [x] endpoint to delete a meme
 -   [ ] endpoint to update a meme tags or name
--   [ ] Refactor go to follow recommended project structure /cmd /internal etc.
+-   [ ] image editing UI
+-   [ ] meme page
+-   [ ] validate url image size client side
+-   [ ] compress images
