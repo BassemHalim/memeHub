@@ -11,15 +11,14 @@ RUN go mod download
 RUN go mod tidy
 
 
-WORKDIR /app/memeService/src
 
-RUN GOOS=linux go build -o /meme-service .
+
+RUN GOOS=linux go build -o /meme-service ./memeService/cmd/memeservice
 
 # Final stage
 FROM alpine:latest
 COPY --from=builder /meme-service /meme-service
 
-WORKDIR /app
 RUN mkdir -p images 
 
 CMD ["/meme-service"]
