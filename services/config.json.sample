@@ -1,9 +1,9 @@
 {
     "whitelisted_domains": [
         "pinterest.com",
+        "imgur.com",
         "i.pinimg.com",
         "twitter.com",
-        "imgur.com",
         "i.redd.it",
         "cdn.discordapp.com",
         "twimg.com",
@@ -19,5 +19,11 @@
         "cloudfront.net",
         "fastly.net",
         "imgix.net"
-    ]
+    ],
+    "max_upload_size": 2097152,
+    "port": 8080,
+    "rate_limit": 5,
+    "burst_rate": 10,
+    "log_level": 0
+    
 }
