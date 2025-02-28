@@ -1,29 +1,8 @@
 {
-    "whitelisted_domains": [
-        "pinterest.com",
-        "i.pinimg.com",
-        "twitter.com",
-        "imgur.com",
-        "i.redd.it",
-        "cdn.discordapp.com",
-        "twimg.com",
-        "pbs.twimg.com",
-        "fbcdn.net",
-        "flickr.com",
-        "staticflickr.com",
-        "cloudinary.com",
-        "imgbox.com",
-        "postimage.org",
-        "lensdump.com",
-        "cubeupload.com",
-        "cloudfront.net",
-        "fastly.net",
-        "imgix.net"
-    ],
+    "whitelisted_domains": ["example.com"],
     "max_upload_size": 2097152,
     "port": 8080,
     "rate_limit": 5,
     "burst_rate": 10,
     "log_level": 0
-    
 }

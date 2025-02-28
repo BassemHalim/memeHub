@@ -43,6 +43,7 @@ func main() {
 	getMemesTimeline := http.HandlerFunc(server.GetTimeline)
 	uploadMeme := http.HandlerFunc(server.UploadMeme)
 	searchMemes := http.HandlerFunc(server.SearchMemes)
+	getMeme := http.HandlerFunc(server.GetMeme)
 	deleteMeme := http.HandlerFunc(server.DeleteMeme)
 	searchTags := http.HandlerFunc(server.SearchTags)
 
@@ -50,6 +51,7 @@ func main() {
 	http.Handle("GET /api/memes/search", middleware.CORS(limiter.RateLimit(searchMemes)))
 	http.Handle("GET /api/tags/search", middleware.CORS(limiter.RateLimit(searchTags)))
 	http.Handle("POST /api/meme", middleware.CORS(limiter.RateLimit(uploadMeme)))
+	http.Handle("GET /api/meme/{id}", middleware.CORS(limiter.RateLimit(getMeme)))
 	http.Handle("DELETE /api/meme/{id}", middleware.CORS(limiter.RateLimit(middleware.Auth(deleteMeme))))
 
 	fileServer, err := fileserver.New(log)
