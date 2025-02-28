@@ -1,3 +1,4 @@
+"use client";
 import { Meme } from "@/types/Meme";
 import { ClipboardCheck, Download, Share2 } from "lucide-react";
 

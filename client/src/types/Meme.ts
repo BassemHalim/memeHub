@@ -1,7 +1,7 @@
 export type MemeSize = "small" | "medium" | "large";
 
 export interface Meme {
-    id: number;
+    id: string;
     media_url: string;
     media_type: string;
     tags: string[];
@@ -24,7 +24,7 @@ import { JSONSchemaType } from 'ajv';
 const memeSchema: JSONSchemaType<Meme> = {
     type: 'object',
     properties: {
-      id: { type: 'number' },
+      id: { type: 'string' },
       media_url: { type: 'string' },
       media_type: { type: 'string' },
       tags: { 

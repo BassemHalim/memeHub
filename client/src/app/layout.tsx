@@ -35,7 +35,7 @@ export default function RootLayout({
         <html lang="en">
             <body className={` antialiased flex flex-col min-h-screen`}>
                 <Header />
-                <main className="grow flex flex-col items-center justify-start w-full">
+                <main className="grow flex flex-col items-center justify-center w-full">
                     {children}
                 </main>
                 <Footer />

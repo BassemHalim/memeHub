@@ -7,7 +7,7 @@ const ajv = new Ajv();
 async function fetchMemes(pageNum: number): Promise<MemesResponse> {
     const url = new URL("/api/memes", process.env.NEXT_PUBLIC_API_HOST);
     url.searchParams.append("page", pageNum.toString());
-    url.searchParams.append("pageSize", "4");
+    url.searchParams.append("pageSize", "10");
     url.searchParams.append("sort", "newest");
 
     const res = await fetch(url);
@@ -35,7 +35,6 @@ export function useFetchMemes() {
     const loadMoreMemes = useCallback(async () => {
         const currentPage = page.current
         console.log("loading page", currentPage + 1);
-
         setIsLoading(true);
         setError(null);
         fetchMemes(currentPage + 1)
