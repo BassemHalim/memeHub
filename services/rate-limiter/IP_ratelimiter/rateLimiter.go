@@ -33,7 +33,7 @@ type RateLimiter struct {
 func NewRateLimiter(rate rate.Limit, burst int) *RateLimiter {
 	opts := &slog.HandlerOptions{
 
-		Level: slog.LevelDebug,
+		Level: slog.LevelInfo,
 	}
 	handler := RateLimiter{
 		clients: make(map[string]*ClientLimiter),
