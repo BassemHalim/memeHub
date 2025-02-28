@@ -78,7 +78,7 @@ services:
         networks:
             - memedb_network
         environment:
-            - NEXT_PUBLIC_API_HOST=http://localhost:8080
+            - NEXT_PUBLIC_API_HOST=http://gateway:8080
 
 volumes:
     postgres_data:
