@@ -4,14 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
 	"log/slog"
-	"mime"
-	"os"
 	"path/filepath"
 
+	"github.com/BassemHalim/memeDB/memeService/internal/utils"
 	pb "github.com/BassemHalim/memeDB/proto/memeService"
-	"github.com/google/uuid"
 	"github.com/lib/pq"
 )
 
@@ -21,68 +18,7 @@ type Server struct {
 	log *slog.Logger
 }
 
-type Meme struct {
-	ID              int64
-	MediaURL        string
-	MediaType       string
-	MediaDimensions string
-	Name            string
-	Tags            []string
-}
-
-var logger *slog.Logger = slog.Default()
-
-func getUploadDir() string {
-	uploadDir := "images"
-	cwd, err := os.Getwd()
-	if err != nil {
-		return "./images" // return the relative path
-	}
-	return filepath.Join(cwd, uploadDir)
-}
-
-// Saves image with filename and dir at dir/filename
-func saveImage(dir string, filename string, image []byte) error {
-	filePath := filepath.Join(dir, filename)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		logger.Error("Failed to create directory", "Dir", dir, "Error", err)
-		return fmt.Errorf("error creating memes directory")
-	}
-
-	if err := os.WriteFile(filePath, image, 0666); err != nil {
-		logger.Error("Failed to save image to disk due to error", "Error", err)
-		return fmt.Errorf("error saving image to disk")
-	}
-	return nil
-}
-
-// Soft deletes the image at dir/filename by just renaming it to deleted_filename
-func softDeleteImage(dir string, filename string) error {
-	oldPath := filepath.Join(dir, filename)
-	newPath := filepath.Join(dir, "deleted_"+filename)
-	if err := os.Rename(oldPath, newPath); err != nil {
-		logger.Error("Failed to delete image", "Error", err)
-		return fmt.Errorf("error deleting image")
-	}
-	return nil
-}
-
-// returns a random UUID
-func randomUUID() string {
-	return uuid.New().String()
-}
-
-// converts a mimetype like image/jpeg to an extension like '.jpg'
-func mimeToExtension(mimeType string) (string, error) {
-	ext, err := mime.ExtensionsByType(mimeType)
-	if err != nil {
-		logger.Debug("Invalid mime type")
-		return "", fmt.Errorf("Invalid media mime type")
-	}
-	return ext[len(ext)-1], nil
-}
-
-func NewMemeServer(db *sql.DB, logger *slog.Logger) *Server {
+func New(db *sql.DB, logger *slog.Logger) *Server {
 	return &Server{db: db, log: logger}
 }
 
@@ -93,11 +29,11 @@ func (s *Server) UploadMeme(ctx context.Context, req *pb.UploadMemeRequest) (*pb
 	if len(req.Dimensions) != 2 {
 		return nil, fmt.Errorf("invalid image dimensions")
 	}
-	ext, err := mimeToExtension(req.MediaType)
+	ext, err := utils.MimeToExtension(req.MediaType)
 	if err != nil {
 		return nil, err
 	}
-	filename := randomUUID() + ext
+	filename := utils.RandomUUID() + ext
 
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -145,16 +81,8 @@ func (s *Server) UploadMeme(ctx context.Context, req *pb.UploadMemeRequest) (*pb
 			return nil, fmt.Errorf("error saving the tag %s", err)
 		}
 	}
-	//  Save the image
-	uploadDir := "images"
-	cwd, err := os.Getwd()
-	if err != nil {
-		log.Error("Failed to get current working directory", "ERROR", err)
-		return nil, fmt.Errorf("invalid images directory")
-	}
-	uploadDir = filepath.Join(cwd, uploadDir)
-
-	if err := saveImage(uploadDir, filename, req.Image); err != nil {
+	// save image
+	if err := utils.SaveImage(utils.UploadDir(), filename, req.Image); err != nil {
 		return nil, err
 	}
 
@@ -182,8 +110,8 @@ func (s *Server) GetMeme(ctx context.Context, req *pb.GetMemeRequest) (*pb.MemeR
 		WHERE id = $1
 		`, req.Id).Scan(&resp.MediaUrl, &resp.MediaType, &resp.Name, &dimensions)
 	if err != nil {
-		log.Println("Failed to get meme", err)
-		return nil, fmt.Errorf("Error getting the meme")
+		s.log.Info("Failed to get meme", "ERROR", err)
+		return nil, fmt.Errorf("error getting the meme")
 	}
 	resp.Dimensions = dimensions
 	// get tags
@@ -194,16 +122,16 @@ func (s *Server) GetMeme(ctx context.Context, req *pb.GetMemeRequest) (*pb.MemeR
 	WHERE mt.meme_id = $1
 	`, req.Id)
 	if err != nil {
-		log.Println("Failed to get tag", err)
-		return nil, fmt.Errorf("Error getting the tag")
+		s.log.Info("Failed to get tag", "Error", err)
+		return nil, fmt.Errorf("error getting the tag")
 	}
 	defer rows.Close()
 	var tags []string
 	for rows.Next() {
 		var tag string
 		if err = rows.Scan(&tag); err != nil {
-			log.Println("Failed to get tag name", err)
-			return nil, fmt.Errorf("Error getting the tag")
+			s.log.Info("Failed to get tag name", "ERROR", err)
+			return nil, fmt.Errorf("error getting the tag")
 		}
 		tags = append(tags, tag)
 	}
@@ -211,7 +139,7 @@ func (s *Server) GetMeme(ctx context.Context, req *pb.GetMemeRequest) (*pb.MemeR
 	return &resp, nil
 }
 
-// This is a LLM generated function and is disposable
+// This is a LLM generated function and is disposable  NOT CURRENTLY USED
 func (s *Server) FilterMemesByTags(ctx context.Context, req *pb.FilterMemesByTagsRequest) (*pb.MemesResponse, error) {
 	// Validate pagination parameters
 	if req.Page < 1 {
@@ -525,7 +453,7 @@ func (s *Server) DeleteMeme(ctx context.Context, req *pb.DeleteMemeRequest) (*pb
 	}
 	// delete the image
 	s.log.Info("Deleting image", "Image", resp)
-	softDeleteImage(getUploadDir(), filepath.Base(resp.MediaUrl))
+	utils.SoftDeleteImage(utils.UploadDir(), filepath.Base(resp.MediaUrl))
 	_, err = txn.Exec("DELETE FROM meme_tag WHERE meme_id = $1", req.Id)
 	if err != nil {
 		s.log.Error("Failed to delete meme_tag", "Error", err)
