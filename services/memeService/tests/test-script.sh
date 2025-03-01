@@ -18,3 +18,7 @@ grpcurl -plaintext -proto proto/memeService/meme.proto -d '{"tags":["funny", "te
 // Delete meme
 grpcurl -plaintext -proto proto/memeService/meme.proto -d '{"id": 24}' \
   localhost:50051 meme.MemeService/DeleteMeme
+
+# Timeline 
+grpcurl -plaintext -proto proto/memeService/meme.proto \
+  localhost:50051 meme.MemeService/GetTimelineMemes;

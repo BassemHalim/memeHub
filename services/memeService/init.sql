@@ -1,6 +1,8 @@
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
 -- Create Tables
 CREATE TABLE IF NOT EXISTS meme (
-    id SERIAL PRIMARY KEY,
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
     media_url TEXT NOT NULL,
     media_type TEXT NOT NULL,
 	name TEXT NOT NULL,
@@ -16,7 +18,7 @@ CREATE TABLE IF NOT EXISTS tag (
 );
 
 CREATE TABLE IF NOT EXISTS meme_tag (
-    meme_id INTEGER REFERENCES meme(id),
+    meme_id uuid REFERENCES meme(id),
     tag_id INTEGER REFERENCES tag(id),
     PRIMARY KEY (meme_id, tag_id)
 );

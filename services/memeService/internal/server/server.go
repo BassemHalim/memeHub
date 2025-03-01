@@ -43,11 +43,11 @@ func (s *Server) UploadMeme(ctx context.Context, req *pb.UploadMemeRequest) (*pb
 	mediaURL := fmt.Sprintf("/imgs/%s", filename)
 
 	// save the meme in the database
-	var memeID int64
+	var memeID string
 	err = tx.QueryRow(`
 		INSERT INTO meme (media_url, media_type, name, dimensions)
 		VALUES ($1, $2, $3, $4)
-		RETURNING id
+		RETURNING id::text
 	`, mediaURL, req.MediaType, req.Name, pq.Array(req.Dimensions)).Scan(&memeID)
 	if err != nil {
 		log.Error("Failed to insert meme", "Error", err)
@@ -410,14 +410,14 @@ func (s *Server) SearchMemes(ctx context.Context, req *pb.SearchMemesRequest) (*
 	}
 
 	// Fetch paginated search results
-	rows, err := s.db.Query("SELECT id FROM search_memes($1) LIMIT $2 OFFSET $3", query, req.PageSize, offset)
+	rows, err := s.db.Query("SELECT id::text FROM search_memes($1) LIMIT $2 OFFSET $3", query, req.PageSize, offset)
 	if err != nil {
 		return nil, fmt.Errorf("searching memes failed %w", err)
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		var id int64
+		var id string
 		err := rows.Scan(&id)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan meme ID %w", err)
