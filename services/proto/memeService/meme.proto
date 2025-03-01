@@ -21,10 +21,10 @@ message UploadMemeRequest {
 }
 
 message GetMemeRequest {
-  int64 id = 1;
+  string id = 1;
 }
 message DeleteMemeRequest{
-  int64 id = 1;
+  string id = 1;
 }
 
 message GetTimelineRequest{
@@ -58,7 +58,7 @@ message TagsResponse{
 
 // Response messages
 message MemeResponse {
-  int64 id = 1;
+  string id = 1;
   string media_url = 2;
   string media_type = 3;
   string name = 4;
