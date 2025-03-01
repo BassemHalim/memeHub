@@ -9,16 +9,34 @@ import Image from "next/image";
 import Link from "next/link";
 import { MouseEventHandler, useEffect, useState } from "react";
 
-export default function MemeCard({ meme }: { meme: Meme }) {
+type variantType = "timeline" | "page";
+export default function MemeCard({
+    meme,
+    variant = "timeline",
+}: {
+    meme: Meme;
+    variant?: variantType;
+}) {
     const [shareLogo, setShareLogo] = useState(<Share2 scale={50} />);
     const [showMobilCtrl, setShowMobilCtrl] = useState(true);
     const [isMobile, setIsMobile] = useState(false);
     const memeURL = `https://qasrelmemez.com${meme.media_url}`;
-    const controlsClass = isMobile
-        ? showMobilCtrl
-            ? "flex"
-            : "hidden"
-        : "group-hover:flex hidden";
+
+    let extraClasses = ""
+    if (variant === 'timeline') {
+        extraClasses = "absolute"
+        if (isMobile) {
+            extraClasses = cn(extraClasses, "flex")
+            if (!showMobilCtrl) {
+                extraClasses = "hidden"
+                }
+        } else {
+            extraClasses = cn(extraClasses, "hidden group-hover:flex")
+        }
+    } else {
+        extraClasses = "flex"
+    }
+
 
     const parts = meme.media_url.split(".");
     const extension = parts[parts.length - 1];
@@ -82,8 +100,8 @@ export default function MemeCard({ meme }: { meme: Meme }) {
                 />
                 <div
                     className={cn(
-                        "sm:hidden absolute top-1 right-2 m-2 space-x-2",
-                        controlsClass
+                        "absolute top-1 right-2 m-2 space-x-2",
+                        extraClasses
                     )}
                 >
                     <label htmlFor="download-meme-button" className="sr-only">
@@ -109,8 +127,12 @@ export default function MemeCard({ meme }: { meme: Meme }) {
 
                 <div
                     className={cn(
-                        "sm:hidden absolute bottom-0 left-0 right-0 bg-gray-800/50 text-white text-xs p-2 flex-wrap backdrop-blur-sm ",
-                        controlsClass
+                        `bottom-0 left-0 right-0 bg-gray-800/50 text-white p-2 flex-wrap backdrop-blur-sm space-x-2 ${
+                            variant === "page"
+                                ? "text-lg font-bold p-3"
+                                : "text-xs"
+                        } `,
+                        extraClasses
                     )}
                 >
                     {badges.map((tag: string) => {
@@ -121,7 +143,7 @@ export default function MemeCard({ meme }: { meme: Meme }) {
                                     new URLSearchParams([["query", tag]])
                                 }
                                 key={tag}
-                                className="text-xs mx-[4px] my-[2px] hover:text-amber-400"
+                                className="my-[2px] hover:text-amber-400"
                                 dir={
                                     /[\u0600-\u06FF]/.test(tag) ? "rtl" : "ltr"
                                 }
