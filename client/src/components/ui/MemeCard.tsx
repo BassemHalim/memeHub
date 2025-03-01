@@ -1,4 +1,5 @@
 "use client";
+
 import { Meme } from "@/types/Meme";
 import { ClipboardCheck, Download, Share2 } from "lucide-react";
 
@@ -6,24 +7,28 @@ import { cn } from "@/components/lib/utils";
 import { Card } from "@/components/ui/card";
 import Image from "next/image";
 import Link from "next/link";
-import { MouseEventHandler, useState } from "react";
+import { MouseEventHandler, useEffect, useState } from "react";
 
-export default function MemeCard({ meme }: { meme: Meme; size: string }) {
+export default function MemeCard({ meme }: { meme: Meme }) {
     const [shareLogo, setShareLogo] = useState(<Share2 scale={50} />);
     const [showMobilCtrl, setShowMobilCtrl] = useState(true);
-    const isMobile = window.matchMedia("(max-width: 600px)").matches;
+    const [isMobile, setIsMobile] = useState(false);
+    const memeURL = `https://qasrelmemez.com${meme.media_url}`;
     const controlsClass = isMobile
         ? showMobilCtrl
             ? "flex"
             : "hidden"
         : "group-hover:flex hidden";
-    meme.media_url = new URL(meme.media_url, "https://qasrelmemez.com").href;
+
     const parts = meme.media_url.split(".");
     const extension = parts[parts.length - 1];
-    // console.log("Media URL", meme.media_url)
     const tags = new Set(meme.tags.map((tag) => tag.toLowerCase()));
     tags.add(meme.name.toLowerCase());
     const badges = Array.from(tags);
+    useEffect(() => {
+        const isMobile = window.matchMedia("(max-width: 600px)").matches;
+        setIsMobile(isMobile);
+    }, []);
     const handleShare: MouseEventHandler = (e) => {
         e.stopPropagation();
         navigator.clipboard.writeText(meme.media_url).then(() => {
@@ -38,7 +43,7 @@ export default function MemeCard({ meme }: { meme: Meme; size: string }) {
     const handleDownload: MouseEventHandler = async (e) => {
         e.stopPropagation();
         try {
-            const response = await fetch(meme.media_url, {
+            const response = await fetch(memeURL, {
                 method: "GET",
                 mode: "cors",
             });
@@ -68,7 +73,7 @@ export default function MemeCard({ meme }: { meme: Meme; size: string }) {
         >
             <div className="relative group">
                 <Image
-                    src={meme.media_url}
+                    src={memeURL}
                     alt={meme.name}
                     height={meme.dimensions[1]}
                     width={meme.dimensions[0]}
@@ -81,12 +86,19 @@ export default function MemeCard({ meme }: { meme: Meme; size: string }) {
                         controlsClass
                     )}
                 >
+                    <label htmlFor="download-meme-button" className="sr-only">
+                        download meme
+                    </label>
                     <button
+                        id="download-meme-button"
                         onClick={handleDownload}
                         className="bg-primary border-transparent bg-primary text-primary-foreground shadow  rounded-full p-2 flex items-center justify-center w-8 h-8"
                     >
                         <Download scale={50} />
                     </button>
+                    <label htmlFor="share-meme-button" className="sr-only">
+                        share meme
+                    </label>
                     <button
                         onClick={handleShare}
                         className="bg-primary border-transparent bg-primary text-primary-foreground shadow  rounded-full p-2 flex items-center justify-center w-8 h-8"
@@ -95,7 +107,6 @@ export default function MemeCard({ meme }: { meme: Meme; size: string }) {
                     </button>
                 </div>
 
-                {/* <div className="flex items-center flex-wrap p-2"> */}
                 <div
                     className={cn(
                         "sm:hidden absolute bottom-0 left-0 right-0 bg-gray-800/50 text-white text-xs p-2 flex-wrap backdrop-blur-sm ",

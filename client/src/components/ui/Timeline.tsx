@@ -8,7 +8,7 @@ import { ComponentType, useState } from "react";
 import { Meme } from "../../types/Meme";
 
 function MasonryItem({ data }: { data: Meme; index: number; width: number }) {
-    return MemeCard({ meme: data, size: "medium" });
+    return MemeCard({ meme: data });
 }
 const Masonry: ComponentType<MasonryProps<Meme>> = dynamic(
     () => import("masonic").then((mod) => mod.Masonry),
