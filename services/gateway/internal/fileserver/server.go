@@ -11,7 +11,7 @@ import (
 type FileServer struct {
 	handler *http.Handler
 	dir     string
-	log    *slog.Logger
+	log     *slog.Logger
 }
 
 func New(log *slog.Logger) (*FileServer, error) {
@@ -27,27 +27,26 @@ func New(log *slog.Logger) (*FileServer, error) {
 	return &FileServer{
 		handler: &fs,
 		dir:     uploadDir,
+		log:     log,
 	}, nil
 }
 
-
 func (s *FileServer) Handler(w http.ResponseWriter, r *http.Request) {
-		s.log.Info("/imgs", "IMAGE_PATH", r.URL.Path)
-		// Validate file extension
-		ext := strings.ToLower(filepath.Ext(r.URL.Path))
-		allowedExts := map[string]bool{
-			".jpg":  true,
-			".jpeg": true,
-			".png":  true,
-			".gif":  true,
-		}
-
-		if !allowedExts[ext] {
-			http.Error(w, "Forbidden file type", http.StatusForbidden)
-			return
-		}
-
-		// Serve the file
-		http.StripPrefix("/imgs/", *s.handler).ServeHTTP(w, r)
+	s.log.Info("/imgs", "IMAGE_PATH", r.URL.Path)
+	// Validate file extension
+	ext := strings.ToLower(filepath.Ext(r.URL.Path))
+	allowedExts := map[string]bool{
+		".jpg":  true,
+		".jpeg": true,
+		".png":  true,
+		".gif":  true,
 	}
 
+	if !allowedExts[ext] {
+		http.Error(w, "Forbidden file type", http.StatusForbidden)
+		return
+	}
+
+	// Serve the file
+	http.StripPrefix("/imgs/", *s.handler).ServeHTTP(w, r)
+}

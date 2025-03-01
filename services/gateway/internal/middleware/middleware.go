@@ -25,8 +25,8 @@ func Auth(next http.Handler) http.Handler {
 
 				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 			}
-			key := utils.GetEnvOrDefault("JWT_SECRET", "a-string-secret-at-least-256-bits-long")
-			if key == "a-string-secret-at-least-256-bits-long" {
+			key := utils.GetEnvOrDefault("JWT_SECRET", "use-openssl-rand--base64-128")
+			if len(key) < 100 {
 				fmt.Println("=========================NO SECRET KEY PROVIDED a placeholder is used being used =========================")
 			}
 			return []byte(key), nil

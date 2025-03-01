@@ -18,3 +18,6 @@ curl -X POST \
 curl -X GET 'http://localhost:8080/api/memes?tags=funny&tags=doctor&size=5&page=1&match=any&sort=newest' | jq
 
 curl -X GET 'http://localhost:8080/api/memes/search?query=linkedin' | jq
+
+ curl -X DELETE http://localhost:8080/api/meme/084d71b0-af7d-40f0-a7af-38f1224280f3 \
+-H 'Authorization: Bearer token'
