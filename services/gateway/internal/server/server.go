@@ -5,11 +5,18 @@ import (
 	"context"
 	"encoding/json"
 	"image"
+	_ "image/jpeg"
+	_ "image/png"
+
+	// _ "code.google.com/p/vp8-go/webp"
+
 	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
 
 	"github.com/BassemHalim/memeDB/gateway/internal/config"
 	"github.com/BassemHalim/memeDB/gateway/internal/meme"
@@ -23,7 +30,7 @@ type Server struct {
 	RateLimiter     *rateLimiter.RateLimiter
 	structValidator *validator.Validate
 	memeClient      pb.MemeServiceClient
-	log             slog.Logger
+	log             *slog.Logger
 }
 
 func New(config *config.Config, rateLimiter *rateLimiter.RateLimiter, log *slog.Logger) (*Server, error) {
@@ -35,7 +42,7 @@ func New(config *config.Config, rateLimiter *rateLimiter.RateLimiter, log *slog.
 		RateLimiter:     rateLimiter,
 		structValidator: validator.New(validator.WithRequiredStructEnabled()),
 		memeClient:      memeClient,
-		log:             *log,
+		log:             log,
 	}, nil
 }
 
@@ -284,19 +291,16 @@ func (s *Server) DeleteMeme(w http.ResponseWriter, r *http.Request) {
 	}
 	// parse query parameters
 	idString := r.PathValue("id")
-	// convert string to int
-	id, err := strconv.Atoi(idString)
-	if err != nil {
-		s.log.Debug("Failed to parse ID", "ID", idString)
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
+	if err := uuid.Validate(idString); err != nil {
+		http.Error(w, "Invalid Method", http.StatusBadRequest)
 		return
 	}
 
 	s.log.Info("Delete Meme", "ID", idString)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	_, err = s.memeClient.DeleteMeme(ctx, &pb.DeleteMemeRequest{
-		Id: int64(id),
+	_, err := s.memeClient.DeleteMeme(ctx, &pb.DeleteMemeRequest{
+		Id: idString,
 	})
 	if err != nil {
 		s.log.Debug("Failed to delete meme", "Error", err)
@@ -306,19 +310,15 @@ func (s *Server) DeleteMeme(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-
-func(s* Server) GetMeme(w http.ResponseWriter, r *http.Request) {
+func (s *Server) GetMeme(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Invalid Method", http.StatusBadRequest)
 		return
 	}
 	// parse query parameters
 	idString := r.PathValue("id")
-	// convert string to int
-	id, err := strconv.Atoi(idString)
-	if err != nil {
-		s.log.Debug("Failed to parse ID", "ID", idString)
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
+	if err := uuid.Validate(idString); err != nil {
+		http.Error(w, "Invalid Method", http.StatusBadRequest)
 		return
 	}
 
@@ -326,7 +326,7 @@ func(s* Server) GetMeme(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	resp, err := s.memeClient.GetMeme(ctx, &pb.GetMemeRequest{
-		Id: int64(id),
+		Id: idString,
 	})
 	if err != nil {
 		s.log.Debug("Failed to Get meme", "Error", err)
