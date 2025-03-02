@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/BassemHalim/memeDB/gateway/internal/config"
 	"github.com/BassemHalim/memeDB/gateway/internal/fileserver"
@@ -34,7 +35,12 @@ func main() {
 	limiter := rateLimiter.NewRateLimiter(rate.Limit(cfg.TokenRate), int(cfg.BurstRate))
 	log.Info("Rate Limiter", "RATE", cfg.TokenRate, "BURST", cfg.BurstRate)
 
-	server, err := server.New(cfg, limiter, log)
+	memeClient, err := server.NewMemeClient()
+	if err != nil {
+		log.Error("Failed to connect to GRPC Server", "ERROR", err)
+		
+	}
+	server, err := server.New(memeClient, cfg, limiter, log, &http.Client{Timeout: 1 * time.Second})
 	if err != nil {
 		log.Error("failed to create server", "ERROR", err)
 		return

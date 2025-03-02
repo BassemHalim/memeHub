@@ -28,17 +28,23 @@ validates provided url to make sure it is
 5. file mime type is image
 */
 func (s *Server) ValidateUploadURL(memeURL string) bool {
+	s.log.Debug("Validating Upload URL")
 	parsed, err := url.Parse(memeURL)
 	if err != nil {
+		s.log.Debug("Badly formatted URL")
 		return false
 	}
 	if parsed.Scheme != "https" {
+		s.log.Debug("insecure connection HTTP")
 		return false
 	}
 	if !isWhitelisted(parsed, s.config.WhitelistedDomains) {
+		s.log.Debug("Not whitelisted", "URL", parsed)
 		return false
 	}
-	if !utils.ValidateImageContent(memeURL) {
+
+	if !utils.ValidateImageContent(memeURL, s.client) {
+		s.log.Debug("Invalid file content")
 		return false
 	}
 	return true

@@ -5,7 +5,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"time"
 )
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024
@@ -19,10 +18,8 @@ func GetEnvOrDefault(key, defaultValue string) string {
 
 // validates that the provided url is a valid image with size < 2MB
 // data is validated with HEAD request so you should still re-validate the result
-func ValidateImageContent(url string) bool {
-	client := &http.Client{
-		Timeout: 2 * time.Second,
-	}
+func ValidateImageContent(url string, client *http.Client) bool {
+
 	// Check MIME type via HEAD
 	resp, err := client.Head(url)
 	if err != nil || resp.StatusCode != 200 {

@@ -9,7 +9,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure" //TODO: secure GRPC
 )
 
-func newMemeClient() (pb.MemeServiceClient, error) {
+func NewMemeClient() (pb.MemeServiceClient, error) {
 	// Set up a connection to the server.
 	host := os.Getenv("GRPC_HOST")
 	port := os.Getenv("GRPC_PORT")

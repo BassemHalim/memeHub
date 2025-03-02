@@ -31,18 +31,17 @@ type Server struct {
 	structValidator *validator.Validate
 	memeClient      pb.MemeServiceClient
 	log             *slog.Logger
+	client          *http.Client
 }
 
-func New(config *config.Config, rateLimiter *rateLimiter.RateLimiter, log *slog.Logger) (*Server, error) {
-	memeClient, err := newMemeClient()
-	if err != nil {
-		return nil, err
-	}
+func New(memeClient pb.MemeServiceClient, config *config.Config, rateLimiter *rateLimiter.RateLimiter, log *slog.Logger, client *http.Client) (*Server, error) {
+
 	return &Server{config: config,
 		RateLimiter:     rateLimiter,
 		structValidator: validator.New(validator.WithRequiredStructEnabled()),
 		memeClient:      memeClient,
 		log:             log,
+		client:          client,
 	}, nil
 }
 
@@ -284,6 +283,7 @@ func (s *Server) SearchTags(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(resp)
 }
 
+// DELETE /api/meme/{id}
 func (s *Server) DeleteMeme(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
 		http.Error(w, "Invalid Method", http.StatusBadRequest)
@@ -310,7 +310,9 @@ func (s *Server) DeleteMeme(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// GET /api/meme/{id}
 func (s *Server) GetMeme(w http.ResponseWriter, r *http.Request) {
+	s.log.Debug("GET /api/meme/id", "Request", r.Method+r.URL.Path)
 	if r.Method != http.MethodGet {
 		http.Error(w, "Invalid Method", http.StatusBadRequest)
 		return
@@ -318,7 +320,8 @@ func (s *Server) GetMeme(w http.ResponseWriter, r *http.Request) {
 	// parse query parameters
 	idString := r.PathValue("id")
 	if err := uuid.Validate(idString); err != nil {
-		http.Error(w, "Invalid Method", http.StatusBadRequest)
+		s.log.Debug("Bad ID", "ID", idString, "Error", err)
+		http.Error(w, "Bad ID", http.StatusBadRequest)
 		return
 	}
 
