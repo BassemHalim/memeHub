@@ -38,7 +38,6 @@ func main() {
 	memeClient, err := server.NewMemeClient()
 	if err != nil {
 		log.Error("Failed to connect to GRPC Server", "ERROR", err)
-		
 	}
 	server, err := server.New(memeClient, cfg, limiter, log, &http.Client{Timeout: 1 * time.Second})
 	if err != nil {

@@ -45,6 +45,7 @@ func New(memeClient pb.MemeServiceClient, config *config.Config, rateLimiter *ra
 	}, nil
 }
 
+// GET /api/memes
 // Endpoint to get memes for timeline and provide sort order
 func (s *Server) GetTimeline(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
@@ -95,6 +96,7 @@ func (s *Server) GetTimeline(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// POST /api/meme
 func (s *Server) UploadMeme(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -205,6 +207,7 @@ func (s *Server) UploadMeme(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(resp)
 
 }
+// api/memes/search?query=query&page=num&pageSize=num
 func (s *Server) SearchMemes(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Invalid Method", http.StatusBadRequest)
@@ -244,6 +247,7 @@ func (s *Server) SearchMemes(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// GET /api/tags/search?query=tagname&limit=num
 func (s *Server) SearchTags(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Invalid Method", http.StatusBadRequest)
