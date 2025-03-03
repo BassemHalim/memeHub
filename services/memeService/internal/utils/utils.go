@@ -1,12 +1,14 @@
 package utils
 
 import (
+	"crypto/tls"
 	"fmt"
 	"mime"
 	"os"
 	"path/filepath"
 
 	"github.com/google/uuid"
+	"google.golang.org/grpc/credentials"
 )
 
 func GetEnvOrDefault(key, defaultValue string) string {
@@ -53,7 +55,6 @@ func MimeToExtension(mimeType string) (string, error) {
 	return ext[len(ext)-1], nil
 }
 
-
 func UploadDir() string {
 	uploadDir := "images"
 	cwd, err := os.Getwd()
@@ -61,4 +62,20 @@ func UploadDir() string {
 		return "./images" // return the relative path
 	}
 	return filepath.Join(cwd, uploadDir)
+}
+
+func LoadTLSCredentials() (credentials.TransportCredentials, error) {
+	// Load server's certificate and private key
+	serverCert, err := tls.LoadX509KeyPair("cert/server-cert.pem", "cert/server-key.pem")
+	if err != nil {
+		return nil, err
+	}
+
+	// Create the credentials and return it
+	config := &tls.Config{
+		Certificates: []tls.Certificate{serverCert},
+		ClientAuth:   tls.NoClientCert,
+	}
+
+	return credentials.NewTLS(config), nil
 }

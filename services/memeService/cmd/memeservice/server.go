@@ -7,9 +7,9 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/BassemHalim/memeDB/memeService/internal/utils"
 	"github.com/BassemHalim/memeDB/memeService/internal/db"
 	"github.com/BassemHalim/memeDB/memeService/internal/server"
+	"github.com/BassemHalim/memeDB/memeService/internal/utils"
 	pb "github.com/BassemHalim/memeDB/proto/memeService"
 
 	"google.golang.org/grpc"
@@ -30,7 +30,11 @@ func main() {
 		log.Error("Failed to listen to TCP", "PORT", serverPort)
 	}
 	log.Info("Server started on port", "Port", serverPort)
-	s := grpc.NewServer()
+	tlsCreds, err := utils.LoadTLSCredentials()
+	if err != nil {
+		log.Error("Failed to load server's TLS certificates")
+	}
+	s := grpc.NewServer(grpc.Creds(tlsCreds))
 	pb.RegisterMemeServiceServer(s, server.New(db, log))
 
 	c := make(chan os.Signal, 1)
