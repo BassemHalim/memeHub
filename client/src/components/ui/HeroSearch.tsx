@@ -35,7 +35,7 @@ const HeroSearch = () => {
                 </div>
                 <div className="relative h-full flex flex-col items-center justify-center px-4">
                     <h1 className="text-5xl font-bold text-white mb-6 text-center">
-                        Qasr el memez
+                        Qasr El Memez
                     </h1>
                     <p></p>
                     <div className="w-full max-w-2xl relative text-gray-800 ">

@@ -22,21 +22,20 @@ export default function MemeCard({
     const [isMobile, setIsMobile] = useState(false);
     const memeURL = `https://qasrelmemez.com${meme.media_url}`;
 
-    let extraClasses = ""
-    if (variant === 'timeline') {
-        extraClasses = "absolute"
+    let extraClasses = "";
+    if (variant === "timeline") {
+        extraClasses = "absolute";
         if (isMobile) {
-            extraClasses = cn(extraClasses, "flex")
+            extraClasses = cn(extraClasses, "flex");
             if (!showMobilCtrl) {
-                extraClasses = "hidden"
-                }
+                extraClasses = "hidden";
+            }
         } else {
-            extraClasses = cn(extraClasses, "hidden group-hover:flex")
+            extraClasses = cn(extraClasses, "hidden group-hover:flex");
         }
     } else {
-        extraClasses = "flex"
+        extraClasses = "flex";
     }
-
 
     const parts = meme.media_url.split(".");
     const extension = parts[parts.length - 1];
@@ -47,9 +46,11 @@ export default function MemeCard({
         const isMobile = window.matchMedia("(max-width: 600px)").matches;
         setIsMobile(isMobile);
     }, []);
+
     const handleShare: MouseEventHandler = (e) => {
         e.stopPropagation();
-        navigator.clipboard.writeText(meme.media_url).then(() => {
+        const shareLink = `https://qasrelmemez.com/meme/${meme.id}`;
+        navigator.clipboard.writeText(shareLink).then(() => {
             setShareLogo(
                 <ClipboardCheck scale={50} className="animate-fade-in-scale" />
             );

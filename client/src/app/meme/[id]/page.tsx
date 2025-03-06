@@ -6,7 +6,7 @@ import { Suspense } from "react";
 export async function generateMetadata({
     params,
 }: {
-    params: { id: string };
+    params: Promise<{ id: string }>;
 }): Promise<Metadata> {
     const id = (await params).id;
     const url = new URL(
@@ -20,12 +20,13 @@ export async function generateMetadata({
         const tags = new Set(meme.tags.map((tag) => tag.toLowerCase()));
         tags.add(meme.name.toLowerCase());
 
-        const description = "Qasr EL Memez: Home of the best egyptian memes | " +
-            [...tags].join(" - ")
-        
+        const description =
+            "Qasr EL Memez: Home of the best egyptian memes | " +
+            [...tags].join(" - ");
+
         return {
             title: "Qasr El Memez",
-            description:description,
+            description: description,
             openGraph: {
                 images: ["https://qasrelmemez.com" + meme.media_url],
             },

@@ -31,9 +31,9 @@ import { validateImage } from "./lib/imgUtils";
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024;
 const OPTIONS: Option[] = [
-    { label: "Movie", value: "Movie" },
-    { label: "TV-Show", value: "TV-Show" },
-    { label: "Play", value: "Play" },
+    { label: "فيلم", value: "فيلم" },
+    { label: "مسلسل", value: "مسلسل" },
+    { label: "مسرحية", value: "مسرحية" },
     { label: "blank", value: "blank" },
 ];
 const formSchema = z
@@ -198,7 +198,7 @@ export default function UploadMeme({
     };
     return (
         <div className={className}>
-            <Dialog open={open} onOpenChange={onOpen}>
+            <Dialog open={open} onOpenChange={(open) => { onOpen(open); form.reset() }}>
                 <DialogContent className="sm:max-w-[425px] overflow-y-auto max-h-[80vh] pb-96 sm:p-6 md:max-h-[90vh] ">
                     <DialogHeader>
                         <DialogTitle>Upload a Meme</DialogTitle>

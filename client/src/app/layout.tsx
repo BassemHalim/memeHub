@@ -4,8 +4,6 @@ import { GoogleAnalytics } from "@next/third-parties/google";
 import type { Metadata } from "next";
 import "./globals.css";
 
-
-
 export const metadata: Metadata = {
     title: "Qasr El Memez",
     description: "The home of your egyptian memes",
@@ -13,7 +11,8 @@ export const metadata: Metadata = {
         type: "website",
         url: "https://qasrelmemez.com",
         title: "Qasr El Memez",
-        description: "Qasr el Memez | Your daily dose of authentic Egyptian humor, viral content, and relatable local memes. Share, laugh, and connect with the best of Egyptian internet culture.",
+        description:
+            "Qasr el Memez | Your daily dose of authentic Egyptian humor, viral content, and relatable local memes. Share, laugh, and connect with the best of Egyptian internet culture.",
         images: [
             {
                 url: "https://qasrelmemez.com/logo.png",
@@ -23,7 +22,6 @@ export const metadata: Metadata = {
             },
         ],
     },
-        
 };
 
 export default function RootLayout({
