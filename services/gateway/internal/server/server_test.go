@@ -56,6 +56,7 @@ type MockGRPCClient struct {
 	FilterMemesByTagsFunc func(ctx context.Context, in *pb.FilterMemesByTagsRequest, opts ...grpc.CallOption) (*pb.MemesResponse, error)
 	SearchMemesFunc       func(ctx context.Context, in *pb.SearchMemesRequest, opts ...grpc.CallOption) (*pb.MemesResponse, error)
 	SearchTagsFunc        func(ctx context.Context, in *pb.SearchTagsRequest, opts ...grpc.CallOption) (*pb.TagsResponse, error)
+	AddTagsFunc           func(ctx context.Context, in *pb.AddTagsRequest, opts ...grpc.CallOption) (*pb.AddTagsResponse, error)
 }
 
 func (c *MockGRPCClient) GetMeme(ctx context.Context, in *pb.GetMemeRequest, opts ...grpc.CallOption) (*pb.MemeResponse, error) {
@@ -90,6 +91,9 @@ func (m *MockGRPCClient) SearchMemes(ctx context.Context, in *pb.SearchMemesRequ
 
 func (m *MockGRPCClient) SearchTags(ctx context.Context, in *pb.SearchTagsRequest, opts ...grpc.CallOption) (*pb.TagsResponse, error) {
 	return m.SearchTagsFunc(ctx, in, opts...)
+}
+func (m *MockGRPCClient) AddTags(ctx context.Context, in *pb.AddTagsRequest, opts ...grpc.CallOption) (*pb.AddTagsResponse, error) {
+	return m.AddTagsFunc(ctx, in, opts...)
 }
 
 func TestGetMeme(t *testing.T) {

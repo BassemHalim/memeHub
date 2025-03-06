@@ -7,3 +7,6 @@ type UploadRequest struct {
 	Tags      []string `json:"tags" validate:"required"`
 	ImageData []byte   `json:"image,omitempty" validate:"omitempty,datauri"`
 }
+type AddTagsRequest struct{
+	Tags []string `json:"tags" validate:"required"`
+}

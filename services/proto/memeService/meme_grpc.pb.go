@@ -26,6 +26,7 @@ const (
 	MemeService_FilterMemesByTags_FullMethodName = "/meme.MemeService/FilterMemesByTags"
 	MemeService_SearchMemes_FullMethodName       = "/meme.MemeService/SearchMemes"
 	MemeService_SearchTags_FullMethodName        = "/meme.MemeService/SearchTags"
+	MemeService_AddTags_FullMethodName           = "/meme.MemeService/AddTags"
 )
 
 // MemeServiceClient is the client API for MemeService service.
@@ -39,6 +40,7 @@ type MemeServiceClient interface {
 	FilterMemesByTags(ctx context.Context, in *FilterMemesByTagsRequest, opts ...grpc.CallOption) (*MemesResponse, error)
 	SearchMemes(ctx context.Context, in *SearchMemesRequest, opts ...grpc.CallOption) (*MemesResponse, error)
 	SearchTags(ctx context.Context, in *SearchTagsRequest, opts ...grpc.CallOption) (*TagsResponse, error)
+	AddTags(ctx context.Context, in *AddTagsRequest, opts ...grpc.CallOption) (*AddTagsResponse, error)
 }
 
 type memeServiceClient struct {
@@ -119,6 +121,16 @@ func (c *memeServiceClient) SearchTags(ctx context.Context, in *SearchTagsReques
 	return out, nil
 }
 
+func (c *memeServiceClient) AddTags(ctx context.Context, in *AddTagsRequest, opts ...grpc.CallOption) (*AddTagsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AddTagsResponse)
+	err := c.cc.Invoke(ctx, MemeService_AddTags_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // MemeServiceServer is the server API for MemeService service.
 // All implementations must embed UnimplementedMemeServiceServer
 // for forward compatibility.
@@ -130,6 +142,7 @@ type MemeServiceServer interface {
 	FilterMemesByTags(context.Context, *FilterMemesByTagsRequest) (*MemesResponse, error)
 	SearchMemes(context.Context, *SearchMemesRequest) (*MemesResponse, error)
 	SearchTags(context.Context, *SearchTagsRequest) (*TagsResponse, error)
+	AddTags(context.Context, *AddTagsRequest) (*AddTagsResponse, error)
 	mustEmbedUnimplementedMemeServiceServer()
 }
 
@@ -160,6 +173,9 @@ func (UnimplementedMemeServiceServer) SearchMemes(context.Context, *SearchMemesR
 }
 func (UnimplementedMemeServiceServer) SearchTags(context.Context, *SearchTagsRequest) (*TagsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SearchTags not implemented")
+}
+func (UnimplementedMemeServiceServer) AddTags(context.Context, *AddTagsRequest) (*AddTagsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddTags not implemented")
 }
 func (UnimplementedMemeServiceServer) mustEmbedUnimplementedMemeServiceServer() {}
 func (UnimplementedMemeServiceServer) testEmbeddedByValue()                     {}
@@ -308,6 +324,24 @@ func _MemeService_SearchTags_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _MemeService_AddTags_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddTagsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MemeServiceServer).AddTags(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MemeService_AddTags_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MemeServiceServer).AddTags(ctx, req.(*AddTagsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // MemeService_ServiceDesc is the grpc.ServiceDesc for MemeService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -342,6 +376,10 @@ var MemeService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SearchTags",
 			Handler:    _MemeService_SearchTags_Handler,
+		},
+		{
+			MethodName: "AddTags",
+			Handler:    _MemeService_AddTags_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

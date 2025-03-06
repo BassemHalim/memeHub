@@ -207,6 +207,7 @@ func (s *Server) UploadMeme(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(resp)
 
 }
+
 // api/memes/search?query=query&page=num&pageSize=num
 func (s *Server) SearchMemes(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
@@ -343,4 +344,50 @@ func (s *Server) GetMeme(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(resp)
+}
+
+func (s *Server) UpdateTags(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPatch {
+		http.Error(w, "Invalid Method", http.StatusBadRequest)
+		return
+	}
+	id := r.PathValue("id")
+	if err := uuid.Validate(id); err != nil {
+		s.log.Debug("Bad ID", "ID", id, "Error", err)
+		http.Error(w, "Bad ID", http.StatusBadRequest)
+		return
+	}
+	dec := json.NewDecoder(r.Body)
+	var tagsRequest = meme.AddTagsRequest{} 
+	err := dec.Decode(&tagsRequest)
+	if err != nil{
+		http.Error(w, "Invalid body", http.StatusBadRequest)
+		return
+	}
+	err = s.structValidator.Struct(tagsRequest)
+	if err != nil{
+		http.Error(w, "Invalid body", http.StatusBadRequest)
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	s.log.Info("Adding tags to meme", "ID", id, "Tags", tagsRequest.Tags)
+	resp, err := s.memeClient.AddTags(ctx, &pb.AddTagsRequest{
+		MemeId: id,
+		Tags: tagsRequest.Tags,
+	})
+	if err != nil{
+		s.log.Error("Failed to add tags", "ERROR", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if resp.Success != int32(200){
+		w.WriteHeader(int(resp.Success))
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+
+
+
 }

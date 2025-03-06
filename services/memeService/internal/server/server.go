@@ -5,7 +5,9 @@ import (
 	"database/sql"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"path/filepath"
+	"strings"
 
 	"github.com/BassemHalim/memeDB/memeService/internal/utils"
 	pb "github.com/BassemHalim/memeDB/proto/memeService"
@@ -498,4 +500,48 @@ func (s *Server) SearchTags(ctx context.Context, req *pb.SearchTagsRequest) (*pb
 	}
 
 	return &pb.TagsResponse{Tags: tags}, nil
+}
+
+func (s *Server) AddTags(ctx context.Context, req *pb.AddTagsRequest) (*pb.AddTagsResponse, error) {
+	s.log.Debug("Adding tags to meme", "ID", req.MemeId, "Tags", req.Tags)
+	
+	tx, err := s.db.Begin()
+	if err != nil {
+		return &pb.AddTagsResponse{Success: http.StatusInternalServerError}, err
+	}
+	defer tx.Rollback()
+	// for each tag check if it already exists if not add it
+	for _, tag := range req.Tags {
+		// add tag if it doesn't exist and get id
+		row, err := tx.Query(`
+							INSERT INTO tag (name)
+							VALUES ($1)
+							ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name
+							RETURNING id;
+							`, strings.TrimSpace(tag))
+		if err != nil {
+			return &pb.AddTagsResponse{Success: http.StatusInternalServerError}, err
+		}
+		var tagID int64
+		row.Next()
+		err = row.Scan(&tagID)
+		if err != nil {
+			s.log.Info("Failed to scan for tag id", "Error", err)
+		}
+		row.Close()
+		// add tag:id mapping would error if meme_id is invalid
+		_, err = tx.Exec(`
+				INSERT INTO meme_tag (meme_id, tag_id)
+				VALUES ($1, $2)
+				ON CONFLICT (meme_id, tag_id)
+				DO NOTHING
+				`, req.MemeId, tagID)
+		if err != nil {
+			s.log.Info("Failed to insert tag-meme mapping", "ERROR", err)
+			return &pb.AddTagsResponse{Success: http.StatusBadRequest}, err
+		}
+	}
+	tx.Commit()
+
+	return &pb.AddTagsResponse{Success: http.StatusOK}, nil
 }
