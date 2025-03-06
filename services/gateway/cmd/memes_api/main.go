@@ -59,7 +59,7 @@ func main() {
 	http.Handle("GET /api/meme/{id}", middleware.CORS(limiter.RateLimit(getMeme)))
 
 	http.Handle("DELETE /api/meme/{id}", middleware.CORS(limiter.RateLimit(middleware.Auth(deleteMeme))))
-	http.Handle("PATCH /api/meme/{id}/tags", middleware.CORS(limiter.RateLimit(updateTags))) //TODO: add auth
+	http.Handle("PATCH /api/meme/{id}/tags", middleware.CORS(limiter.RateLimit(middleware.Auth(updateTags))))
 
 	fileServer, err := fileserver.New(log)
 	if err != nil {
