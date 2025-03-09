@@ -23,11 +23,12 @@ import { Input } from "@/components/ui/input";
 import Loader from "@/components/ui/loader";
 import MultipleSelector, { Option } from "@/components/ui/multipleSelector";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { TriangleAlert } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Dispatch, SetStateAction, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { validateImage } from "./lib/imgUtils";
+import { TriangleAlert } from "lucide-react";
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024;
 const OPTIONS: Option[] = [
@@ -80,7 +81,7 @@ export default function UploadMeme({
 }) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
-
+    const t = useTranslations("uploadMeme");
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
@@ -136,13 +137,13 @@ export default function UploadMeme({
                         form.setError("imageFile", {
                             message: "Image is too big",
                         });
-                        throw new Error("image too big")
+                        throw new Error("image too big");
                     }
                     await validateImage(file).catch(() => {
                         form.setError("imageFile", {
                             message: "invalid image",
                         });
-                        throw new Error("Bad image")
+                        throw new Error("Bad image");
                     });
 
                     mimeType = file.type;
@@ -198,155 +199,156 @@ export default function UploadMeme({
     };
     return (
         <div className={className}>
-            <Dialog open={open} onOpenChange={(open) => { onOpen(open); form.reset() }}>
-                <DialogContent className="sm:max-w-[425px] overflow-y-auto max-h-[80vh] pb-96 sm:p-6 md:max-h-[90vh] ">
+            <Dialog
+                open={open}
+                onOpenChange={(open) => {
+                    onOpen(open);
+                    form.reset();
+                }}
+            >
+                <DialogContent className="sm:max-w-[425px] overflow-y-auto max-h-[80vh]  sm:p-6 md:max-h-[90vh] ">
                     <DialogHeader>
-                        <DialogTitle>Upload a Meme</DialogTitle>
+                        <DialogTitle>{t("title")}</DialogTitle>
                         <DialogDescription>
-                            Upload your favorite memes <br /> No offensive
-                            content please!
+                            {t("description")}
+                        </DialogDescription>
+                        <DialogDescription className="font-medium text-red-500">
+                            {t("note")}
                         </DialogDescription>
                     </DialogHeader>
-                    <div>
-                        {!error ? (
-                            <Form {...form}>
-                                <form
-                                    onSubmit={form.handleSubmit(onSubmit)}
-                                    className="space-y-1"
-                                >
-                                    <FormField
-                                        control={form.control}
-                                        name="name"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Name</FormLabel>
-                                                <FormControl>
-                                                    <Input
-                                                        placeholder="Enter a descriptive name for your meme"
-                                                        {...field}
-                                                    />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
+                    {error && (
+                        <div className="text-center">
+                            <TriangleAlert
+                                size={100}
+                                className="mx-auto text-red-500"
+                            />
 
-                                    <FormField
-                                        control={form.control}
-                                        name="tags"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Tags</FormLabel>
-                                                <FormControl>
-                                                    <MultipleSelector
-                                                        onSearch={async (
-                                                            input
-                                                        ) => searchTags(input)}
-                                                        defaultOptions={OPTIONS}
-                                                        creatable
-                                                        placeholder="Add tags..."
-                                                        loadingIndicator={
-                                                            <Loader />
-                                                        }
-                                                        {...field}
-                                                    />
-                                                </FormControl>
-                                                <FormDescription>
-                                                    Include as many tags as you
-                                                    can (such as movie/show
-                                                    name, actor/actress relevant
-                                                    text etc.) to simplify
-                                                    searching for that meme
-                                                </FormDescription>
+                            <h2 className="font-bold text-lg">
+                                {t('upload-error-title')}
+                            </h2>
+                            <p>
+                               {t("upload-error-description")}
+                            </p>
+                        </div>
+                    )}
+                    <Form {...form}>
+                        <form
+                            onSubmit={form.handleSubmit(onSubmit)}
+                            className="space-y-1"
+                        >
+                            <FormField
+                                control={form.control}
+                                name="name"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t("name")}</FormLabel>
+                                        <FormControl>
+                                            <Input
+                                                placeholder={t(
+                                                    "name-placeholder"
+                                                )}
+                                                {...field}
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
 
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
+                            <FormField
+                                control={form.control}
+                                name="tags"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t("tags")}</FormLabel>
+                                        <FormControl>
+                                            <MultipleSelector
+                                                onSearch={async (input) =>
+                                                    searchTags(input)
+                                                }
+                                                defaultOptions={OPTIONS}
+                                                creatable
+                                                placeholder={t(
+                                                    "tags-placeholder"
+                                                )}
+                                                loadingIndicator={<Loader />}
+                                                {...field}
+                                            />
+                                        </FormControl>
+                                        <FormDescription>
+                                            {t("tags-note")}
+                                        </FormDescription>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
 
-                                    <FormField
-                                        control={form.control}
-                                        name="imageUrl"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Image Url</FormLabel>
-                                                <FormControl>
-                                                    <Input
-                                                        {...field}
-                                                        type="url"
-                                                        placeholder="Image Link from social media like IG, X, etc"
-                                                    />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <div className="flex justify-around items-center px-4">
-                                        <div className="h-px border-0 w-2/5 bg-gray-300"></div>
-                                        <div className="text-center mx-2">
-                                            or
-                                        </div>
-                                        <div className="h-px border-0 w-2/5 bg-gray-300"></div>
-                                    </div>
-
-                                    <FormField
-                                        control={form.control}
-                                        name="imageFile"
-                                        render={({
-                                            field: {
-                                                onChange,
-                                                // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                                                value,
-                                                ...fieldProps
-                                            },
-                                        }) => (
-                                            <FormItem>
-                                                <FormLabel>
-                                                    Upload Image
-                                                </FormLabel>
-                                                <FormControl>
-                                                    <Input
-                                                        {...fieldProps}
-                                                        type="file"
-                                                        accept="image/*"
-                                                        onChange={(event) =>
-                                                            onChange(
-                                                                event.target
-                                                                    .files &&
-                                                                    event.target
-                                                                        .files[0]
-                                                            )
-                                                        }
-                                                    />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </form>
-                            </Form>
-                        ) : (
-                            <div className="text-center">
-                                <TriangleAlert
-                                    size={100}
-                                    className="mx-auto"
-                                    color="#cb3c71"
-                                />
-
-                                <h2 className="font-bold text-lg">
-                                    Failed to upload Meme
-                                </h2>
-                                <p>
-                                    This is likely because you used a bad image
-                                    url.
-                                    <br />
-                                    Try uploading the image instead of its url
-                                    <br />
-                                    Error: {error}
-                                </p>
+                            <FormField
+                                control={form.control}
+                                name="imageUrl"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t("image-url")}</FormLabel>
+                                        <FormControl>
+                                            <Input
+                                                {...field}
+                                                type="url"
+                                                placeholder={t(
+                                                    "image-url-placeholder"
+                                                )}
+                                            />
+                                        </FormControl>
+                                        <FormDescription>
+                                            {t("image-url-note")}
+                                        </FormDescription>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <div className="flex justify-around items-center px-4">
+                                <div className="h-px border-0 w-2/5 bg-gray-300"></div>
+                                <div className="text-center mx-2">
+                                    {t("or")}
+                                </div>
+                                <div className="h-px border-0 w-2/5 bg-gray-300"></div>
                             </div>
-                        )}
-                    </div>
+
+                            <FormField
+                                control={form.control}
+                                name="imageFile"
+                                render={({
+                                    field: {
+                                        onChange,
+                                        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                                        value,
+                                        ...fieldProps
+                                    },
+                                }) => (
+                                    <FormItem>
+                                        <FormLabel>
+                                            {t("upload-image")}
+                                        </FormLabel>
+                                        <FormControl>
+                                            <Input
+                                                {...fieldProps}
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={(event) =>
+                                                    onChange(
+                                                        event.target.files &&
+                                                            event.target
+                                                                .files[0]
+                                                    )
+                                                }
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </form>
+                    </Form>
+
                     <DialogFooter className="gap-2">
                         <DialogClose asChild>
                             <Button
@@ -354,7 +356,7 @@ export default function UploadMeme({
                                 onClick={handleCancel}
                                 variant="secondary"
                             >
-                                Cancel
+                                {t("cancel")}
                             </Button>
                         </DialogClose>
                         <Button
@@ -366,7 +368,7 @@ export default function UploadMeme({
                                 form.formState.isValidating
                             }
                         >
-                            Submit
+                            {t("submit")}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

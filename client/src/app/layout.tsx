@@ -1,7 +1,10 @@
 import Footer from "@/components/ui/Footer";
 import Header from "@/components/ui/Header";
 import { GoogleAnalytics } from "@next/third-parties/google";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale, getMessages } from "next-intl/server";
+
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -24,19 +27,26 @@ export const metadata: Metadata = {
     },
 };
 
-export default function RootLayout({
+export const viewport: Viewport = {
+    interactiveWidget: "resizes-content",
+};
+export default async function RootLayout({
     children,
 }: Readonly<{
     children: React.ReactNode;
 }>) {
+    const locale = await getLocale();
+    const messages = await getMessages();
     return (
-        <html lang="en">
+        <html lang={locale} dir={locale == "ar" ? "rtl" : "ltr"}>
             <body className={` antialiased flex flex-col min-h-screen`}>
-                <Header />
-                <main className="grow flex flex-col items-center justify-center w-full">
-                    {children}
-                </main>
-                <Footer />
+                <NextIntlClientProvider messages={messages} locale={locale}>
+                    <Header />
+                    <main className="grow flex flex-col items-center justify-center w-full">
+                        {children}
+                    </main>
+                    <Footer />
+                </NextIntlClientProvider>
             </body>
             <GoogleAnalytics
                 gaId={process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_TAG!}

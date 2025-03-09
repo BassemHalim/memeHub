@@ -1,4 +1,5 @@
 import { Search } from "lucide-react";
+import { useTranslations } from "next-intl";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { FormEvent } from "react";
@@ -19,10 +20,10 @@ const HeroSearch = () => {
 
         router.push(url.href);
     }
-
+    const t = useTranslations("Home");
     return (
         <div>
-            <section className="relative h-[400px] w-full mb-6 shadow-md shadow-secondary" >
+            <section className="relative h-[400px] w-full mb-6 shadow-md shadow-secondary">
                 <div className="absolute inset-0">
                     <Image
                         priority
@@ -35,7 +36,7 @@ const HeroSearch = () => {
                 </div>
                 <div className="relative h-full flex flex-col items-center justify-center px-4">
                     <h1 className="text-5xl font-bold text-white mb-6 text-center">
-                        Qasr El Memez
+                        {t("title")}
                     </h1>
                     <p></p>
                     <div className="w-full max-w-2xl relative text-gray-800 ">
@@ -44,7 +45,7 @@ const HeroSearch = () => {
                                 required
                                 name="query"
                                 type="text"
-                                placeholder="Search memes..."
+                                placeholder={t('meme-search')}
                                 className={`w-full px-6 py-4 rounded-lg text-lg shadow-lg pr-14 font-medium bg-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring`}
                             />
                             <button type="submit">

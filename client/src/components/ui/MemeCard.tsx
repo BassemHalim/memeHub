@@ -111,16 +111,16 @@ export default function MemeCard({
                     <button
                         id="download-meme-button"
                         onClick={handleDownload}
-                        className="bg-primary border-transparent bg-primary text-primary-foreground shadow  rounded-full p-2 flex items-center justify-center w-8 h-8"
+                        className="bg-primary border-transparent text-primary-foreground shadow  rounded-full p-2"
                     >
-                        <Download scale={50} />
+                        <Download />
                     </button>
                     <label htmlFor="share-meme-button" className="sr-only">
                         share meme
                     </label>
                     <button
                         onClick={handleShare}
-                        className="bg-primary border-transparent bg-primary text-primary-foreground shadow  rounded-full p-2 flex items-center justify-center w-8 h-8"
+                        className="bg-primary border-transparent text-primary-foreground shadow  rounded-full p-2"
                     >
                         {shareLogo}
                     </button>

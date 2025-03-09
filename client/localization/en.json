@@ -1,0 +1,27 @@
+{
+    "Home": {
+        "title": "Qasr El Memez",
+        "meme-search": "search memes...",
+        "upload": "Upload"
+    },
+    "uploadMeme": {
+        "title": "Upload a Meme",
+        "description": "Upload your favorite memes",
+        "note": "No offensive content please!",
+        "name": "Name",
+        "name-placeholder": "Enter a descriptive name for your meme",
+        "tags": "Tags",
+        "tags-placeholder": "Add tags...",
+        "tags-note": "Include as many tags as you can (such as movie/show name, actor/actress relevant text etc.) to simplify searching for that meme",
+        "image-url": "Image Url",
+        "image-url-placeholder": "Image Link from social media like X, fb, etc",
+        "image-url-note": "Only a small subset of urls is allowed so if that fails try downloading the image and uploading the file",
+        "upload-image": "Upload Image",
+        "no-file-chosen": "No file chosen",
+        "upload-error-title": "Meme Upload Failed",
+        "upload-error-description": "This is can be either due to image size (>2MB) or the provided url is not allowed. Try downloading the image and uploading the file",
+        "cancel": "Cancel",
+        "submit": "Submit",
+        "or": "or"
+    }
+}
