@@ -4,8 +4,10 @@ import { GoogleAnalytics } from "@next/third-parties/google";
 import type { Metadata, Viewport } from "next";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
+import { El_Messiri } from "next/font/google";
 
 import "./globals.css";
+import { cn } from "@/components/lib/utils";
 
 export const metadata: Metadata = {
     title: "Qasr El Memez",
@@ -26,10 +28,11 @@ export const metadata: Metadata = {
         ],
     },
 };
-
 export const viewport: Viewport = {
     interactiveWidget: "resizes-content",
 };
+
+const font = El_Messiri({ weight: "500", subsets: ["arabic", "latin"] });
 export default async function RootLayout({
     children,
 }: Readonly<{
@@ -39,7 +42,12 @@ export default async function RootLayout({
     const messages = await getMessages();
     return (
         <html lang={locale} dir={locale == "ar" ? "rtl" : "ltr"}>
-            <body className={` antialiased flex flex-col min-h-screen`}>
+            <body
+                className={cn(
+                    "antialiased flex flex-col min-h-screen",
+                    font.className
+                )}
+            >
                 <NextIntlClientProvider messages={messages} locale={locale}>
                     <Header />
                     <main className="grow flex flex-col items-center justify-center w-full">

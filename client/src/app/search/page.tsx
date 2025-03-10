@@ -1,9 +1,9 @@
 "use client";
 import Timeline from "@/components/ui/Timeline";
+import { Meme } from "@/types/Meme";
 import { Search as SearchIcon } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, Suspense, useEffect, useState } from "react";
-import { Meme } from '@/types/Meme'
 
 function SearchComponent() {
     const [memes, setMemes] = useState<Meme[]>([]);
@@ -53,8 +53,8 @@ function SearchComponent() {
             }
             const memesResp = await resp.json();
             if (memesResp.memes) {
-                const memes: Meme[] = memesResp.memes;
-                setMemes(memes);
+                const newMemes: Meme[] = memesResp.memes;
+                setMemes(newMemes);
             } else {
                 setNoMatch(true);
                 setIsLoading(false);
@@ -75,7 +75,7 @@ function SearchComponent() {
     }, [query]);
 
     return (
-        <section className="w-full">
+        <section className="w-full flex-1 mt-4">
             <div className="w-full max-w-2xl relative text-gray-800 mx-auto px-2">
                 <form onSubmit={onSubmit}>
                     <input

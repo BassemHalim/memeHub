@@ -7,7 +7,6 @@ export default function LanguageSwitch() {
     const [arabic, setArabic] = useState(false);
     useEffect(() => {
         getUserLocale().then((val) => {
-            console.log(val);
             if (val == "ar") {
                 setArabic(true);
             } else {
@@ -19,7 +18,8 @@ export default function LanguageSwitch() {
     // const label = arabic ? "EN" : "AR";
     return (
         <Button
-            className="bg-gray-200 text-gray-800 "
+            aria-label="language button"
+            className="bg-primary text-secondary "
             onClick={() => {
                 setArabic(!arabic);
                 setUserLocale(!arabic ? "ar" : "en");

@@ -17,8 +17,12 @@ export default function MemeCard({
     meme: Meme;
     variant?: variantType;
 }) {
-    const [shareLogo, setShareLogo] = useState(<Share2 scale={50} />);
-    const [showMobilCtrl, setShowMobilCtrl] = useState(true);
+    const ShareIcon = <Share2 size={20} className="mx-auto" />;
+    const ClipboardIcon = (
+        <ClipboardCheck size={20} className="animate-fade-in-scale mx-auto" />
+    );
+    const [shareLogo, setShareLogo] = useState<JSX.Element>(ShareIcon);
+    const [showMobilCtrl, setShowMobilCtrl] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
     const memeURL = `https://qasrelmemez.com${meme.media_url}`;
 
@@ -51,11 +55,9 @@ export default function MemeCard({
         e.stopPropagation();
         const shareLink = `https://qasrelmemez.com/meme/${meme.id}`;
         navigator.clipboard.writeText(shareLink).then(() => {
-            setShareLogo(
-                <ClipboardCheck scale={50} className="animate-fade-in-scale" />
-            );
+            setShareLogo(ClipboardIcon);
             setTimeout(() => {
-                setShareLogo(<Share2 scale={50} />);
+                setShareLogo(ShareIcon);
             }, 1500);
         });
     };
@@ -111,16 +113,16 @@ export default function MemeCard({
                     <button
                         id="download-meme-button"
                         onClick={handleDownload}
-                        className="bg-primary border-transparent text-primary-foreground shadow  rounded-full p-2"
+                        className="bg-primary border-transparent text-primary-foreground shadow  rounded-full w-9 h-9 md:w-8 md:h-8"
                     >
-                        <Download />
+                        <Download size={20} className="mx-auto" />
                     </button>
                     <label htmlFor="share-meme-button" className="sr-only">
                         share meme
                     </label>
                     <button
                         onClick={handleShare}
-                        className="bg-primary border-transparent text-primary-foreground shadow  rounded-full p-2"
+                        className="bg-primary border-transparent text-primary-foreground shadow  rounded-full w-9 h-9 md:w-8 md:h-8"
                     >
                         {shareLogo}
                     </button>
@@ -128,7 +130,7 @@ export default function MemeCard({
 
                 <div
                     className={cn(
-                        `bottom-0 left-0 right-0 bg-gray-800/50 text-white p-2 flex-wrap backdrop-blur-sm space-x-2 ${
+                        `bottom-0 left-0 right-0 bg-gray-800/50 text-white p-2 flex-wrap backdrop-blur-sm gap-2 ${
                             variant === "page"
                                 ? "text-lg font-bold p-3"
                                 : "text-xs"
