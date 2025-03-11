@@ -17,7 +17,7 @@ export const metadata: Metadata = {
         url: "https://qasrelmemez.com",
         title: "Qasr El Memez",
         description:
-            "Qasr el Memez | Your daily dose of authentic Egyptian humor, viral content, and relatable local memes. Share, laugh, and connect with the best of Egyptian internet culture.",
+            "Qasr el Memez | Your daily dose of Egyptian Memes, viral content, and relatable local memes. Share, laugh, and connect with the best of Egyptian internet culture.",
         images: [
             {
                 url: "https://qasrelmemez.com/logo.png",
