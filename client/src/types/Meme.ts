@@ -55,4 +55,6 @@ export const memesResponseSchema: JSONSchemaType<MemesResponse> = {
     },
     required: ['memes', 'total_count', 'page', 'total_pages'],
     additionalProperties: false
-  };
+};
+  
+
