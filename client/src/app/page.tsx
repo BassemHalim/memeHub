@@ -15,6 +15,7 @@ export default function Home() {
                 isLoading={isLoading}
                 hasMore={hasMore}
                 next={next}
+                key={memes[0]?.id || "empty"}
             />
         </div>
     );

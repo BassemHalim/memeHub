@@ -43,18 +43,17 @@ export default function Timeline({
         },
 
         {
-            isItemLoaded: (index, items) =>
-                hasMore ? (index < items.length ? true : false) : true,
+            isItemLoaded: (index, items) => !!items[index],
             minimumBatchSize: 4,
             threshold: 1, // new data should be loaded when the user scrolls within 4 items of the end
-            // totalItems: 50
+            totalItems: hasMore ? memes.length + 1 : memes.length,
         }
     );
     return (
         <section className="container mx-auto py-4 px-4 grow-2">
             <div>
                 <Masonry
-                    key={memes[0]?.id || "empty"}
+                    // key={memes[0]?.name + memes[1]?.name || 'empty'}
                     items={memes}
                     render={MasonryItem}
                     columnWidth={350}

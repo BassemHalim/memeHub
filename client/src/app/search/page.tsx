@@ -5,14 +5,12 @@ import { Search as SearchIcon } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, Suspense, useEffect, useState } from "react";
 
-function SearchComponent() {
+function SearchComponent({ query }: { query: string }) {
     const [memes, setMemes] = useState<Meme[]>([]);
     const [error, setError] = useState(false);
     const [noMatch, setNoMatch] = useState(false);
     const [isLoading, setIsLoading] = useState<boolean>(false);
-    const searchParams = useSearchParams();
     const router = useRouter();
-    const query = searchParams.get("query");
 
     function onSubmit(e: FormEvent) {
         e.preventDefault();
@@ -73,7 +71,6 @@ function SearchComponent() {
     useEffect(() => {
         searchMemes(query);
     }, [query]);
-
     return (
         <section className="w-full flex-1 mt-4">
             <div className="w-full max-w-2xl relative text-gray-800 mx-auto px-2">
@@ -112,9 +109,12 @@ function SearchComponent() {
 }
 
 export default function Search() {
+    const searchParams = useSearchParams();
+    const query = searchParams.get("query");
+
     return (
         <Suspense fallback={<div>Loading...</div>}>
-            <SearchComponent />
+            <SearchComponent key={query || ""} query={query || ""} />
         </Suspense>
     );
 }
