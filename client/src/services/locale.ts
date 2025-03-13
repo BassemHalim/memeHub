@@ -1,6 +1,6 @@
 "use server";
-
-import { Locale, defaultLocale } from "@/i18n/config";
+import { routing } from "@/i18n/config";
+import { Locale } from "next-intl";
 import { cookies } from "next/headers";
 
 // In this example the locale is read from a cookie. You could alternatively
@@ -8,7 +8,7 @@ import { cookies } from "next/headers";
 const COOKIE_NAME = "NEXT_LOCALE";
 
 export async function getUserLocale() {
-    return (await cookies()).get(COOKIE_NAME)?.value || defaultLocale;
+    return (await cookies()).get(COOKIE_NAME)?.value || routing.defaultLocale;
 }
 
 export async function setUserLocale(locale: Locale) {
