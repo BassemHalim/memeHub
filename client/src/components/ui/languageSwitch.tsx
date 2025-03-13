@@ -1,22 +1,13 @@
 import { usePathname, useRouter } from "@/i18n/navigation";
-import { getUserLocale } from "@/services/locale";
 import { Languages } from "lucide-react";
-import { Locale } from "next-intl";
+import { Locale, useLocale } from "next-intl";
 import { useParams, useSearchParams } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useTransition } from "react";
 import { Button } from "./button";
 
 export default function LanguageSwitch() {
-    const [arabic, setArabic] = useState(false);
-    useEffect(() => {
-        getUserLocale().then((val) => {
-            if (val == "ar") {
-                setArabic(true);
-            } else {
-                setArabic(false);
-            }
-        });
-    }, []);
+
+    const isArabic = useLocale() == 'ar'
     const router = useRouter();
     const [, startTransition] = useTransition();
     const pathname = usePathname();
@@ -42,8 +33,7 @@ const query = searchParams.get('query')
             aria-label="language button"
             className="bg-primary text-secondary "
             onClick={() => {
-                setArabic(!arabic);
-                setUserLocale(!arabic ? "ar" : "en");
+                setUserLocale(isArabic ? "en" : "ar");
             }}
         >
             <Languages />
