@@ -23,5 +23,16 @@
         "cancel": "Cancel",
         "submit": "Submit",
         "or": "or"
+    },
+    "memeGenerator": {
+        "title": "Meme Generator - Create Memes Online for Free",
+        "subtitle": "Looking for a quick and easy way to create memes? With our Meme Generator, you can upload any image, add your own text, and download your custom meme in just a few clicks. Whether it’s a joke for your friends or a viral post for social media, this tool makes it simple and fun.",
+        "download": "Download",
+        "add-text": "Add Text Box",
+        "text-placeholder": "text",
+        "instructions-title": "How to Use the Meme Generator",
+        "step-1": "<strong>Upload Your Image:</strong> Click the \"Choose File\" button to upload your photo or image.",
+        "step-2": "<strong>Add Your Text:</strong> Use the \"Add Text Box\" option to write captions. You can move the text, resize it, or change its color to fit your style.",
+        "step-3": "<strong>Download Your Meme:</strong> Once you’re happy with the result, hit \"Download\" and save your meme instantly."
     }
 }

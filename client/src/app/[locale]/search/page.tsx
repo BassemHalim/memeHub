@@ -4,7 +4,28 @@ import { Meme } from "@/types/Meme";
 import { Search as SearchIcon } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, Suspense, useEffect, useState } from "react";
+import { Metadata } from "next";
 
+export const metadata: Metadata = {
+    title: "Qasr El Memez | قصر الميمز",
+    description: "The home of your egyptian memes",
+    alternates: {canonical: "https://www.qasrelmemez.com/search?query=%D9%81%D9%8A%D9%84%D9%85"},
+    openGraph: {
+        type: "website",
+        url: "https://qasrelmemez.com/generator",
+        title: "Qasr El Memez",
+        description:
+            "Qasr el Memez | Looking for a quick and easy way to create memes? With our Meme Generator, you can upload any image, add your own text, and download your custom meme in just a few clicks. Whether it’s a joke for your friends or a viral post for social media, this tool makes it simple and fun.",
+        images: [
+            {
+                url: "https://qasrelmemez.com/logo.png",
+                width: 588,
+                height: 588,
+                alt: "Qasr El Memez",
+            },
+        ],
+    },
+};
 function SearchComponent({ query }: { query: string }) {
     const [memes, setMemes] = useState<Meme[]>([]);
     const [error, setError] = useState(false);

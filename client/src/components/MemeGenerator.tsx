@@ -1,11 +1,9 @@
+"use client";
 import { Button } from "@/components/ui/button";
-import {
-    MouseEvent,
-    MouseEventHandler,
-    useEffect,
-    useRef,
-    useState,
-} from "react";
+import PopoverColorPicker from "@/components/ui/popovercolorpicker";
+import { Download, Plus } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { MouseEvent, TouchEvent, useEffect, useRef, useState } from "react";
 import { Card } from "./ui/card";
 import { Input } from "./ui/input";
 import MemeTextBorder from "./ui/MemeTextBorder";
@@ -16,6 +14,7 @@ type TextElementType = {
     y: number;
     fontSize: number;
     bgColor: string;
+    color: string;
 };
 const PADDING = 10;
 
@@ -43,40 +42,44 @@ function rectPos(e: TextElementType, ctx: CanvasRenderingContext2D) {
 
     return [x, y, w, h];
 }
-
+const defaultText = {
+    text: "",
+    x: 100,
+    y: 100,
+    fontSize: 24,
+    bgColor: "rgba(255, 255, 255, 0)",
+    color: "#ffffff",
+};
 export default function MemeGenerator() {
-    const [imageURL, setImageURL] = useState("https://placehold.co/500x500");
+    const [imageURL, setImageURL] = useState("/logo.png");
     const [textElements, setTextElements] = useState<TextElementType[]>([
-        {
-            text: "",
-            x: 100,
-            y: 100,
-            fontSize: 24,
-            bgColor: "rgba(0, 0, 0, 0.5)",
-        },
+        { ...defaultText },
     ]);
-
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const inputRef = useRef(null);
     const [selected, setSelected] = useState(-1);
     const [startPos, setStartPos] = useState<number[]>();
-
+    const t = useTranslations("memeGenerator");
+    let imageWidth = 700;
+    if (typeof window !== "undefined") {
+        imageWidth = Math.min(window.innerWidth - 20, imageWidth);
+    }
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = (event: ProgressEvent<FileReader>) => {
-            setImageURL(event.target?.result as string);
-        };
-        reader.readAsDataURL(file);
+    
+        setImageURL(URL.createObjectURL(file)) 
     };
 
-    const handleMouseDown = (e: MouseEvent<HTMLDivElement>) => {
+    const handleMouseDown = (
+        e: MouseEvent<HTMLDivElement> | TouchEvent<HTMLDivElement>
+    ) => {
         e.preventDefault();
         const rect = e.currentTarget.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+        const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
+        const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
+        const x = clientX - rect.left;
+        const y = clientY - rect.top;
 
         const ctx = canvasRef.current?.getContext("2d");
         if (!ctx) return;
@@ -89,16 +92,23 @@ export default function MemeGenerator() {
         }
     };
 
-    const handleMouseUp: MouseEventHandler<HTMLDivElement> = (e) => {
+    const handleMouseUp = (
+        e: MouseEvent<HTMLDivElement> | TouchEvent<HTMLDivElement>
+    ) => {
         e.preventDefault();
         setSelected(-1);
     };
 
-    const handleMouseMove: MouseEventHandler<HTMLDivElement> = (e) => {
+    const handleMouseMove = (
+        e: MouseEvent<HTMLDivElement> | TouchEvent<HTMLDivElement>
+    ) => {
+        e.preventDefault();
         if (selected < 0) return;
         const rect = e.currentTarget.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+        const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
+        const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
+        const x = clientX - rect.left;
+        const y = clientY - rect.top;
         const dx = x - startPos![0];
         const dy = y - startPos![1];
         const ctx = canvasRef?.current?.getContext("2d");
@@ -128,10 +138,13 @@ export default function MemeGenerator() {
     const download = () => {
         const canvas = canvasRef.current;
         if (!canvas) return;
-        const link = document.createElement("a");
-        link.download = "meme.png";
-        link.href = canvas.toDataURL();
-        link.click();
+        canvas.toBlob((blob) => {
+            if (!blob) return
+            const link = document.createElement("a");
+            link.download = "meme.png";
+            link.href = URL.createObjectURL(blob)
+            link.click();
+        }, 'image/png')
     };
 
     useEffect(() => {
@@ -143,8 +156,8 @@ export default function MemeGenerator() {
             }
             const image = new Image();
             image.onload = () => {
-                canvas.width = 700;
-                canvas.height = (700 * image.height) / image.width;
+                canvas.width = imageWidth;
+                canvas.height = (canvas.width * image.height) / image.width;
                 ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
 
                 // draw each text box
@@ -160,27 +173,31 @@ export default function MemeGenerator() {
                     ctx.fillStyle = ele.bgColor;
                     ctx.fillRect(rx, ry, w, h);
 
-                    ctx.fillStyle = "white";
+                    ctx.fillStyle = ele.color;
                     ctx.textAlign = "left";
                     ctx.textBaseline = "top";
                     ctx.fillText(text, ele.x, ele.y);
                 }
             };
+            image.crossOrigin= "anonymous"
             image.src = imageURL;
         }
         if (!imageURL) return;
         drawFrame();
         return () => {};
-    }, [imageURL, textElements]);
+    }, [imageURL, textElements, imageWidth]);
 
     return (
-        <div className="flex flex-wrap">
+        <div className="flex flex-wrap justify-center">
             <div
                 id="preview"
-                className="relative group p-0 border-0"
+                className="relative group p-0 border-0 touch-none"
                 onMouseDown={handleMouseDown}
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
+                onTouchStart={handleMouseDown}
+                onTouchMove={handleMouseMove}
+                onTouchEnd={handleMouseUp}
             >
                 <canvas id="canvas" ref={canvasRef} />
 
@@ -195,7 +212,9 @@ export default function MemeGenerator() {
                 })}
             </div>
             <Card className="flex flex-col p-4 gap-2">
-            <Button onClick={download}>Download</Button>
+                <Button onClick={download}>
+                    {t("download")} <Download />
+                </Button>
                 <Input
                     type="file"
                     id="image"
@@ -208,41 +227,72 @@ export default function MemeGenerator() {
                         setTextElements((prev) => [
                             ...prev,
                             {
-                                text: "",
-                                x: 100,
-                                y: 100,
-                                w: 0,
-                                h: 0,
-                                fontSize: 24,
-                                bgColor: "rgba(0, 0, 0, 1)",
+                                ...defaultText,
                             },
                         ]);
                     }}
                 >
-                    Add text box
+                    {t("add-text")}
+                    <Plus />
                 </Button>
-                {textElements.map((t, i) => {
+                {textElements.map((txt, i) => {
                     return (
-                        <Input
-                            placeholder={`Text ${i + 1}`}
-                            key={i}
-                            type="text"
-                            value={t?.text ?? ""}
-                            onChange={(e) => {
-                                const newText = {
-                                    ...t,
-                                    text: e.target.value,
-                                };
-                                setTextElements((prev) =>
-                                    prev.map((ele, j) => {
-                                        if (i == j) {
-                                            return newText;
-                                        }
-                                        return ele;
-                                    })
-                                );
-                            }}
-                        />
+                        <div key={i} className="flex gap-1">
+                            <Input
+                                className=""
+                                placeholder={t("text-placeholder")}
+                                type="text"
+                                value={txt?.text ?? ""}
+                                onChange={(e) => {
+                                    const newText = {
+                                        ...txt,
+                                        text: e.target.value,
+                                    };
+                                    setTextElements((prev) =>
+                                        prev.map((ele, j) => {
+                                            if (i == j) {
+                                                return newText;
+                                            }
+                                            return ele;
+                                        })
+                                    );
+                                }}
+                            />
+                            <PopoverColorPicker
+                                color={txt.color}
+                                setColor={(color) => {
+                                    const newText = {
+                                        ...txt,
+                                        color: color,
+                                    };
+                                    setTextElements((prev) =>
+                                        prev.map((ele, j) => {
+                                            if (i == j) {
+                                                return newText;
+                                            }
+                                            return ele;
+                                        })
+                                    );
+                                }}
+                            />
+                            <PopoverColorPicker
+                                color={txt.bgColor}
+                                setColor={(color) => {
+                                    const newText = {
+                                        ...txt,
+                                        bgColor: color,
+                                    };
+                                    setTextElements((prev) =>
+                                        prev.map((ele, j) => {
+                                            if (i == j) {
+                                                return newText;
+                                            }
+                                            return ele;
+                                        })
+                                    );
+                                }}
+                            />
+                        </div>
                     );
                 })}
             </Card>
