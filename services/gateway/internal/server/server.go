@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"image"
+	_ "image/gif"
 	_ "image/jpeg"
 	_ "image/png"
 
@@ -358,14 +359,14 @@ func (s *Server) UpdateTags(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	dec := json.NewDecoder(r.Body)
-	var tagsRequest = meme.AddTagsRequest{} 
+	var tagsRequest = meme.AddTagsRequest{}
 	err := dec.Decode(&tagsRequest)
-	if err != nil{
+	if err != nil {
 		http.Error(w, "Invalid body", http.StatusBadRequest)
 		return
 	}
 	err = s.structValidator.Struct(tagsRequest)
-	if err != nil{
+	if err != nil {
 		http.Error(w, "Invalid body", http.StatusBadRequest)
 		return
 	}
@@ -374,20 +375,18 @@ func (s *Server) UpdateTags(w http.ResponseWriter, r *http.Request) {
 	s.log.Info("Adding tags to meme", "ID", id, "Tags", tagsRequest.Tags)
 	resp, err := s.memeClient.AddTags(ctx, &pb.AddTagsRequest{
 		MemeId: id,
-		Tags: tagsRequest.Tags,
+		Tags:   tagsRequest.Tags,
 	})
-	if err != nil{
+	if err != nil {
 		s.log.Error("Failed to add tags", "ERROR", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	if resp.Success != int32(200){
+	if resp.Success != int32(200) {
 		w.WriteHeader(int(resp.Success))
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
-
-
 
 }
