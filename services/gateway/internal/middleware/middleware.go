@@ -1,7 +1,10 @@
 package middleware
 
 import (
+	"compress/gzip"
 	"fmt"
+	"io"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -58,6 +61,61 @@ func CORS(next http.Handler) http.Handler {
 			w.WriteHeader(http.StatusOK)
 			return
 		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+type gzipResponseWriter struct {
+	io.Writer
+	http.ResponseWriter
+}
+
+func (g gzipResponseWriter) Write(b []byte) (int, error) {
+	return g.Writer.Write(b)
+}
+func GzipMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Check if client accepts gzip encoding
+		if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		// Set appropriate headers
+		w.Header().Set("Content-Encoding", "gzip")
+		w.Header().Add("Vary", "Accept-Encoding")
+
+		// Create gzip writer
+		gz, err := gzip.NewWriterLevel(w, gzip.DefaultCompression)
+		if err != nil {
+			next.ServeHTTP(w, r)
+			return
+		}
+		defer gz.Close()
+
+		// Create wrapped response writer
+		gzw := gzipResponseWriter{
+			Writer:         gz,
+			ResponseWriter: w,
+		}
+
+		// Call the wrapped handler with our gzip response writer
+		next.ServeHTTP(gzw, r)
+	})
+}
+
+
+
+func Cache(next http.Handler, mins uint32) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", fmt.Sprintf("public, max-age=%d", mins*60))
+		next.ServeHTTP(w, r)
+	})
+}
+
+func Logger(next http.Handler, log *slog.Logger) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log.Debug("Request", "r", r.Header)
 		next.ServeHTTP(w, r)
 	})
 }
