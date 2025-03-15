@@ -2,7 +2,8 @@
     "Home": {
         "title": "Qasr El Memez",
         "meme-search": "search memes...",
-        "upload": "Upload"
+        "upload": "Upload",
+        "create": "Create"
     },
     "uploadMeme": {
         "title": "Upload a Meme",

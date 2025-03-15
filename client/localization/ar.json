@@ -2,7 +2,8 @@
     "Home": {
         "title": "قصر الميمز",
         "meme-search": "ابحث عن ميمز...",
-        "upload": "رفع"
+        "upload": "رفع",
+        "create": "إنشاء"
     },
     "uploadMeme": {
         "title": "رفع ميم",
