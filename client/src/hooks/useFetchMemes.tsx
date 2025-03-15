@@ -3,8 +3,14 @@ import Ajv from "ajv";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Meme, MemesResponse, memesResponseSchema } from "../types/Meme";
 
+// Cache for storing meme responses
+const memeCache = new Map<number, MemesResponse>();
+
 const ajv = new Ajv();
 async function fetchMemes(pageNum: number): Promise<MemesResponse> {
+    if (memeCache.has(pageNum)) {
+        return memeCache.get(pageNum)!
+    }
     const url = new URL("/api/memes", process.env.NEXT_PUBLIC_API_HOST);
     url.searchParams.append("page", pageNum.toString());
     url.searchParams.append("pageSize", "10");
@@ -22,6 +28,7 @@ async function fetchMemes(pageNum: number): Promise<MemesResponse> {
         console.log(validate.errors);
         throw new Error("Invalid response format");
     }
+    memeCache.set(pageNum, data)
     return data;
 }
 
@@ -32,6 +39,7 @@ export function useFetchMemes() {
     const [error, setError] = useState<string | null>(null);
     const page = useRef(0) // page is not rendered to it doesn't need a state
     const initialized = useRef(false)
+    
     const loadMoreMemes = useCallback(async () => {
         const currentPage = page.current
         console.log("loading page", currentPage + 1);
