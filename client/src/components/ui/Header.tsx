@@ -1,5 +1,5 @@
 "use client";
-import { Upload } from "lucide-react";
+import { Plus, Upload } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { Suspense, useState } from "react";
@@ -36,10 +36,20 @@ export default function Header() {
                 <div className="flex justify-end items-center gap-4 flex-1 ">
                     <LanguageSwitch />
                     <Button
-                        className="bg-primary text-secondary p-1 px-2 py-1 rounded-lg flex justify-center items-center gap-2"
+                        asChild
+                        className="bg-primary text-secondary p-1 px-2 py-1 rounded-lg flex justify-center items-center gap-1"
+                    >
+                        <Link href={"/generator"}>
+                            {t("create")}
+                            <Plus />
+                        </Link>
+                    </Button>
+                    <Button
+                        className="bg-primary text-secondary p-1 px-2 py-1 rounded-lg flex justify-center items-center gap-1"
                         onClick={showModal}
                     >
-                        {t("upload")} <Upload />
+                        {t("upload")}
+                        <Upload />
                     </Button>
                 </div>
             </header>
