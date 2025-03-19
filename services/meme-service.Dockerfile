@@ -17,8 +17,9 @@ RUN GOOS=linux go build -o /meme-service ./memeService/cmd/memeservice
 
 # Final stage
 FROM alpine:latest
-COPY --from=builder /meme-service /meme-service
+WORKDIR /app
+COPY --from=builder /meme-service ./meme-service
 
 RUN mkdir -p images 
 
-CMD ["/meme-service"]
+CMD ["/app/meme-service"]
