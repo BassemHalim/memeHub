@@ -24,12 +24,13 @@ TODO:
 -   [x] meme page
 -   [x] ar/en switch
 -   [x] endpoint to update a meme tags or name
+-   [x] caching timeline
+-   [x] image editing UI
 -   [ ] search page filters UI
 -   [ ] determine if a similar meme already exists (https://github.com/qarmin/czkawka)
 -   [ ] use ocr to get text from images
 -   [ ] filtering offensive content 
--   [ ] image editing UI WIP
 -   [ ] compress images
 -   [ ] add tests WIP
 -   [ ] Upvote memes
--   [ ] caching timeline
+-   [ ] caching timeline server-side
