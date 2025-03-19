@@ -1,6 +1,7 @@
 package rateLimiter
 
 import (
+	"fmt"
 	"log/slog"
 	"net"
 	"net/http"
@@ -110,7 +111,7 @@ func (h *RateLimiter) RateLimit(next http.Handler) http.Handler {
 		ip := h.getIP(r)
 
 		limiter := h.getClientLimiter(ip)
-		h.log.Info("Received request", "IP", ip, "tokens_available", limiter.Tokens())
+		h.log.Info("Received request", "IP", ip, "tokens_available", fmt.Sprintf("%.3f",limiter.Tokens()))
 		if !limiter.Allow() {
 			http.Error(w, "Rate limit exceeded", http.StatusTooManyRequests)
 			return

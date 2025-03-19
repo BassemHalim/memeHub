@@ -9,7 +9,7 @@ import (
 	_ "image/jpeg"
 	_ "image/png"
 
-	// _ "code.google.com/p/vp8-go/webp"
+	// _ "code.google.com/p/vp8-go/webp" using a webp image isn't great outside of browsers so I will not accept webp for now (will convert to jpeg later)
 
 	"log/slog"
 	"net/http"
