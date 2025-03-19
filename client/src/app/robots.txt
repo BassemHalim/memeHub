@@ -10,4 +10,7 @@ Disallow:
 User-agent: MSNBot-Media
 Disallow:
 
+User-agent: facebookexternalhit
+Allow: /
+
 crawl-delay: 10
