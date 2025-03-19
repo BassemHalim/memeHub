@@ -32,7 +32,7 @@ async function fetchMemes(pageNum: number): Promise<MemesResponse> {
     return data;
 }
 
-export function useFetchMemes() {
+export function useMemes() {
     const [memes, setMemes] = useState<Meme[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [hasMore, setHasMore] = useState(true);

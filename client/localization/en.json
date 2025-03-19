@@ -1,4 +1,12 @@
 {
+    "Metadata": {
+        "title": "Qasr El Memez",
+        "description": "Your daily dose of Egyptian Memes, viral comics, and relatable local memes. Share, laugh, and connect with the best of Egyptian internet culture."
+    },
+    "generatorMetadata": {
+        "title": "Qasr El Memez | free meme generator",
+        "description": "Looking for a quick and easy way to create memes? With our Meme Generator, you can upload any image, add your own text, and download your custom meme in just a few clicks. Whether it’s a joke for your friends or a viral post for social media, this tool makes it simple and fun."
+    },
     "Home": {
         "title": "Qasr El Memez",
         "meme-search": "search memes...",

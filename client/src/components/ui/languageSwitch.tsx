@@ -1,3 +1,4 @@
+'use client'
 import { usePathname, useRouter } from "@/i18n/navigation";
 import { Languages } from "lucide-react";
 import { Locale, useLocale } from "next-intl";
@@ -27,7 +28,6 @@ const query = searchParams.get('query')
         });
     }
 
-    // const label = arabic ? "EN" : "AR";
     return (
         <Button
             aria-label="language button"

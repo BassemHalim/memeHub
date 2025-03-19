@@ -1,33 +1,45 @@
 import Footer from "@/components/ui/Footer";
 import Header from "@/components/ui/Header";
 import { GoogleAnalytics } from "@next/third-parties/google";
-import type { Metadata, Viewport } from "next";
+import type { Viewport } from "next";
 import { NextIntlClientProvider } from "next-intl";
-import { getLocale, getMessages } from "next-intl/server";
+import { getLocale, getMessages, getTranslations } from "next-intl/server";
 import { El_Messiri } from "next/font/google";
 
-import "./globals.css";
 import { cn } from "@/components/lib/utils";
+import "./globals.css";
 
-export const metadata: Metadata = {
-    title: "Qasr El Memez",
-    description: "The home of your egyptian memes",
-    openGraph: {
-        type: "website",
-        url: "https://qasrelmemez.com",
-        title: "Qasr El Memez",
-        description:
-            "Qasr el Memez | Your daily dose of Egyptian Memes, viral content, and relatable local memes. Share, laugh, and connect with the best of Egyptian internet culture.",
-        images: [
-            {
-                url: "https://qasrelmemez.com/logo.png",
-                width: 588,
-                height: 588,
-                alt: "Qasr El Memez",
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
+    const { locale } = await params;
+    const t = await getTranslations({ locale: locale, namespace: "Metadata" });
+
+    return {
+        title: t("title"),
+        description: t("description"),
+        openGraph: {
+            type: "website",
+            url: "https://qasrelmemez.com",
+            title: t("title"),
+            description: t("description"),
+            images: [
+                {
+                    url: "https://qasrelmemez.com/logo.png",
+                    width: 588,
+                    height: 588,
+                    alt: "Qasr El Memez",
+                },
+            ],
+        },
+        alternates: {
+            canonical: `https://qasrelmemez.com/${locale}`,
+
+            languages: {
+                "en-US": "https://qasrelmemez.com/en",
+                "ar-EG": "https://qasrelmemez.com/ar",
             },
-        ],
-    },
-};
+        },
+    };
+}
 export const viewport: Viewport = {
     interactiveWidget: "resizes-content",
 };

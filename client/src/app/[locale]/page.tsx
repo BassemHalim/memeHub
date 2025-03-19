@@ -1,11 +1,10 @@
-"use client";
-
+'use client'
 import HeroSearch from "@/components/ui/HeroSearch";
 import Timeline from "@/components/ui/Timeline";
-import { useFetchMemes } from "@/hooks/useFetchMemes";
+import { useMemes } from "@/hooks/useMemes";
 
 export default function Home() {
-    const { memes, isLoading, hasMore, next } = useFetchMemes();
+    const { memes, isLoading, hasMore, next } = useMemes();
 
     return (
         <div className="w-full flex flex-col flex-1">
