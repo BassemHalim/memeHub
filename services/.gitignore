@@ -1,2 +1,3 @@
-./docker-compose.yml
-./config.json
+docker-compose.yml
+config.json
+cert/*.pem

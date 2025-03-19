@@ -8,3 +8,6 @@
 Docker/VPS
 **/*.tar
 development.docker-compose.yml
+
+**/*.py
+scripts
