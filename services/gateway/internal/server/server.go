@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"image"
 	_ "image/gif"
 	_ "image/jpeg"
@@ -18,6 +19,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/patrickmn/go-cache"
 
 	"github.com/BassemHalim/memeDB/gateway/internal/config"
 	"github.com/BassemHalim/memeDB/gateway/internal/meme"
@@ -33,9 +35,10 @@ type Server struct {
 	memeClient      pb.MemeServiceClient
 	log             *slog.Logger
 	client          *http.Client
+	cache           *cache.Cache
 }
 
-func New(memeClient pb.MemeServiceClient, config *config.Config, rateLimiter *rateLimiter.RateLimiter, log *slog.Logger, client *http.Client) (*Server, error) {
+func New(memeClient pb.MemeServiceClient, config *config.Config, rateLimiter *rateLimiter.RateLimiter, log *slog.Logger, client *http.Client, cache *cache.Cache) (*Server, error) {
 
 	return &Server{config: config,
 		RateLimiter:     rateLimiter,
@@ -43,6 +46,7 @@ func New(memeClient pb.MemeServiceClient, config *config.Config, rateLimiter *ra
 		memeClient:      memeClient,
 		log:             log,
 		client:          client,
+		cache:           cache,
 	}, nil
 }
 
@@ -76,7 +80,17 @@ func (s *Server) GetTimeline(w http.ResponseWriter, r *http.Request) {
 			sortOrder = pb.SortOrder_OLDEST
 		}
 	}
+	timelineCacheKey := fmt.Sprintf("timeline_%d_%d", page, pageSize) // TODO: fixme different page sizes will create duplicate entries in the cache
+	// check if in cache
+	cachedTimeline, found := s.cache.Get(timelineCacheKey)
+	if found {
+		s.log.Debug("Cache hit for timeline")
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(cachedTimeline)
+		return
 
+	}
 	// get timeline memes
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
@@ -90,6 +104,8 @@ func (s *Server) GetTimeline(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error getting memes", http.StatusInternalServerError)
 		return
 	}
+	// store in cache
+	s.cache.Set(timelineCacheKey, resp, cache.DefaultExpiration)
 	// return all the sampleMemes as JSON
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -272,6 +288,16 @@ func (s *Server) SearchTags(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid limit", http.StatusBadRequest)
 		return
 	}
+
+	searchTagsCacheKey := fmt.Sprintf("tags_%s_%d", query, limitVal)
+	// check if in cache
+	if cachedTags, found := s.cache.Get(searchTagsCacheKey); found {
+		s.log.Debug("Cache hit for tags", "Query", query, "Limit", limit)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(cachedTags)
+		return
+	}
 	s.log.Debug("Search Tags", "Query", query, "Limit", limit)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
@@ -284,6 +310,9 @@ func (s *Server) SearchTags(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to fetch tags", http.StatusInternalServerError)
 		return
 	}
+	// store in cache
+	s.cache.Set(searchTagsCacheKey, resp, cache.DefaultExpiration)
+	
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(resp)
@@ -330,6 +359,14 @@ func (s *Server) GetMeme(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Bad ID", http.StatusBadRequest)
 		return
 	}
+	memeCacheKey := fmt.Sprintf("meme_%s", idString)
+	if cachedMeme, found:= s.cache.Get(memeCacheKey); found {
+		s.log.Debug("Cache hit for meme", "ID", idString)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(cachedMeme)
+		return
+	}
 
 	s.log.Info("Get Meme", "ID", idString)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
@@ -342,6 +379,9 @@ func (s *Server) GetMeme(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to Get meme", http.StatusInternalServerError)
 		return
 	}
+	// store in cache
+	s.cache.Set(memeCacheKey, resp, cache.DefaultExpiration)
+	
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(resp)

@@ -10,6 +10,7 @@ import (
 	"github.com/BassemHalim/memeDB/gateway/internal/config"
 	"github.com/BassemHalim/memeDB/gateway/internal/fileserver"
 	"github.com/BassemHalim/memeDB/gateway/internal/server"
+	"github.com/patrickmn/go-cache"
 
 	"github.com/BassemHalim/memeDB/gateway/internal/middleware"
 
@@ -35,11 +36,13 @@ func main() {
 	limiter := rateLimiter.NewRateLimiter(rate.Limit(cfg.TokenRate), int(cfg.BurstRate))
 	log.Info("Rate Limiter", "RATE", cfg.TokenRate, "BURST", cfg.BurstRate)
 
+	c := cache.New(2*time.Hour, 2*time.Hour) // TODO: make these configurable
+
 	memeClient, err := server.NewMemeClient()
 	if err != nil {
 		log.Error("Failed to connect to GRPC Server", "ERROR", err)
 	}
-	server, err := server.New(memeClient, cfg, limiter, log, &http.Client{Timeout: 1 * time.Second})
+	server, err := server.New(memeClient, cfg, limiter, log, &http.Client{Timeout: 1 * time.Second}, c)
 	if err != nil {
 		log.Error("failed to create server", "ERROR", err)
 		return
@@ -55,8 +58,8 @@ func main() {
 	http.Handle("GET /api/memes", middleware.GzipMiddleware(middleware.Cache(middleware.CORS(limiter.RateLimit(getMemesTimeline)), 60)))
 	http.Handle("GET /api/memes/search", middleware.GzipMiddleware(middleware.Cache(middleware.CORS(limiter.RateLimit(searchMemes)), 2*60)))
 	http.Handle("GET /api/tags/search", middleware.GzipMiddleware(middleware.Cache(middleware.CORS(limiter.RateLimit(searchTags)), 2*60)))
-	http.Handle("POST /api/meme", middleware.CORS(limiter.RateLimit(uploadMeme)))
 	http.Handle("GET /api/meme/{id}", middleware.Cache(middleware.CORS(limiter.RateLimit(getMeme)), 24*60))
+	http.Handle("POST /api/meme", middleware.CORS(limiter.RateLimit(uploadMeme)))
 
 	http.Handle("DELETE /api/meme/{id}", middleware.CORS(limiter.RateLimit(middleware.Auth(deleteMeme))))
 	http.Handle("PATCH /api/meme/{id}/tags", middleware.CORS(limiter.RateLimit(middleware.Auth(updateTags))))

@@ -26,6 +26,7 @@ TODO:
 -   [x] endpoint to update a meme tags or name
 -   [x] caching timeline
 -   [x] image editing UI
+-   [x] caching timeline server-side
 -   [ ] search page filters UI
 -   [ ] determine if a similar meme already exists (https://github.com/qarmin/czkawka)
 -   [ ] use ocr to get text from images
@@ -33,4 +34,3 @@ TODO:
 -   [ ] compress images
 -   [ ] add tests WIP
 -   [ ] Upvote memes
--   [ ] caching timeline server-side
