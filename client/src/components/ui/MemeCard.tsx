@@ -24,7 +24,10 @@ export default function MemeCard({
     const [shareLogo, setShareLogo] = useState<JSX.Element>(ShareIcon);
     const [showMobilCtrl, setShowMobilCtrl] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
-    const memeURL = `https://qasrelmemez.com${meme.media_url}`;
+    let memeURL = `https://qasrelmemez.com${meme.media_url}`;
+    if (process.env.NODE_ENV === "development") {
+        memeURL = `http://localhost:8080${meme.media_url}`;
+    }
 
     let extraClasses = "";
     if (variant === "timeline") {

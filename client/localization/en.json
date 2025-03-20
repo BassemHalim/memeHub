@@ -31,7 +31,9 @@
         "upload-error-description": "This is can be either due to image size (>2MB) or the provided url is not allowed. Try downloading the image and uploading the file",
         "cancel": "Cancel",
         "submit": "Submit",
-        "or": "or"
+        "or": "or",
+        "success-title": "Meme Uploaded Successfully",
+        "success-description": "Your meme has been uploaded successfully you can see it here"
     },
     "memeGenerator": {
         "title": "Meme Generator - Create Memes Online for Free",

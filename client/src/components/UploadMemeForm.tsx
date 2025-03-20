@@ -22,13 +22,15 @@ import {
 import { Input } from "@/components/ui/input";
 import Loader from "@/components/ui/loader";
 import MultipleSelector, { Option } from "@/components/ui/multipleSelector";
+import { Meme } from "@/types/Meme";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { TriangleAlert } from "lucide-react";
 import { useTranslations } from "next-intl";
+import Link from "next/link";
 import { Dispatch, SetStateAction, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { validateImage } from "./lib/imgUtils";
-import { TriangleAlert } from "lucide-react";
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024;
 const OPTIONS: Option[] = [
@@ -70,6 +72,11 @@ const formSchema = z
         }
     );
 
+interface UploadStatus {
+    status: string;
+    data?: string;
+}
+
 export default function UploadMeme({
     className,
     open,
@@ -79,8 +86,7 @@ export default function UploadMeme({
     open: boolean;
     onOpen: Dispatch<SetStateAction<boolean>>;
 }) {
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState("");
+    const [state, setState] = useState<UploadStatus>({ status: "" });
     const t = useTranslations("uploadMeme");
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -126,7 +132,7 @@ export default function UploadMeme({
 
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
         try {
-            setLoading(true);
+            setState({ status: "loading" });
             const tags = values.tags.map((tag) => tag.value);
             // Call API to upload meme
             let file: File | undefined, mimeType;
@@ -152,7 +158,10 @@ export default function UploadMeme({
                 mimeType = "image/jpeg";
             }
             if (!file && !values.imageUrl) {
-                setError("You must upload an image either a url or file");
+                setState({
+                    data: "You must upload an image either a url or file",
+                    status: "error",
+                });
                 throw new Error("Missing media");
             }
             const body: FormData = new FormData();
@@ -180,22 +189,30 @@ export default function UploadMeme({
                     if (!res.ok) {
                         const errorData = await res.text();
                         throw new Error("Failed to upload meme " + errorData);
+                    } else {
                     }
-                    form.reset();
-                    onOpen(false);
+                    // form.reset();
+                    // onOpen(false);
+                    const json = await res.json();
+                    console.log(json);
+                    setState({ status: "success", data: json });
                 })
                 .catch((err: Error) => {
                     console.log(err);
-                    setError(err.message);
+                    setState({ status: "error", data: err.message });
                 });
-        } catch (error) {
+        } catch (error: unknown) {
             console.log(error);
+            setState({
+                status: "error",
+                data: error instanceof Error ? error.message : String(error),
+            });
         }
-        setLoading(false);
     };
     const handleCancel = () => {
         form.reset();
-        setError("");
+        setState({ status: "", data: "" });
+        onOpen(false);
     };
     return (
         <div className={className}>
@@ -206,172 +223,195 @@ export default function UploadMeme({
                     form.reset();
                 }}
             >
-                <DialogContent className="sm:max-w-[425px] overflow-y-auto max-h-[80vh]  sm:p-6 md:max-h-[90vh] ">
-                    <DialogHeader>
-                        <DialogTitle>{t("title")}</DialogTitle>
-                        <DialogDescription>
-                            {t("description")}
-                        </DialogDescription>
-                        <DialogDescription className="font-medium text-red-500">
-                            {t("note")}
-                        </DialogDescription>
-                    </DialogHeader>
-                    {error && (
-                        <div className="text-center">
-                            <TriangleAlert
-                                size={100}
-                                className="mx-auto text-red-500"
-                            />
+                {state.status !== "success" ? (
+                    <DialogContent className="sm:max-w-[425px] overflow-y-auto max-h-[80vh]  sm:p-6 md:max-h-[90vh] ">
+                        <DialogHeader>
+                            <DialogTitle>{t("title")}</DialogTitle>
+                            <DialogDescription>
+                                {t("description")}
+                            </DialogDescription>
+                            <DialogDescription className="font-medium text-red-500">
+                                {t("note")}
+                            </DialogDescription>
+                        </DialogHeader>
+                        {state.status === "error" && (
+                            <div className="text-center">
+                                <TriangleAlert
+                                    size={100}
+                                    className="mx-auto text-red-500"
+                                />
 
-                            <h2 className="font-bold text-lg">
-                                {t('upload-error-title')}
-                            </h2>
-                            <p>
-                               {t("upload-error-description")}
-                            </p>
-                        </div>
-                    )}
-                    <Form {...form}>
-                        <form
-                            onSubmit={form.handleSubmit(onSubmit)}
-                            className="space-y-1"
-                        >
-                            <FormField
-                                control={form.control}
-                                name="name"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t("name")}</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                placeholder={t(
-                                                    "name-placeholder"
-                                                )}
-                                                {...field}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            <FormField
-                                control={form.control}
-                                name="tags"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t("tags")}</FormLabel>
-                                        <FormControl>
-                                            <MultipleSelector
-                                                onSearch={async (input) =>
-                                                    searchTags(input)
-                                                }
-                                                defaultOptions={OPTIONS}
-                                                creatable
-                                                placeholder={t(
-                                                    "tags-placeholder"
-                                                )}
-                                                loadingIndicator={<Loader />}
-                                                {...field}
-                                            />
-                                        </FormControl>
-                                        <FormDescription>
-                                            {t("tags-note")}
-                                        </FormDescription>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            <FormField
-                                control={form.control}
-                                name="imageUrl"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t("image-url")}</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                {...field}
-                                                type="url"
-                                                placeholder={t(
-                                                    "image-url-placeholder"
-                                                )}
-                                            />
-                                        </FormControl>
-                                        <FormDescription>
-                                            {t("image-url-note")}
-                                        </FormDescription>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <div className="flex justify-around items-center px-4">
-                                <div className="h-px border-0 w-2/5 bg-gray-300"></div>
-                                <div className="text-center mx-2">
-                                    {t("or")}
-                                </div>
-                                <div className="h-px border-0 w-2/5 bg-gray-300"></div>
+                                <h2 className="font-bold text-lg">
+                                    {t("upload-error-title")}
+                                </h2>
+                                <p>{t("upload-error-description")}</p>
                             </div>
-
-                            <FormField
-                                control={form.control}
-                                name="imageFile"
-                                render={({
-                                    field: {
-                                        onChange,
-                                        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                                        value,
-                                        ...fieldProps
-                                    },
-                                }) => (
-                                    <FormItem>
-                                        <FormLabel>
-                                            {t("upload-image")}
-                                        </FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                {...fieldProps}
-                                                type="file"
-                                                accept="image/*"
-                                                onChange={(event) =>
-                                                    onChange(
-                                                        event.target.files &&
-                                                            event.target
-                                                                .files[0]
-                                                    )
-                                                }
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </form>
-                    </Form>
-
-                    <DialogFooter className="gap-2">
-                        <DialogClose asChild>
-                            <Button
-                                className=""
-                                onClick={handleCancel}
-                                variant="secondary"
+                        )}
+                        <Form {...form}>
+                            <form
+                                onSubmit={form.handleSubmit(onSubmit)}
+                                className="space-y-1"
                             >
-                                {t("cancel")}
+                                <FormField
+                                    control={form.control}
+                                    name="name"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t("name")}</FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    placeholder={t(
+                                                        "name-placeholder"
+                                                    )}
+                                                    {...field}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                <FormField
+                                    control={form.control}
+                                    name="tags"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t("tags")}</FormLabel>
+                                            <FormControl>
+                                                <MultipleSelector
+                                                    onSearch={async (input) =>
+                                                        searchTags(input)
+                                                    }
+                                                    defaultOptions={OPTIONS}
+                                                    creatable
+                                                    placeholder={t(
+                                                        "tags-placeholder"
+                                                    )}
+                                                    loadingIndicator={
+                                                        <Loader />
+                                                    }
+                                                    {...field}
+                                                />
+                                            </FormControl>
+                                            <FormDescription>
+                                                {t("tags-note")}
+                                            </FormDescription>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                <FormField
+                                    control={form.control}
+                                    name="imageUrl"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>
+                                                {t("image-url")}
+                                            </FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    {...field}
+                                                    type="url"
+                                                    placeholder={t(
+                                                        "image-url-placeholder"
+                                                    )}
+                                                />
+                                            </FormControl>
+                                            <FormDescription>
+                                                {t("image-url-note")}
+                                            </FormDescription>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <div className="flex justify-around items-center px-4">
+                                    <div className="h-px border-0 w-2/5 bg-gray-300"></div>
+                                    <div className="text-center mx-2">
+                                        {t("or")}
+                                    </div>
+                                    <div className="h-px border-0 w-2/5 bg-gray-300"></div>
+                                </div>
+
+                                <FormField
+                                    control={form.control}
+                                    name="imageFile"
+                                    render={({
+                                        field: {
+                                            onChange,
+                                            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                                            value,
+                                            ...fieldProps
+                                        },
+                                    }) => (
+                                        <FormItem>
+                                            <FormLabel>
+                                                {t("upload-image")}
+                                            </FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    {...fieldProps}
+                                                    type="file"
+                                                    accept="image/*"
+                                                    onChange={(event) =>
+                                                        onChange(
+                                                            event.target
+                                                                .files &&
+                                                                event.target
+                                                                    .files[0]
+                                                        )
+                                                    }
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </form>
+                        </Form>
+
+                        <DialogFooter className="gap-2">
+                            <DialogClose asChild>
+                                <Button
+                                    className=""
+                                    onClick={handleCancel}
+                                    variant="secondary"
+                                >
+                                    {t("cancel")}
+                                </Button>
+                            </DialogClose>
+                            <Button
+                                key="submit"
+                                onClick={form.handleSubmit(onSubmit)}
+                                disabled={
+                                    state.status === "loading" ||
+                                    !form.formState.isValid ||
+                                    form.formState.isValidating
+                                }
+                            >
+                                {t("submit")}
                             </Button>
-                        </DialogClose>
-                        <Button
-                            key="submit"
-                            onClick={form.handleSubmit(onSubmit)}
-                            disabled={
-                                loading ||
-                                !form.formState.isValid ||
-                                form.formState.isValidating
-                            }
-                        >
-                            {t("submit")}
+                        </DialogFooter>
+                    </DialogContent>
+                ) : (
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>{t("success-title")}</DialogTitle>
+                            <DialogDescription>
+                                {t("success-description")}
+                            </DialogDescription>
+                        </DialogHeader>
+                        <Button asChild onClick={handleCancel}>
+                            <Link
+                                href={`/meme/${
+                                    (state.data as unknown as Meme).id
+                                }`}
+                            >
+                                Meme Page
+                            </Link>
                         </Button>
-                    </DialogFooter>
-                </DialogContent>
+                    </DialogContent>
+                )}
             </Dialog>
         </div>
     );
