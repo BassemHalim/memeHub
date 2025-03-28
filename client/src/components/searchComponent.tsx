@@ -1,17 +1,33 @@
 "use client";
 import Timeline from "@/components/ui/Timeline";
 import { Meme } from "@/types/Meme";
-import { Search as SearchIcon } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search as SearchIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
+import { Button } from "./ui/button";
+import { Toggle } from "./ui/toggle";
 
 export default function SearchComponent({ query }: { query: string }) {
     const [memes, setMemes] = useState<Meme[]>([]);
+    // const tags = [
+    //     ...new Set(memes.map((meme) => meme.tags).flat()).values(),
+    // ].map((tag) => {
+    //     return { tag: tag, pressed: false };
+    // });
+    const [tags, setTags] = useState( [
+             ...new Set(memes.map((meme) => meme.tags).flat()).values(),
+         ]);
+    console.log(tags);
     const [error, setError] = useState(false);
     const [noMatch, setNoMatch] = useState(false);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const router = useRouter();
-
+    const tagsRef = useRef<HTMLDivElement>(null);
+    const tagsOverflow = tagsRef.current
+        ? parseInt(getComputedStyle(tagsRef.current).width, 10) >
+          screen.width - 32
+        : true;
+    console.log(tagsOverflow);
     function onSubmit(e: FormEvent) {
         e.preventDefault();
         const form = e.target as HTMLFormElement;
@@ -72,7 +88,7 @@ export default function SearchComponent({ query }: { query: string }) {
         searchMemes(query);
     }, [query]);
     return (
-        <section className="w-full flex-1 mt-4">
+        <section className="w-full flex-1 mt-4 gap-2 flex flex-col overflow-hidden">
             <div className="w-full max-w-2xl relative text-gray-800 mx-auto px-2">
                 <form onSubmit={onSubmit}>
                     <input
@@ -103,6 +119,72 @@ export default function SearchComponent({ query }: { query: string }) {
                     </h2>
                 </div>
             ) : null}
+            <div className="font-bold relative mx-2 h-10 flex items-center justify-start group">
+                <div
+                    className="flex overflow-x-hidden gap-2 justify-center absolute"
+                    ref={tagsRef}
+                    style={{ left: 0 }}
+                >
+                    {tags.map((tag) => (
+                        <Toggle
+                            pressed={tag.pressed}
+                            onPressedChange={(pressed) => {
+                                const newTags = [...tags].filter((t) => t.tag !== tag.tag);
+                                console.log(newTags);
+                                setTags(newTags)
+                                // setTags([
+                                //         ...newTags.filter((t) => t.tag !== tag.tag),
+                                //         { tag: tag.tag, pressed: pressed },
+                                //     ]);
+                            }}
+                            key={tag.tag}
+                            className="p-2 text-center text-nowrap bg-primary text-secondary"
+                        >
+                            {tag.tag}
+                        </Toggle>
+                    ))}
+                </div>
+                {tagsOverflow && (
+                    <>
+                        <Button
+                            className="md:hidden group-hover:inline-block absolute right-4 top-1 rounded-full p-1 h-8 w-8 bg-secondary text-primary hover:bg-secondary/80"
+                            onClick={() => {
+                                const carousel = tagsRef.current;
+                                if (carousel) {
+                                    const incr = screen.width / 2;
+                                    const carouselWidth = parseInt(
+                                        getComputedStyle(carousel).width,
+                                        10
+                                    );
+                                    carousel.style.left = `${Math.max(
+                                        parseInt(carousel.style.left, 10) -
+                                            incr,
+                                        -carouselWidth + screen.width - 70
+                                    )}px`;
+                                }
+                            }}
+                        >
+                            <ChevronRight className="h-4 w-4 m-auto" />
+                        </Button>
+                        <Button
+                            className="md:hidden group-hover:inline-block absolute left-4 top-1 rounded-full p-1 h-8 w-8 bg-secondary text-primary hover:bg-secondary/80"
+                            onClick={() => {
+                                const carousel = tagsRef.current;
+                                if (carousel) {
+                                    const incr = screen.width / 2;
+                                    carousel.style.left = `${Math.min(
+                                        parseInt(carousel.style.left, 10) +
+                                            incr,
+                                        70
+                                    )}px`;
+                                }
+                            }}
+                        >
+                            <ChevronLeft className="h-4 w-4 m-auto" />
+                        </Button>
+                    </>
+                )}
+            </div>
             <Timeline memes={memes} isLoading={isLoading} />
         </section>
     );
