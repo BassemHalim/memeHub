@@ -53,6 +53,11 @@ export default function Header() {
                     </Button>
                 </div>
             </header>
+            {process.env.NODE_ENV === "development" && (
+                <div className="text-center p-4 bg-red-500">
+                    API: {process.env.NEXT_PUBLIC_API_HOST}
+                </div>
+            )}
             <Suspense>
                 <UploadMemeForm open={isOpen} onOpen={setIsOpen} />
             </Suspense>
