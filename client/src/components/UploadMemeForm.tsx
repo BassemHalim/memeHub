@@ -73,8 +73,8 @@ const formSchema = z
     );
 
 interface UploadStatus {
-    status: string;
-    data?: string;
+    status: "default" | "loading" | "success" | "error" | "pending";
+    data?: string | object;
 }
 
 export default function UploadMeme({
@@ -86,7 +86,7 @@ export default function UploadMeme({
     open: boolean;
     onOpen: Dispatch<SetStateAction<boolean>>;
 }) {
-    const [state, setState] = useState<UploadStatus>({ status: "" });
+    const [state, setState] = useState<UploadStatus>({ status: "default" });
     const t = useTranslations("uploadMeme");
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -97,7 +97,6 @@ export default function UploadMeme({
             imageFile: undefined,
         },
     });
-
     const searchTags = async (input: string): Promise<Option[]> => {
         if (input.length < 3) {
             return OPTIONS;
@@ -191,11 +190,18 @@ export default function UploadMeme({
                         throw new Error("Failed to upload meme " + errorData);
                     } else {
                     }
-                    // form.reset();
-                    // onOpen(false);
-                    const json = await res.json();
-                    console.log(json);
-                    setState({ status: "success", data: json });
+                    // get header
+                    // if it contains a json response => done else pending content moderation
+                    if (
+                        res.headers
+                            .get("Content-Type")
+                            ?.includes("application/json")
+                    ) {
+                        const json = await res.json();
+                        setState({ status: "success", data: json });
+                        return;
+                    }
+                    setState({ status: "pending", data: "pending" });
                 })
                 .catch((err: Error) => {
                     console.log(err);
@@ -211,7 +217,7 @@ export default function UploadMeme({
     };
     const handleCancel = () => {
         form.reset();
-        setState({ status: "", data: "" });
+        setState({ status: "default", data: "" });
         onOpen(false);
     };
     return (
@@ -220,10 +226,13 @@ export default function UploadMeme({
                 open={open}
                 onOpenChange={(open) => {
                     onOpen(open);
+                    if (!open) {
+                        handleCancel();
+                    }
                     form.reset();
                 }}
             >
-                {state.status !== "success" ? (
+                {!["success", "pending"].includes(state.status) ? (
                     <DialogContent className="sm:max-w-[425px] overflow-y-auto max-h-[80vh]  sm:p-6 md:max-h-[90vh] ">
                         <DialogHeader>
                             <DialogTitle>{t("title")}</DialogTitle>
@@ -401,15 +410,18 @@ export default function UploadMeme({
                                 {t("success-description")}
                             </DialogDescription>
                         </DialogHeader>
-                        <Button asChild onClick={handleCancel}>
-                            <Link
-                                href={`/meme/${
-                                    (state.data as unknown as Meme).id
-                                }`}
-                            >
-                                Meme Page
-                            </Link>
-                        </Button>
+                        {typeof state.data === "object" &&
+                            "id" in state.data && (
+                                <Button asChild onClick={handleCancel}>
+                                    <Link
+                                        href={`/meme/${
+                                            (state.data as unknown as Meme).id
+                                        }`}
+                                    >
+                                        Meme Page
+                                    </Link>
+                                </Button>
+                            )}
                     </DialogContent>
                 )}
             </Dialog>
