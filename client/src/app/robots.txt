@@ -13,4 +13,7 @@ Disallow:
 User-agent: facebookexternalhit
 Allow: /
 
+User-agent: Bingbot
+Disallow: 
+
 crawl-delay: 10
