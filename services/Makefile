@@ -1,4 +1,4 @@
-.PHONY: docker-up docker-down server-up start stop gateway
+.PHONY: docker-up docker-down server-up start stop gateway moderator
 
 docker-up:
 	sudo docker compose -f development.docker-compose.yml up postgres -d 
@@ -7,7 +7,9 @@ docker-down:
 server-up:
 	go run memeService/cmd/memeservice/server.go || true
 gateway:
-	GRPC_HOST=localhost GRPC_PORT=50051 go run gateway/cmd/memes_api/main.go
+	export $$(cat 'gateway/.env' | xargs) && go run gateway/cmd/memes_api/main.go
+moderator:
+	export $$(cat 'moderator/.env' | xargs) && go run moderator/moderator.go
 server: docker-up server-up
 
 stop: docker-down
