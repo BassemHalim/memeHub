@@ -27,10 +27,11 @@ TODO:
 -   [x] caching timeline
 -   [x] image editing UI
 -   [x] caching timeline server-side
--   [ ] search page filters UI
+-   [ ] search page filters UI WIP (feat/search-page-filters)
 -   [ ] determine if a similar meme already exists (https://github.com/qarmin/czkawka)
 -   [ ] use ocr to get text from images
--   [ ] filtering offensive content 
+-   [ ] filtering offensive content WIP
 -   [ ] compress images
 -   [ ] add tests WIP
 -   [ ] Upvote memes
+-   [ ] display upload file in upload form
