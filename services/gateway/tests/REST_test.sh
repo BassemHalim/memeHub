@@ -21,3 +21,8 @@ curl -X GET 'http://localhost:8080/api/memes/search?query=linkedin' | jq
 
  curl -X DELETE http://localhost:8080/api/meme/084d71b0-af7d-40f0-a7af-38f1224280f3 \
 -H 'Authorization: Bearer token'
+
+curl -X PATCH "localhost:8080/api/meme/79352c88-093e-4a15-86ca-1abb4fe228f0/tags" -v \
+-H "Content-Type: application/json" \
+-H "Authorization: Bearer token'\
+-d '{"Tags": ["tag1", "tag2"]}';
