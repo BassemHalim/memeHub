@@ -35,11 +35,11 @@ export async function generateMetadata({
                 images: ["https://qasrelmemez.com" + meme.media_url],
             },
             alternates: {
-                canonical: `https://qasrelmemez.com/ar/meme/${id}`,
+                canonical: `https://qasrelmemez.com/meme/${id}`,
 
                 languages: {
                     "en-US": `https://qasrelmemez.com/en/meme/${id}`,
-                    "ar-EG": `https://qasrelmemez.com/ar/meme/${id}`,
+                    "ar-EG": `https://qasrelmemez.com/meme/${id}`,
                 },
             },
         };

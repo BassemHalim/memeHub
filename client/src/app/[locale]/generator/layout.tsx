@@ -33,7 +33,7 @@ export async function generateMetadata({
 
             languages: {
                 "en-US": "https://qasrelmemez.com/en/generator",
-                "ar-EG": "https://qasrelmemez.com/ar/generator",
+                "ar-EG": "https://qasrelmemez.com/generator",
             },
         },
     };
