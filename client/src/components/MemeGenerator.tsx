@@ -32,7 +32,7 @@ function isClicked(
 function rectPos(e: TextElementType, ctx: CanvasRenderingContext2D) {
     const canvas = ctx.canvas;
     const fontSize = e.fontSize;
-    ctx.font = `bold ${fontSize}px Arial`;
+    ctx.font = `bold ${fontSize}px El Messiri,El Messiri Fallback`;
     const w = ctx.measureText(e.text).width + 2 * PADDING;
     const h = fontSize + 2 * PADDING;
 
@@ -67,8 +67,8 @@ export default function MemeGenerator() {
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
-    
-        setImageURL(URL.createObjectURL(file)) 
+
+        setImageURL(URL.createObjectURL(file));
     };
 
     const handleMouseDown = (
@@ -139,12 +139,17 @@ export default function MemeGenerator() {
         const canvas = canvasRef.current;
         if (!canvas) return;
         canvas.toBlob((blob) => {
-            if (!blob) return
+            if (!blob) return;
             const link = document.createElement("a");
-            link.download = "meme.png";
-            link.href = URL.createObjectURL(blob)
+            link.download =
+                textElements.length > 0
+                    ? "qasr_el_memez_" +
+                      textElements[0].text.replace(" ", "_") +
+                      ".png"
+                    : "qasr_el_memez.png";
+            link.href = URL.createObjectURL(blob);
             link.click();
-        }, 'image/png')
+        }, "image/png");
     };
 
     useEffect(() => {
@@ -176,10 +181,13 @@ export default function MemeGenerator() {
                     ctx.fillStyle = ele.color;
                     ctx.textAlign = "left";
                     ctx.textBaseline = "top";
-                    ctx.fillText(text, ele.x, ele.y);
+                    ctx.strokeStyle = "black";
+                    ctx.lineWidth = 2;
+                    ctx.strokeText(text, ele.x, ele.y, imageWidth - PADDING);
+                    ctx.fillText(text, ele.x, ele.y, imageWidth - PADDING);
                 }
             };
-            image.crossOrigin= "anonymous"
+            image.crossOrigin = "anonymous";
             image.src = imageURL;
         }
         if (!imageURL) return;
@@ -208,7 +216,15 @@ export default function MemeGenerator() {
                         return;
                     }
                     const [rx, ry, w, h] = rectPos(t, ctx);
-                    return <MemeTextBorder key={i} x={rx} y={ry} w={w} h={h} />;
+                    return (
+                        <MemeTextBorder
+                            key={i}
+                            x={rx}
+                            y={ry}
+                            w={Math.min(w, imageWidth)}
+                            h={h}
+                        />
+                    );
                 })}
             </div>
             <Card className="flex flex-col p-4 gap-2">
@@ -247,6 +263,27 @@ export default function MemeGenerator() {
                                     const newText = {
                                         ...txt,
                                         text: e.target.value,
+                                    };
+                                    setTextElements((prev) =>
+                                        prev.map((ele, j) => {
+                                            if (i == j) {
+                                                return newText;
+                                            }
+                                            return ele;
+                                        })
+                                    );
+                                }}
+                            />
+                            <Input
+                                type="range"
+                                min={0}
+                                max={60}
+                                className="w-24"
+                                value={txt.fontSize}
+                                onChange={(e) => {
+                                    const newText = {
+                                        ...txt,
+                                        fontSize: Number(e.target.value),
                                     };
                                     setTextElements((prev) =>
                                         prev.map((ele, j) => {
