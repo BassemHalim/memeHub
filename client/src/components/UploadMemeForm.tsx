@@ -31,6 +31,7 @@ import { Dispatch, SetStateAction, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { validateImage } from "./lib/imgUtils";
+import ImageInput from "./ui/imageInput";
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024;
 const OPTIONS: Option[] = [
@@ -353,27 +354,11 @@ export default function UploadMeme({
                                             ...fieldProps
                                         },
                                     }) => (
-                                        <FormItem>
-                                            <FormLabel>
-                                                {t("upload-image")}
-                                            </FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    {...fieldProps}
-                                                    type="file"
-                                                    accept="image/*"
-                                                    onChange={(event) =>
-                                                        onChange(
-                                                            event.target
-                                                                .files &&
-                                                                event.target
-                                                                    .files[0]
-                                                        )
-                                                    }
-                                                />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
+                                        <ImageInput
+                                            label={t("upload-image")}
+                                            {...fieldProps}
+                                            onChange={onChange}
+                                        />
                                     )}
                                 />
                             </form>
