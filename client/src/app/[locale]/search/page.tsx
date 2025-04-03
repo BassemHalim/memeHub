@@ -45,11 +45,17 @@ export default async function Search({
 }: {
     searchParams: Promise<{ [query: string]: string | undefined }>;
 }) {
-    const query = (await searchParams).query;
-
+    const params = await searchParams;
+    const query = params.query;
+    const tagsParam = params.tags || "";
+    const tags = tagsParam.split(",")
     return (
         <Suspense fallback={<div>Loading...</div>}>
-            <SearchComponent key={query || ""} query={query || ""} />
+            <SearchComponent
+                key={[query, ...tags].join("-") || ""}
+                query={query || ""}
+                selectedTags={tags}
+            />
         </Suspense>
     );
 }
