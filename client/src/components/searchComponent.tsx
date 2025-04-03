@@ -7,27 +7,34 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import { Button } from "./ui/button";
 import { Toggle } from "./ui/toggle";
 
+interface Tag {
+    name: string;
+    pressed: boolean;
+}
 export default function SearchComponent({ query }: { query: string }) {
     const [memes, setMemes] = useState<Meme[]>([]);
-    // const tags = [
-    //     ...new Set(memes.map((meme) => meme.tags).flat()).values(),
-    // ].map((tag) => {
-    //     return { tag: tag, pressed: false };
-    // });
-    const [tags, setTags] = useState( [
-             ...new Set(memes.map((meme) => meme.tags).flat()).values(),
-         ]);
-    console.log(tags);
+    const [tags, setTags] = useState<Tag[]>(
+        [...new Set(memes.map((meme) => meme.tags).flat()).values()]
+            .toSorted((e1, e2) => {
+                if (e1 == e2) return 0;
+                else if (e1 < e2) return 1;
+                return -1;
+            })
+            .map((tag) => {
+                return { name: tag, pressed: false };
+            })
+    );
+
     const [error, setError] = useState(false);
     const [noMatch, setNoMatch] = useState(false);
     const [isLoading, setIsLoading] = useState<boolean>(false);
+
     const router = useRouter();
     const tagsRef = useRef<HTMLDivElement>(null);
     const tagsOverflow = tagsRef.current
         ? parseInt(getComputedStyle(tagsRef.current).width, 10) >
           screen.width - 32
         : true;
-    console.log(tagsOverflow);
     function onSubmit(e: FormEvent) {
         e.preventDefault();
         const form = e.target as HTMLFormElement;
@@ -84,9 +91,22 @@ export default function SearchComponent({ query }: { query: string }) {
             console.log(err);
         }
     }
+
+
+    useEffect(() => {
+        setTags(
+            [...new Set(memes.map((meme) => meme.tags).flat()).values()].map(
+                (tag) => {
+                    return { name: tag, pressed: false };
+                }
+            )
+        );
+    }, [memes]);
+
     useEffect(() => {
         searchMemes(query);
     }, [query]);
+
     return (
         <section className="w-full flex-1 mt-4 gap-2 flex flex-col overflow-hidden">
             <div className="w-full max-w-2xl relative text-gray-800 mx-auto px-2">
@@ -129,18 +149,22 @@ export default function SearchComponent({ query }: { query: string }) {
                         <Toggle
                             pressed={tag.pressed}
                             onPressedChange={(pressed) => {
-                                const newTags = [...tags].filter((t) => t.tag !== tag.tag);
-                                console.log(newTags);
-                                setTags(newTags)
-                                // setTags([
-                                //         ...newTags.filter((t) => t.tag !== tag.tag),
-                                //         { tag: tag.tag, pressed: pressed },
-                                //     ]);
+                                setTags(
+                                    tags.map((t) => {
+                                        if (t.name === tag.name) {
+                                            return {
+                                                name: t.name,
+                                                pressed: pressed,
+                                            };
+                                        }
+                                        return t;
+                                    })
+                                );
                             }}
-                            key={tag.tag}
+                            key={tag.name}
                             className="p-2 text-center text-nowrap bg-primary text-secondary"
                         >
-                            {tag.tag}
+                            {tag.name}
                         </Toggle>
                     ))}
                 </div>
