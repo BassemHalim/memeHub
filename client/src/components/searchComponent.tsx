@@ -62,7 +62,8 @@ export default function SearchComponent({
         // go to /search?query={query}&tags={tags}
         const url = new URL("search", window.location.origin);
         url.searchParams.append("query", query);
-        if (tags) url.searchParams.append("tags", tags?.join(","));
+        if (tags && tags.length > 0)
+            url.searchParams.append("tags", tags?.join(","));
         router.push(url.href);
     }
     function onSubmit(e: FormEvent) {
@@ -177,7 +178,7 @@ export default function SearchComponent({
             <div className="font-bold relative mx-2 h-10 flex items-center justify-center group">
                 <div
                     className={cn(
-                        "flex overflow-x-hidden gap-2 justify-center",
+                        "flex  gap-2 justify-center",
                         tagsOverflow ? "absolute" : ""
                     )}
                     ref={tagsRef}

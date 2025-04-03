@@ -52,6 +52,7 @@ export default function MemeCard({
 
     const handleShare: MouseEventHandler = (e) => {
         e.stopPropagation();
+        e.preventDefault();
         const shareLink = `https://qasrelmemez.com/meme/${meme.id}`;
         navigator.clipboard.writeText(shareLink).then(() => {
             setShareLogo(ClipboardIcon);
@@ -119,12 +120,12 @@ export default function MemeCard({
                     <label htmlFor="share-meme-button" className="sr-only">
                         share meme
                     </label>
-                    <button
+                    <a href={`https://qasrelmemez.com/meme/${meme.id}`}
                         onClick={handleShare}
-                        className="bg-primary border-transparent text-primary-foreground shadow  rounded-full w-9 h-9 md:w-8 md:h-8"
+                        className="flex justify-center items-center bg-primary border-transparent text-primary-foreground shadow rounded-full w-9 h-9 md:w-8 md:h-8"
                     >
                         {shareLogo}
-                    </button>
+                    </a>
                 </div>
 
                 <div
