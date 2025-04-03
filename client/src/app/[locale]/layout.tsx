@@ -31,11 +31,11 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
             ],
         },
         alternates: {
-            canonical: `https://qasrelmemez.com/${locale}`,
+            canonical: `https://qasrelmemez.com`,
 
             languages: {
                 "en-US": "https://qasrelmemez.com/en",
-                "ar-EG": "https://qasrelmemez.com/ar",
+                "ar-EG": "https://qasrelmemez.com",
             },
         },
     };

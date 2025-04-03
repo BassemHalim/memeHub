@@ -34,4 +34,4 @@ TODO:
 -   [ ] compress images
 -   [ ] add tests WIP
 -   [ ] Upvote memes
--   [ ] display upload file in upload form
+-   [x] display upload file in upload form

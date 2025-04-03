@@ -11,6 +11,8 @@ async function fetchMemes(pageNum: number): Promise<MemesResponse> {
     if (memeCache.has(pageNum)) {
         return memeCache.get(pageNum)!
     }
+    console.log("loading page", pageNum);
+
     const url = new URL("/api/memes", process.env.NEXT_PUBLIC_API_HOST);
     url.searchParams.append("page", pageNum.toString());
     url.searchParams.append("pageSize", "10");
@@ -42,7 +44,6 @@ export function useMemes() {
     
     const loadMoreMemes = useCallback(async () => {
         const currentPage = page.current
-        console.log("loading page", currentPage + 1);
         setIsLoading(true);
         setError(null);
         fetchMemes(currentPage + 1)
@@ -65,7 +66,6 @@ export function useMemes() {
 
     useEffect(() => {
         if (!initialized.current) {
-            console.log("loading memes");
             loadMoreMemes();
             initialized.current = true;
         }

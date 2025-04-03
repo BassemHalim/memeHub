@@ -11,3 +11,4 @@ development.docker-compose.yml
 
 **/*.py
 scripts
+*.sql
