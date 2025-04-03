@@ -4,6 +4,7 @@ import { Meme } from "@/types/Meme";
 import { ChevronLeft, ChevronRight, Search as SearchIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useRef, useState } from "react";
+import { cn } from "./lib/utils";
 import { Button } from "./ui/button";
 import { Toggle } from "./ui/toggle";
 
@@ -11,7 +12,14 @@ interface Tag {
     name: string;
     pressed: boolean;
 }
-export default function SearchComponent({ query }: { query: string }) {
+
+export default function SearchComponent({
+    query,
+    selectedTags,
+}: {
+    query: string;
+    selectedTags: string[];
+}) {
     const [memes, setMemes] = useState<Meme[]>([]);
     const [tags, setTags] = useState<Tag[]>(
         [...new Set(memes.map((meme) => meme.tags).flat()).values()]
@@ -21,6 +29,8 @@ export default function SearchComponent({ query }: { query: string }) {
                 return -1;
             })
             .map((tag) => {
+                if (selectedTags.includes(tag))
+                    return { name: tag, pressed: true };
                 return { name: tag, pressed: false };
             })
     );
@@ -28,13 +38,33 @@ export default function SearchComponent({ query }: { query: string }) {
     const [error, setError] = useState(false);
     const [noMatch, setNoMatch] = useState(false);
     const [isLoading, setIsLoading] = useState<boolean>(false);
-
     const router = useRouter();
     const tagsRef = useRef<HTMLDivElement>(null);
-    const tagsOverflow = tagsRef.current
-        ? parseInt(getComputedStyle(tagsRef.current).width, 10) >
-          screen.width - 32
-        : true;
+    const [tagsOverflow, setTagsOverflow] = useState(true);
+
+    useEffect(() => {
+        const checkOverflow = () => {
+            if (tagsRef.current) {
+                setTagsOverflow(tagsRef.current.scrollWidth > screen.width);
+            } else {
+                setTagsOverflow(true);
+            }
+        };
+
+        checkOverflow();
+
+        // Add resize listener to recheck when window size changes
+        window.addEventListener("resize", checkOverflow);
+        return () => window.removeEventListener("resize", checkOverflow);
+    }, [tags, memes]);
+
+    function search(query: string, tags?: string[]) {
+        // go to /search?query={query}&tags={tags}
+        const url = new URL("search", window.location.origin);
+        url.searchParams.append("query", query);
+        if (tags) url.searchParams.append("tags", tags?.join(","));
+        router.push(url.href);
+    }
     function onSubmit(e: FormEvent) {
         e.preventDefault();
         const form = e.target as HTMLFormElement;
@@ -43,12 +73,8 @@ export default function SearchComponent({ query }: { query: string }) {
         if (!query || query.length == 0) {
             return;
         }
-
         // update page search params
-        // go to /search?query={query}
-        const url = new URL("search", window.location.origin);
-        url.searchParams.append("query", query);
-        router.push(url.href);
+        search(query);
     }
     async function searchMemes(query: string | null) {
         setNoMatch(false);
@@ -67,6 +93,7 @@ export default function SearchComponent({ query }: { query: string }) {
             process.env.NEXT_PUBLIC_API_HOST
         );
         url.searchParams.append("query", query);
+        url.searchParams.append("pageSize", "100");
         try {
             const resp = await fetch(url);
             if (!resp.ok) {
@@ -92,20 +119,28 @@ export default function SearchComponent({ query }: { query: string }) {
         }
     }
 
-
     useEffect(() => {
         setTags(
             [...new Set(memes.map((meme) => meme.tags).flat()).values()].map(
                 (tag) => {
-                    return { name: tag, pressed: false };
+                    return { name: tag, pressed: selectedTags.includes(tag) };
                 }
             )
         );
-    }, [memes]);
+        setTimeout(() => {
+            if (tagsRef.current) {
+                setTagsOverflow(tagsRef.current.scrollWidth > screen.width);
+            }
+        }, 5);
+    }, [memes, selectedTags]);
 
     useEffect(() => {
-        searchMemes(query);
-    }, [query]);
+        const searchQuery = [query, ...selectedTags].join(" ");
+        console.log(selectedTags);
+        searchMemes(searchQuery);
+    }, [query, selectedTags]);
+
+    console.log(tagsOverflow);
 
     return (
         <section className="w-full flex-1 mt-4 gap-2 flex flex-col overflow-hidden">
@@ -139,9 +174,12 @@ export default function SearchComponent({ query }: { query: string }) {
                     </h2>
                 </div>
             ) : null}
-            <div className="font-bold relative mx-2 h-10 flex items-center justify-start group">
+            <div className="font-bold relative mx-2 h-10 flex items-center justify-center group">
                 <div
-                    className="flex overflow-x-hidden gap-2 justify-center absolute"
+                    className={cn(
+                        "flex overflow-x-hidden gap-2 justify-center",
+                        tagsOverflow ? "absolute" : ""
+                    )}
                     ref={tagsRef}
                     style={{ left: 0 }}
                 >
@@ -149,17 +187,20 @@ export default function SearchComponent({ query }: { query: string }) {
                         <Toggle
                             pressed={tag.pressed}
                             onPressedChange={(pressed) => {
-                                setTags(
-                                    tags.map((t) => {
-                                        if (t.name === tag.name) {
-                                            return {
-                                                name: t.name,
-                                                pressed: pressed,
-                                            };
-                                        }
-                                        return t;
-                                    })
-                                );
+                                const newTags = tags.map((t) => {
+                                    if (t.name === tag.name) {
+                                        return {
+                                            name: t.name,
+                                            pressed: pressed,
+                                        };
+                                    }
+                                    return t;
+                                });
+                                setTags(newTags);
+                                const pressedTags = newTags
+                                    .filter((tag) => tag.pressed)
+                                    .map((tag) => tag.name);
+                                search(query, pressedTags);
                             }}
                             key={tag.name}
                             className="p-2 text-center text-nowrap bg-primary text-secondary"
@@ -183,7 +224,7 @@ export default function SearchComponent({ query }: { query: string }) {
                                     carousel.style.left = `${Math.max(
                                         parseInt(carousel.style.left, 10) -
                                             incr,
-                                        -carouselWidth + screen.width - 70
+                                        -carouselWidth + screen.width - 140
                                     )}px`;
                                 }
                             }}
