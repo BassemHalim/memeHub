@@ -7,18 +7,32 @@ import { Meme, MemesResponse, memesResponseSchema } from "../types/Meme";
 const memeCache = new Map<number, MemesResponse>();
 
 const ajv = new Ajv();
-async function fetchMemes(pageNum: number): Promise<MemesResponse> {
+/**
+ *
+ * @param pageNum the page number to fetch
+ * @param admin the admin token to use for fetching memes (will fetch memes from the admin endpoint)
+ * @returns
+ */
+async function fetchMemes(
+    pageNum: number,
+    adminToken?: string
+): Promise<MemesResponse> {
     if (memeCache.has(pageNum)) {
-        return memeCache.get(pageNum)!
+        return memeCache.get(pageNum)!;
     }
     console.log("loading page", pageNum);
 
-    const url = new URL("/api/memes", process.env.NEXT_PUBLIC_API_HOST);
+    let url = new URL("/api/memes", process.env.NEXT_PUBLIC_API_HOST);
+    if (adminToken) {
+        url = new URL("/api/admin/memes", process.env.NEXT_PUBLIC_API_HOST);
+    }
     url.searchParams.append("page", pageNum.toString());
     url.searchParams.append("pageSize", "10");
     url.searchParams.append("sort", "newest");
-
-    const res = await fetch(url);
+    console.log("fetching memes from", url.toString());
+    const res = await fetch(url, {
+        headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : {},
+    });
     if (!res.ok) {
         throw new Error("Failed to fetch memes");
     }
@@ -30,27 +44,27 @@ async function fetchMemes(pageNum: number): Promise<MemesResponse> {
         console.log(validate.errors);
         throw new Error("Invalid response format");
     }
-    memeCache.set(pageNum, data)
+    memeCache.set(pageNum, data);
     return data;
 }
 
-export function useMemes() {
+export function useMemes(adminToken?: string) {
     const [memes, setMemes] = useState<Meme[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [hasMore, setHasMore] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const page = useRef(0) // page is not rendered to it doesn't need a state
-    const initialized = useRef(false)
-    
+    const page = useRef(0); // page is not rendered to it doesn't need a state
+    const initialized = useRef(false);
+
     const loadMoreMemes = useCallback(async () => {
-        const currentPage = page.current
+        const currentPage = page.current;
         setIsLoading(true);
         setError(null);
-        fetchMemes(currentPage + 1)
+        fetchMemes(currentPage + 1, adminToken)
             .then((memesResp) => {
                 const newMemes = memesResp.memes;
                 setMemes((prev) => [...prev, ...newMemes]);
-                page.current +=1
+                page.current += 1;
                 if (memesResp.page === memesResp.total_pages) {
                     setHasMore(false);
                 }

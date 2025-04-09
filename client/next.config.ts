@@ -1,5 +1,5 @@
 import type { NextConfig } from "next";
-import createNextIntlPlugin from 'next-intl/plugin';
+import createNextIntlPlugin from "next-intl/plugin";
 
 const isDevelopment = process.env.NODE_ENV === "development";
 
@@ -38,7 +38,15 @@ const nextConfig: NextConfig = {
                   ]),
         ],
     },
-}
+    async rewrites() {
+        return [
+            {
+                source: "/api/:path*",
+                destination: "http://localhost:8080/api/:path*",
+            },
+        ];
+    },
+};
 
-const withNextIntl = createNextIntlPlugin()
+const withNextIntl = createNextIntlPlugin();
 export default withNextIntl(nextConfig);
