@@ -298,7 +298,7 @@ func (s *Server) GetTimelineMemes(ctx context.Context, req *pb.GetTimelineReques
 		req.Page = 1
 	}
 	if req.PageSize < 1 {
-		req.PageSize = 10
+		req.PageSize = 50
 	}
 
 	offset := (req.Page - 1) * req.PageSize
@@ -398,7 +398,7 @@ func (s *Server) SearchMemes(ctx context.Context, req *pb.SearchMemesRequest) (*
 		req.Page = 1
 	}
 	if req.PageSize < 1 {
-		req.PageSize = 10
+		req.PageSize = 40
 	}
 
 	// Calculate offset

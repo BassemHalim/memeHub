@@ -23,6 +23,8 @@ import (
 
 	"github.com/BassemHalim/memeDB/gateway/internal/config"
 	"github.com/BassemHalim/memeDB/gateway/internal/meme"
+	queue "github.com/BassemHalim/memeDB/queue"
+
 	pb "github.com/BassemHalim/memeDB/proto/memeService"
 	rateLimiter "github.com/BassemHalim/memeDB/rate-limiter/IP_ratelimiter"
 	"github.com/go-playground/validator/v10"
@@ -36,9 +38,10 @@ type Server struct {
 	log             *slog.Logger
 	client          *http.Client
 	cache           *cache.Cache
+	MemeQueue       queue.MemeQueue
 }
 
-func New(memeClient pb.MemeServiceClient, config *config.Config, rateLimiter *rateLimiter.RateLimiter, log *slog.Logger, client *http.Client, cache *cache.Cache) (*Server, error) {
+func New(memeClient pb.MemeServiceClient, config *config.Config, rateLimiter *rateLimiter.RateLimiter, log *slog.Logger, client *http.Client, cache *cache.Cache, MQ queue.MemeQueue) (*Server, error) {
 
 	return &Server{config: config,
 		RateLimiter:     rateLimiter,
@@ -47,6 +50,7 @@ func New(memeClient pb.MemeServiceClient, config *config.Config, rateLimiter *ra
 		log:             log,
 		client:          client,
 		cache:           cache,
+		MemeQueue:       MQ,
 	}, nil
 }
 
@@ -81,15 +85,17 @@ func (s *Server) GetTimeline(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	timelineCacheKey := fmt.Sprintf("timeline_%d_%d", page, pageSize) // TODO: fixme different page sizes will create duplicate entries in the cache
-	// check if in cache
 	cachedTimeline, found := s.cache.Get(timelineCacheKey)
-	if found {
-		s.log.Debug("Cache hit for timeline")
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(cachedTimeline)
-		return
+	if strings.HasPrefix(r.Pattern, "/api/memes") { // Don't cache the admin endpoint
+		// check if in cache
+		if found {
+			s.log.Debug("Cache hit for timeline")
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(cachedTimeline)
+			return
 
+		}
 	}
 	// get timeline memes
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
@@ -105,7 +111,9 @@ func (s *Server) GetTimeline(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// store in cache
-	s.cache.Set(timelineCacheKey, resp, cache.DefaultExpiration)
+	if !found {
+		s.cache.Set(timelineCacheKey, resp, cache.DefaultExpiration)
+	}
 	// return all the sampleMemes as JSON
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -209,6 +217,7 @@ func (s *Server) UploadMeme(w http.ResponseWriter, r *http.Request) {
 		Name:       meme.Name,
 		Dimensions: []int32{int32(imgConfig.Width), int32(imgConfig.Height)},
 	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	resp, err := s.memeClient.UploadMeme(ctx, memeUpload)
@@ -312,7 +321,7 @@ func (s *Server) SearchTags(w http.ResponseWriter, r *http.Request) {
 	}
 	// store in cache
 	s.cache.Set(searchTagsCacheKey, resp, cache.DefaultExpiration)
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(resp)
@@ -360,7 +369,7 @@ func (s *Server) GetMeme(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	memeCacheKey := fmt.Sprintf("meme_%s", idString)
-	if cachedMeme, found:= s.cache.Get(memeCacheKey); found {
+	if cachedMeme, found := s.cache.Get(memeCacheKey); found {
 		s.log.Debug("Cache hit for meme", "ID", idString)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
@@ -381,7 +390,7 @@ func (s *Server) GetMeme(w http.ResponseWriter, r *http.Request) {
 	}
 	// store in cache
 	s.cache.Set(memeCacheKey, resp, cache.DefaultExpiration)
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(resp)
