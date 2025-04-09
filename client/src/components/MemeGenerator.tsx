@@ -233,6 +233,7 @@ export default function MemeGenerator() {
                 </Button>
                 <Input
                     type="file"
+                    accept="image/*"
                     id="image"
                     ref={inputRef}
                     onChange={handleImageChange}

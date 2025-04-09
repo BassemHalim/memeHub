@@ -3,7 +3,7 @@ import HeroSearch from "@/components/ui/HeroSearch";
 import Timeline from "@/components/ui/Timeline";
 import { useMemes } from "@/hooks/useMemes";
 
-export default function Home() {
+export default function Page() {
     const { memes, isLoading, hasMore, next } = useMemes();
 
     return (

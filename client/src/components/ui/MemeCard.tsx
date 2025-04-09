@@ -24,7 +24,7 @@ export default function MemeCard({
     const [shareLogo, setShareLogo] = useState<JSX.Element>(ShareIcon);
     const [showMobilCtrl, setShowMobilCtrl] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
-    const memeURL = `${process.env.NEXT_PUBLIC_API_HOST}${meme.media_url}`
+    const memeURL = `${process.env.NEXT_PUBLIC_API_HOST}${meme.media_url}`;
     let extraClasses = "";
     if (variant === "timeline") {
         extraClasses = "absolute";
@@ -120,7 +120,8 @@ export default function MemeCard({
                     <label htmlFor="share-meme-button" className="sr-only">
                         share meme
                     </label>
-                    <a href={`https://qasrelmemez.com/meme/${meme.id}`}
+                    <a
+                        href={`https://qasrelmemez.com/meme/${meme.id}`}
                         onClick={handleShare}
                         className="flex justify-center items-center bg-primary border-transparent text-primary-foreground shadow rounded-full w-9 h-9 md:w-8 md:h-8"
                     >

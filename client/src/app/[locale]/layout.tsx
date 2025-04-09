@@ -9,7 +9,11 @@ import { El_Messiri } from "next/font/google";
 import { cn } from "@/components/lib/utils";
 import "./globals.css";
 
-export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
+export async function generateMetadata({
+    params,
+}: {
+    params: Promise<{ locale: string }>;
+}) {
     const { locale } = await params;
     const t = await getTranslations({ locale: locale, namespace: "Metadata" });
 
@@ -61,6 +65,7 @@ export default async function RootLayout({
                 )}
             >
                 <NextIntlClientProvider messages={messages} locale={locale}>
+                
                     <Header />
                     <main className="grow flex flex-col items-center justify-center w-full">
                         {children}
