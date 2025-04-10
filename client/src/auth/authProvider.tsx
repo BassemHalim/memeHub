@@ -23,7 +23,7 @@ export function useAuth() {
             }
         },
         login: async (username: string, password: string): Promise<boolean> => {
-            return fetch("http://localhost:8080/api/login", {
+            return fetch("/api/login", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
