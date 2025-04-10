@@ -17,8 +17,10 @@ export function useAuth() {
         isAdmin: context.role === "admin",
         isUser: context.role === "user",
         logout: () => {
-            localStorage.removeItem("user");
-            window.location.reload();
+            if (typeof window !== "undefined") {
+                localStorage.removeItem("user");
+                window.location.reload();
+            }
         },
         login: async (username: string, password: string): Promise<boolean> => {
             return fetch("http://localhost:8080/api/login", {
@@ -35,9 +37,12 @@ export function useAuth() {
                     return response.json();
                 })
                 .then((data) => {
-                    localStorage.setItem("user", JSON.stringify(data));
-                    window.location.reload();
-                    return true;
+                    if (typeof window !== "undefined") {
+                        localStorage.setItem("user", JSON.stringify(data));
+                        window.location.reload();
+                        return true;
+                    }
+                    return false;
                 })
                 .catch((error) => {
                     console.log("Error during login:", error);
@@ -45,13 +50,15 @@ export function useAuth() {
                 });
         },
         token: () => {
-            const userJson = localStorage.getItem("user");
-            if (!userJson) {
-                return null;
+            if (typeof window !== "undefined") {
+                const userJson = localStorage.getItem("user");
+                if (!userJson) {
+                    return null;
+                }
+                const user = JSON.parse(userJson);
+                return user.token;
             }
-            const user = JSON.parse(userJson);
-            return user.token;
-        }
+        },
     };
 }
 
@@ -63,12 +70,14 @@ export default function AuthProvider({
     const [user, setUser] = useState<User>({ role: "user" });
     useEffect(() => {
         console.log("AuthProvider");
-        const userJson = localStorage.getItem("user");
-        if (!userJson) {
-            return;
+        if (typeof window !== "undefined") {
+            const userJson = localStorage.getItem("user");
+            if (!userJson) {
+                return;
+            }
+            const user = JSON.parse(userJson);
+            setUser(user);
         }
-        const user = JSON.parse(userJson);
-        setUser(user);
     }, []);
     return <AuthContext.Provider value={user}>{children}</AuthContext.Provider>;
 }
