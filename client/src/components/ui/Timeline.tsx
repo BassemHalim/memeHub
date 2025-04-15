@@ -84,7 +84,7 @@ export default function Timeline({
         <section className="container mx-auto py-4 px-4 grow-2">
             <div>
                 <Masonry
-                    // key={memes[0]?.name + memes[1]?.name || 'empty'}
+                    key={memes[0]?.name + memes[1]?.name || 'empty'}
                     items={memes}
                     render={MasonryItem}
                     columnWidth={350}

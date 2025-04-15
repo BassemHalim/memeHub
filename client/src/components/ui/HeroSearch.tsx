@@ -35,17 +35,17 @@ const HeroSearch = () => {
                     />
                 </div>
                 <div className="relative h-full flex flex-col items-center justify-center px-4">
-                    <h1 className="text-5xl font-bold text-white mb-6 text-center">
+                    <h1 className="text-5xl font-bold text-white text-center">
                         {t("title")}
                     </h1>
-                    <p></p>
+                    <h2 className="text-2xl mb-5 text-center">{t("hero")}</h2>
                     <div className="w-full max-w-2xl relative text-gray-800 ">
                         <form onSubmit={search}>
                             <input
                                 required
                                 name="query"
                                 type="text"
-                                placeholder={t('meme-search')}
+                                placeholder={t("meme-search")}
                                 className={`w-full px-6 py-4 rounded-lg text-lg shadow-lg pr-14 font-medium bg-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring`}
                             />
                             <button type="submit">

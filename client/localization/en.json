@@ -1,6 +1,6 @@
 {
     "Metadata": {
-        "title": "Qasr El Memez",
+        "title": "Qasr El Memez | The Best Memes in Egypt",
         "description": "Your daily dose of Egyptian Memes, viral comics, and relatable local memes. Share, laugh, and connect with the best of Egyptian internet culture."
     },
     "generatorMetadata": {
@@ -9,6 +9,7 @@
     },
     "Home": {
         "title": "Qasr El Memez",
+        "hero": "Home of the best Egyptian Memes",
         "meme-search": "search memes...",
         "upload": "Upload",
         "create": "Create"
