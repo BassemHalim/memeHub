@@ -23,7 +23,7 @@ export default function SearchComponent({
     const [memes, setMemes] = useState<Meme[]>([]);
     const [tags, setTags] = useState<Tag[]>(
         [...new Set(memes.map((meme) => meme.tags).flat()).values()]
-            .toSorted((e1, e2) => {
+            .sort((e1, e2) => {
                 if (e1 == e2) return 0;
                 else if (e1 < e2) return 1;
                 return -1;
