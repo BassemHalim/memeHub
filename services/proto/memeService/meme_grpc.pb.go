@@ -20,6 +20,7 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	MemeService_UploadMeme_FullMethodName        = "/meme.MemeService/UploadMeme"
+	MemeService_UpdateMeme_FullMethodName        = "/meme.MemeService/UpdateMeme"
 	MemeService_GetMeme_FullMethodName           = "/meme.MemeService/GetMeme"
 	MemeService_DeleteMeme_FullMethodName        = "/meme.MemeService/DeleteMeme"
 	MemeService_GetTimelineMemes_FullMethodName  = "/meme.MemeService/GetTimelineMemes"
@@ -34,6 +35,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type MemeServiceClient interface {
 	UploadMeme(ctx context.Context, in *UploadMemeRequest, opts ...grpc.CallOption) (*MemeResponse, error)
+	UpdateMeme(ctx context.Context, in *UpdateMemeRequest, opts ...grpc.CallOption) (*UpdateMemeResponse, error)
 	GetMeme(ctx context.Context, in *GetMemeRequest, opts ...grpc.CallOption) (*MemeResponse, error)
 	DeleteMeme(ctx context.Context, in *DeleteMemeRequest, opts ...grpc.CallOption) (*DeleteMemeResponse, error)
 	GetTimelineMemes(ctx context.Context, in *GetTimelineRequest, opts ...grpc.CallOption) (*MemesResponse, error)
@@ -55,6 +57,16 @@ func (c *memeServiceClient) UploadMeme(ctx context.Context, in *UploadMemeReques
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(MemeResponse)
 	err := c.cc.Invoke(ctx, MemeService_UploadMeme_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *memeServiceClient) UpdateMeme(ctx context.Context, in *UpdateMemeRequest, opts ...grpc.CallOption) (*UpdateMemeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateMemeResponse)
+	err := c.cc.Invoke(ctx, MemeService_UpdateMeme_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -136,6 +148,7 @@ func (c *memeServiceClient) AddTags(ctx context.Context, in *AddTagsRequest, opt
 // for forward compatibility.
 type MemeServiceServer interface {
 	UploadMeme(context.Context, *UploadMemeRequest) (*MemeResponse, error)
+	UpdateMeme(context.Context, *UpdateMemeRequest) (*UpdateMemeResponse, error)
 	GetMeme(context.Context, *GetMemeRequest) (*MemeResponse, error)
 	DeleteMeme(context.Context, *DeleteMemeRequest) (*DeleteMemeResponse, error)
 	GetTimelineMemes(context.Context, *GetTimelineRequest) (*MemesResponse, error)
@@ -155,6 +168,9 @@ type UnimplementedMemeServiceServer struct{}
 
 func (UnimplementedMemeServiceServer) UploadMeme(context.Context, *UploadMemeRequest) (*MemeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UploadMeme not implemented")
+}
+func (UnimplementedMemeServiceServer) UpdateMeme(context.Context, *UpdateMemeRequest) (*UpdateMemeResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateMeme not implemented")
 }
 func (UnimplementedMemeServiceServer) GetMeme(context.Context, *GetMemeRequest) (*MemeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetMeme not implemented")
@@ -212,6 +228,24 @@ func _MemeService_UploadMeme_Handler(srv interface{}, ctx context.Context, dec f
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(MemeServiceServer).UploadMeme(ctx, req.(*UploadMemeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MemeService_UpdateMeme_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateMemeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MemeServiceServer).UpdateMeme(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MemeService_UpdateMeme_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MemeServiceServer).UpdateMeme(ctx, req.(*UpdateMemeRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -352,6 +386,10 @@ var MemeService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UploadMeme",
 			Handler:    _MemeService_UploadMeme_Handler,
+		},
+		{
+			MethodName: "UpdateMeme",
+			Handler:    _MemeService_UpdateMeme_Handler,
 		},
 		{
 			MethodName: "GetMeme",

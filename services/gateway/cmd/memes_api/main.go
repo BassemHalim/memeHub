@@ -14,7 +14,6 @@ import (
 	"github.com/BassemHalim/memeDB/gateway/internal/config"
 	"github.com/BassemHalim/memeDB/gateway/internal/fileserver"
 	"github.com/BassemHalim/memeDB/gateway/internal/server"
-	"github.com/BassemHalim/memeDB/queue"
 
 	"github.com/patrickmn/go-cache"
 
@@ -50,14 +49,14 @@ func run(ctx context.Context) error {
 		log.Error("Failed to connect to GRPC Server", "ERROR", err)
 	}
 	c := cache.New(2*time.Hour, 2*time.Hour) // TODO: make these configurable
-	MemeQueue, err := queue.NewMemeQueue(os.Getenv("RABBIT_MQ_URL"))
-	if err != nil {
-		log.Error("Failed to connect to RabbitMQ", "ERROR", err)
-		return err
-	}
-	defer MemeQueue.Close()
+	// MemeQueue, err := queue.NewMemeQueue(os.Getenv("RABBIT_MQ_URL"))
+	// if err != nil {
+	// 	log.Error("Failed to connect to RabbitMQ", "ERROR", err)
+	// 	return err
+	// }
+	// defer MemeQueue.Close()
 
-	gateway, err := server.New(memeClient, cfg, limiter, log, &http.Client{Timeout: 1 * time.Second}, c, MemeQueue)
+	gateway, err := server.New(memeClient, cfg, limiter, log, &http.Client{Timeout: 1 * time.Second}, c)
 	if err != nil {
 		log.Error("failed to create server", "ERROR", err)
 		return err
@@ -70,28 +69,31 @@ func run(ctx context.Context) error {
 	deleteMeme := http.HandlerFunc(gateway.DeleteMeme)
 	searchTags := http.HandlerFunc(gateway.SearchTags)
 	updateTags := http.HandlerFunc(gateway.UpdateTags)
+	patchMeme := http.HandlerFunc(gateway.PatchMeme)
+	
+	apiRouter := http.NewServeMux()
+	apiRouter.Handle("/login", http.HandlerFunc(auth.Login))
+	apiRouter.Handle("GET /memes", middleware.GzipMiddleware(middleware.Cache(limiter.RateLimit(getMemesTimeline), 60)))
+	apiRouter.Handle("GET /memes/search", middleware.GzipMiddleware(middleware.Cache(limiter.RateLimit(searchMemes), 2*60)))
+	apiRouter.Handle("GET /tags/search", middleware.GzipMiddleware(middleware.Cache(limiter.RateLimit(searchTags), 2*60)))
+	apiRouter.Handle("GET /meme/{id}", middleware.Cache(limiter.RateLimit(getMeme), 24*60))
+	apiRouter.Handle("POST /meme", limiter.RateLimit(uploadMeme))
 
-	router := http.NewServeMux()
-	router.Handle("/api/login", http.HandlerFunc(auth.Login))
-	router.Handle("GET /api/memes", middleware.GzipMiddleware(middleware.Cache(limiter.RateLimit(getMemesTimeline), 60)))
-	router.Handle("GET /api/memes/search", middleware.GzipMiddleware(middleware.Cache(limiter.RateLimit(searchMemes), 2*60)))
-	router.Handle("GET /api/tags/search", middleware.GzipMiddleware(middleware.Cache(limiter.RateLimit(searchTags), 2*60)))
-	router.Handle("GET /api/meme/{id}", middleware.Cache(limiter.RateLimit(getMeme), 24*60))
-	router.Handle("POST /api/meme", limiter.RateLimit(uploadMeme))
-
-	router.Handle("DELETE /api/admin/meme/{id}", middleware.CORS(limiter.RateLimit(middleware.Auth(deleteMeme))))
-	router.Handle("PATCH /api/admin/meme/{id}/tags", limiter.RateLimit(middleware.Auth(updateTags)))
-	router.Handle("GET /api/admin/memes", middleware.GzipMiddleware(middleware.Auth(getMemesTimeline))) // same as /api/memes but without caching or rate limiting
-
+	apiRouter.Handle("DELETE /admin/meme/{id}", limiter.RateLimit(middleware.Auth(deleteMeme)))
+	apiRouter.Handle("PATCH /admin/meme/{id}/tags", limiter.RateLimit(middleware.Auth(updateTags)))
+	apiRouter.Handle("PATCH /admin/meme/{id}", limiter.RateLimit(middleware.Auth(patchMeme)))
+	apiRouter.Handle("GET /admin/memes", middleware.GzipMiddleware(middleware.Auth(getMemesTimeline))) // same as /api/memes but without caching or rate limiting
 
 	fileServer, err := fileserver.New(log)
 	if err != nil {
 		log.Error("Failed to create file server", "ERROR", err)
 	}
 	serveMedia := http.HandlerFunc(fileServer.Handler)
-	router.Handle("/imgs/", limiter.RateLimit(serveMedia))
+	mainRouter := http.NewServeMux()
+	mainRouter.Handle("/imgs/", limiter.RateLimit(serveMedia))
+	mainRouter.Handle("/api/", http.StripPrefix("/api", apiRouter))
 
-	corsRouter := middleware.CORS(router)
+	corsRouter := middleware.CORS(mainRouter)
 	// Start server
 	log.Info("Starting server", "PORT", cfg.Port)
 	server := &http.Server{

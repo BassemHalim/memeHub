@@ -41,6 +41,16 @@ func SoftDeleteImage(dir string, filename string) error {
 	return nil
 }
 
+func RenameImage(oldFilename string, newFilename string) error {
+	dir := UploadDir()
+	oldPath := filepath.Join(dir, oldFilename)
+	newPath := filepath.Join(dir, newFilename)
+	if err := os.Rename(oldPath, newPath); err != nil {
+		return fmt.Errorf("failed to rename image")
+	}
+	return nil
+}
+
 // returns a random UUID
 func RandomUUID() string {
 	return uuid.New().String()

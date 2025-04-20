@@ -23,7 +23,6 @@ import (
 
 	"github.com/BassemHalim/memeDB/gateway/internal/config"
 	"github.com/BassemHalim/memeDB/gateway/internal/meme"
-	queue "github.com/BassemHalim/memeDB/queue"
 
 	pb "github.com/BassemHalim/memeDB/proto/memeService"
 	rateLimiter "github.com/BassemHalim/memeDB/rate-limiter/IP_ratelimiter"
@@ -38,10 +37,9 @@ type Server struct {
 	log             *slog.Logger
 	client          *http.Client
 	cache           *cache.Cache
-	MemeQueue       queue.MemeQueue
 }
 
-func New(memeClient pb.MemeServiceClient, config *config.Config, rateLimiter *rateLimiter.RateLimiter, log *slog.Logger, client *http.Client, cache *cache.Cache, MQ queue.MemeQueue) (*Server, error) {
+func New(memeClient pb.MemeServiceClient, config *config.Config, rateLimiter *rateLimiter.RateLimiter, log *slog.Logger, client *http.Client, cache *cache.Cache) (*Server, error) {
 
 	return &Server{config: config,
 		RateLimiter:     rateLimiter,
@@ -50,7 +48,6 @@ func New(memeClient pb.MemeServiceClient, config *config.Config, rateLimiter *ra
 		log:             log,
 		client:          client,
 		cache:           cache,
-		MemeQueue:       MQ,
 	}, nil
 }
 
@@ -396,6 +393,7 @@ func (s *Server) GetMeme(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(resp)
 }
 
+// /api/admin/meme/{id}/tags
 func (s *Server) UpdateTags(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPatch {
 		http.Error(w, "Invalid Method", http.StatusBadRequest)
@@ -438,4 +436,122 @@ func (s *Server) UpdateTags(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 
+}
+
+// PATCH /api/admin/meme/{id}
+func (s *Server) PatchMeme(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	// Multipart form data
+	r.ParseMultipartForm(s.config.MaxUploadSize) // limit your max input length to 2MB
+
+	// get the json metadata
+	jsonData := r.FormValue("meme")
+	var meme meme.PatchRequest
+	if err := json.Unmarshal([]byte(jsonData), &meme); err != nil {
+		s.log.Error("Error parsing the json", "JSON", jsonData, "ERROR", err)
+		http.Error(w, "Error parsing the meme data", http.StatusBadRequest)
+		return
+	}
+	err := s.structValidator.Struct(meme)
+	if err != nil {
+		s.log.Error("Invalid MemeResponse Struct :", "JSON", jsonData)
+		http.Error(w, "The meme data is invalid or missing required fields", http.StatusBadRequest)
+		return
+	}
+	// verify if mime type is for an image
+	if strings.Split(meme.MimeType, "/")[0] != "image" {
+		s.log.Debug("Invalid media type", "MimeType", meme.MimeType)
+		http.Error(w, "Invalid media type", http.StatusBadRequest)
+		return
+	}
+
+	var updateRequest *pb.UpdateMemeRequest
+	_, fileExists := r.MultipartForm.File["image"]
+	if meme.MediaURL != "" || fileExists {
+		// Update image
+		var imgBuf bytes.Buffer
+
+		// if no MediaURL is provided, then it's a file upload
+		if meme.MediaURL == "" {
+			s.log.Info("File upload")
+			file, _, err := r.FormFile("image")
+			if err != nil {
+				s.log.Error("Couldn't find image in the multipart request", "ERROR", err)
+				http.Error(w, "Error Reading the image", http.StatusBadRequest)
+				return
+			}
+			defer file.Close()
+			if _, err := imgBuf.ReadFrom(file); err != nil {
+				s.log.Error("Error reading the image into butter", "ERROR", err)
+				http.Error(w, "Error reading the image", http.StatusBadRequest)
+				return
+			}
+		} else {
+			// if MediaURL is provided, then it's a URL upload
+			// download the image from the URL
+
+			memeURL := meme.MediaURL
+			if !s.ValidateUploadURL(memeURL) {
+				s.log.Error("Invalid meme url or too big", "URL", memeURL, "IP", r.RemoteAddr)
+				http.Error(w, "Invalid media URL or file is too big files should be <2MB", http.StatusBadRequest)
+				return
+			}
+
+			resp, err := http.Get(meme.MediaURL)
+			if err != nil {
+				s.log.Error("Error downloading the image", "URL", meme.MediaURL, "STATUS_CODE", resp.StatusCode)
+				http.Error(w, "Error downloading the image", http.StatusBadRequest)
+				return
+			}
+			defer resp.Body.Close()
+			if _, err := imgBuf.ReadFrom(resp.Body); err != nil {
+				s.log.Error("Error reading the image", "Error", err)
+				http.Error(w, "Error reading the image", http.StatusBadRequest)
+				return
+			}
+		}
+		// // get the image dimensions from imgBuf
+		imgBytes := imgBuf.Bytes()
+		if len(imgBytes) > int(s.config.MaxUploadSize) {
+			s.log.Error("Uploaded file is too big", "Size", len(imgBytes))
+			http.Error(w, "Uploaded image is too big", http.StatusRequestEntityTooLarge)
+			return
+		}
+		imgReader := bytes.NewReader(imgBytes)
+		imgConfig, _, err := image.DecodeConfig(imgReader)
+		if err != nil {
+			s.log.Error("Failed to decode image config Likely not an image", "Error", err, "Num_Bytes", len(imgBytes))
+			http.Error(w, "Error reading the image", http.StatusBadRequest)
+			return
+		}
+
+		// create upload request
+		updateRequest = &pb.UpdateMemeRequest{
+			Id:         id,
+			MediaType:  meme.MimeType,
+			Image:      imgBytes,
+			Tags:       meme.Tags,
+			Name:       meme.Name,
+			Dimensions: []int32{int32(imgConfig.Width), int32(imgConfig.Height)},
+		}
+	} else {
+		updateRequest = &pb.UpdateMemeRequest{
+			Id:   id,
+			Tags: meme.Tags,
+			Name: meme.Name,
+		}
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	resp, err := s.memeClient.UpdateMeme(ctx, updateRequest)
+	if err != nil {
+		s.log.Error("Error uploading the meme to meme-service", "Error", err)
+		http.Error(w, "Error uploading the meme", http.StatusInternalServerError)
+		return
+	}
+	s.log.Debug(resp.String())
+	// w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	// json.NewEncoder(w).Encode(resp)
 }

@@ -4,6 +4,7 @@ option go_package = "github.com/BassemHalim/memeDB/proto/memeService";
 
 service MemeService {
   rpc UploadMeme (UploadMemeRequest) returns (MemeResponse);
+  rpc UpdateMeme (UpdateMemeRequest) returns (UpdateMemeResponse);
   rpc GetMeme (GetMemeRequest) returns (MemeResponse);
   rpc DeleteMeme (DeleteMemeRequest) returns (DeleteMemeResponse);
   rpc GetTimelineMemes(GetTimelineRequest) returns (MemesResponse);
@@ -19,6 +20,15 @@ message UploadMemeRequest {
   repeated string tags = 3;
   string name = 4;
   repeated int32 dimensions = 5; 
+}
+
+message UpdateMemeRequest {
+  string id = 1;
+  bytes image = 2;
+  string media_type = 3;
+  repeated string tags = 4;
+  string name = 5;
+  repeated int32 dimensions = 6; 
 }
 
 message GetMemeRequest {
@@ -75,6 +85,10 @@ message MemeResponse {
 }
 
 message DeleteMemeResponse{
+  bool success = 1;
+}
+
+message UpdateMemeResponse{
   bool success = 1;
 }
 

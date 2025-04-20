@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/BassemHalim/memeDB/memeService/internal/utils"
 	pb "github.com/BassemHalim/memeDB/proto/memeService"
@@ -502,46 +503,127 @@ func (s *Server) SearchTags(ctx context.Context, req *pb.SearchTagsRequest) (*pb
 	return &pb.TagsResponse{Tags: tags}, nil
 }
 
-func (s *Server) AddTags(ctx context.Context, req *pb.AddTagsRequest) (*pb.AddTagsResponse, error) {
-	s.log.Debug("Adding tags to meme", "ID", req.MemeId, "Tags", req.Tags)
-	
-	tx, err := s.db.Begin()
-	if err != nil {
-		return &pb.AddTagsResponse{Success: http.StatusInternalServerError}, err
-	}
-	defer tx.Rollback()
+func saveTags(ctx context.Context, memeID string, tags []string, tx *sql.Tx) error {
 	// for each tag check if it already exists if not add it
-	for _, tag := range req.Tags {
+	for _, tag := range tags {
 		// add tag if it doesn't exist and get id
-		row, err := tx.Query(`
+		row, err := tx.QueryContext(ctx, `
 							INSERT INTO tag (name)
 							VALUES ($1)
 							ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name
 							RETURNING id;
 							`, strings.TrimSpace(tag))
 		if err != nil {
-			return &pb.AddTagsResponse{Success: http.StatusInternalServerError}, err
+			return err
 		}
 		var tagID int64
 		row.Next()
 		err = row.Scan(&tagID)
 		if err != nil {
-			s.log.Info("Failed to scan for tag id", "Error", err)
+			return err
 		}
 		row.Close()
 		// add tag:id mapping would error if meme_id is invalid
-		_, err = tx.Exec(`
+		_, err = tx.ExecContext(ctx, `
 				INSERT INTO meme_tag (meme_id, tag_id)
 				VALUES ($1, $2)
 				ON CONFLICT (meme_id, tag_id)
 				DO NOTHING
-				`, req.MemeId, tagID)
+				`, memeID, tagID)
 		if err != nil {
-			s.log.Info("Failed to insert tag-meme mapping", "ERROR", err)
-			return &pb.AddTagsResponse{Success: http.StatusBadRequest}, err
+			return err
 		}
+	}
+	return nil
+}
+
+func (s *Server) AddTags(ctx context.Context, req *pb.AddTagsRequest) (*pb.AddTagsResponse, error) {
+	s.log.Debug("Adding tags to meme", "ID", req.MemeId, "Tags", req.Tags)
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return &pb.AddTagsResponse{Success: http.StatusInternalServerError}, err
+	}
+	defer tx.Rollback()
+	if err := saveTags(ctx, req.MemeId, req.Tags, tx); err != nil {
+		return &pb.AddTagsResponse{Success: http.StatusBadRequest}, err
 	}
 	tx.Commit()
 
 	return &pb.AddTagsResponse{Success: http.StatusOK}, nil
+}
+
+func (s *Server) UpdateMeme(ctx context.Context, r *pb.UpdateMemeRequest) (*pb.UpdateMemeResponse, error) {
+	s.log.Debug("Update Meme", "ID", r.Id, "Name", r.Name, "Tags", r.Tags, "Dimensions", r.Dimensions)
+	txn, err := s.db.Begin()
+	if err != nil {
+		return &pb.UpdateMemeResponse{Success: false}, err
+	}
+	defer txn.Rollback()
+
+	if r.Name != "" {
+		_, err := txn.ExecContext(ctx, `UPDATE meme
+				SET name = $1
+				WHERE id = $2`, r.Name, r.Id)
+		if err != nil {
+			s.log.Debug("Failed to update name", "ERROR", err)
+			return &pb.UpdateMemeResponse{Success: false}, err
+		}
+
+	}
+
+	if len(r.Tags) > 0 {
+		err := saveTags(ctx, r.Id, r.Tags, txn)
+		if err != nil {
+			return &pb.UpdateMemeResponse{Success: false}, err
+		}
+	}
+
+	if len(r.Image) > 0 {
+		// will keep same image path (unless mime type changes in which case the id will remain but extension will change)
+		// get meme
+		meme, err := s.GetMeme(ctx, &pb.GetMemeRequest{Id: r.Id})
+		if err != nil {
+			return &pb.UpdateMemeResponse{Success: false}, err
+		}
+		// get the image file name
+		oldFilename := filepath.Base(meme.MediaUrl)
+		newFilename := oldFilename
+		oldExtension := filepath.Ext(meme.MediaType)
+		newExtension, err := utils.MimeToExtension(r.MediaType)
+		if err != nil {
+			return &pb.UpdateMemeResponse{Success: false}, err
+		}
+
+		if oldExtension != newExtension {
+			newFilename = strings.Split(oldFilename, ".")[0] + newExtension
+		}
+		
+		// update the DB
+		mediaURL := fmt.Sprintf("/imgs/%s", newFilename)
+		if _, err = txn.ExecContext(ctx, `UPDATE meme
+		SET media_url = $1, 
+		media_type = $2,
+		dimensions = $3
+		WHERE id = $4`, mediaURL, r.MediaType, pq.Array(r.Dimensions), r.Id); err != nil {
+			return &pb.UpdateMemeResponse{Success: false}, err
+		}
+		
+		// rename the image file name.ext to be name.ext_timestamp to keep old versions
+		err = utils.RenameImage(oldFilename, fmt.Sprintf("%s_%d", oldFilename, time.Now().Unix()))
+		if err != nil {
+			return &pb.UpdateMemeResponse{Success: false}, err
+		}
+		// save the image
+		err = utils.SaveImage(utils.UploadDir(), newFilename, r.Image)
+		if err != nil {
+			return &pb.UpdateMemeResponse{Success: false}, err
+		}
+	}
+	txn.Commit()
+
+	return &pb.UpdateMemeResponse{
+			Success: true,
+		},
+		nil
 }

@@ -16,7 +16,7 @@ import (
 )
 
 func main() {
-	log := slog.New(slog.NewJSONHandler(os.Stdout, nil)).With("Service", "MEME_SERVICE")
+	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level:slog.LevelDebug })).With("Service", "MEME_SERVICE")
 	db, err := db.New()
 	if err != nil {
 		log.Error("Failed to connect to the database", "ERROR", err)
