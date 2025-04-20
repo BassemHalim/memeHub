@@ -1,13 +1,14 @@
 "use client";
 
-import { DeleteMeme } from "@/app/meme/meme";
+import * as Memes from "@/app/meme/crud";
 import { useAuth } from "@/auth/authProvider";
 import MemeCard from "@/components/ui/MemeCard";
-import { Loader2, Trash } from "lucide-react";
+import { Edit, Loader2, Trash } from "lucide-react";
 import { MasonryProps, useInfiniteLoader } from "masonic";
 import dynamic from "next/dynamic";
 import { ComponentType, useState } from "react";
 import { Meme } from "../../types/Meme";
+import UpdateMeme from "../UpdateMemeForm";
 import { Button } from "./button";
 
 const Masonry: ComponentType<MasonryProps<Meme>> = dynamic(
@@ -31,6 +32,7 @@ export default function Timeline({
     admin = false,
 }: TimelineProps) {
     const [lastStartIndex, setLastStartIndex] = useState(-1);
+    const [editMeme, setEditMeme] = useState("");
     const auth = useAuth();
     function MasonryItem({
         data,
@@ -41,19 +43,35 @@ export default function Timeline({
     }) {
         return admin ? (
             <div className="border-2 border-primary rounded-lg p-2">
-                <Button
-                    className="text-red-700"
-                    onClick={() => {
-                        const response = confirm(
-                            `Delete meme with id: ${data.id}`
-                        );
-                        if (response === true) {
-                            DeleteMeme(data.id, auth.token());
-                        }
+                <div className="flex justify-center gap-2 m-2">
+                    <Button
+                        className="text-red-700"
+                        onClick={() => {
+                            const response = confirm(
+                                `Delete meme with id: ${data.id}`
+                            );
+                            if (response === true) {
+                                Memes.Delete(data.id, auth.token() ?? "");
+                            }
+                        }}
+                    >
+                        <Trash />
+                    </Button>
+                    <Button
+                        onClick={() => {
+                            setEditMeme(data.id);
+                        }}
+                    >
+                        <Edit />
+                    </Button>
+                </div>
+                <UpdateMeme
+                    meme={data}
+                    open={editMeme === data.id}
+                    onOpen={() => {
+                        setEditMeme("");
                     }}
-                >
-                    <Trash />
-                </Button>
+                />
                 <MemeCard meme={data} />
             </div>
         ) : (
@@ -84,7 +102,7 @@ export default function Timeline({
         <section className="container mx-auto py-4 px-4 grow-2">
             <div>
                 <Masonry
-                    key={memes[0]?.name + memes[1]?.name || 'empty'}
+                    key={memes[0]?.name + memes[1]?.name || "empty"}
                     items={memes}
                     render={MasonryItem}
                     columnWidth={350}

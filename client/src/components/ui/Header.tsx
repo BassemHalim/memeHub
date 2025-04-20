@@ -4,9 +4,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { Suspense, useState } from "react";
 
-import UploadMemeForm from "@/components/UploadMemeForm";
 import { sendGTMEvent } from "@next/third-parties/google";
 
+import CreateMeme from "@/components/CreateMemeForm";
 import { Button } from "@/components/ui/button";
 import LanguageSwitch from "@/components/ui/languageSwitch";
 import { useTranslations } from "next-intl";
@@ -59,7 +59,7 @@ export default function Header() {
                 </div>
             )}
             <Suspense>
-                <UploadMemeForm open={isOpen} onOpen={setIsOpen} />
+                <CreateMeme open={isOpen} onOpen={setIsOpen} />
             </Suspense>
         </>
     );

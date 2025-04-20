@@ -3,8 +3,8 @@
 import { Meme } from "@/types/Meme";
 import { ClipboardCheck, Download, Share2 } from "lucide-react";
 
-import { cn } from "@/components/lib/utils";
 import { Card } from "@/components/ui/card";
+import { cn } from "@/utils/tailwind";
 import Image from "next/image";
 import Link from "next/link";
 import { MouseEventHandler, useEffect, useState } from "react";

@@ -1,5 +1,7 @@
 "use client";
 
+import * as Memes from "@/app/meme/crud";
+import { useAuth } from "@/auth/authProvider";
 import { Button } from "@/components/ui/button";
 import {
     Dialog,
@@ -30,7 +32,6 @@ import Link from "next/link";
 import { Dispatch, SetStateAction, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { validateImage } from "./lib/imgUtils";
 import ImageInput from "./ui/imageInput";
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024;
@@ -40,54 +41,43 @@ const OPTIONS: Option[] = [
     { label: "مسرحية", value: "مسرحية" },
     { label: "blank", value: "blank" },
 ];
-const formSchema = z
-    .object({
-        name: z.string().min(1, "Name is required"),
-        tags: z
-            .array(
-                z.object({
-                    label: z.string(),
-                    value: z.string(),
-                })
-            )
-            .min(1, "At least one tag is required"),
-        imageUrl: z.union([z.literal(""), z.string().trim().url()]),
-        imageFile:
-            typeof window === "undefined"
-                ? z.any()
-                : z
-                      .instanceof(File)
-                      .refine((file) => file.size < MAX_FILE_SIZE, {
-                          message: "Your image must be less than 2MB.",
-                      })
-                      .optional(),
-    })
-    .refine(
-        (data) => {
-            return data.imageUrl !== "" || data.imageFile != undefined;
-        },
+const formSchema = z.object({
+    name: z.string(),
+    tags: z.array(
+        z.object({
+            label: z.string(),
+            value: z.string(),
+        })
+    ),
+    imageUrl: z.union([z.literal(""), z.string().trim().url()]),
+    imageFile:
+        typeof window === "undefined"
+            ? z.any()
+            : z
+                  .instanceof(File)
+                  .refine((file) => file.size < MAX_FILE_SIZE, {
+                      message: "Your image must be less than 2MB.",
+                  })
+                  .optional(),
+});
 
-        {
-            message: "You must provide an image url or upload an image",
-            path: ["root"],
-        }
-    );
-
-interface UploadStatus {
+interface FormStatus {
     status: "default" | "loading" | "success" | "error" | "pending";
     data?: string | object;
 }
 
-export default function UploadMeme({
+export default function UpdateMeme({
+    meme,
     className,
     open,
     onOpen,
 }: {
+    meme: Meme;
     className?: string;
     open: boolean;
     onOpen: Dispatch<SetStateAction<boolean>>;
 }) {
-    const [state, setState] = useState<UploadStatus>({ status: "default" });
+    const [state, setState] = useState<FormStatus>({ status: "default" });
     const t = useTranslations("uploadMeme");
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -98,6 +88,7 @@ export default function UploadMeme({
             imageFile: undefined,
         },
     });
+    const auth = useAuth();
     const searchTags = async (input: string): Promise<Option[]> => {
         if (input.length < 3) {
             return OPTIONS;
@@ -134,80 +125,9 @@ export default function UploadMeme({
         try {
             setState({ status: "loading" });
             const tags = values.tags.map((tag) => tag.value);
-            // Call API to upload meme
-            let file: File | undefined, mimeType;
-            if (values.imageFile) {
-                file = values.imageFile;
-                if (file) {
-                    if (file.size > MAX_FILE_SIZE) {
-                        form.setError("imageFile", {
-                            message: "Image is too big",
-                        });
-                        throw new Error("image too big");
-                    }
-                    await validateImage(file).catch(() => {
-                        form.setError("imageFile", {
-                            message: "invalid image",
-                        });
-                        throw new Error("Bad image");
-                    });
+            await Memes.Patch(meme.id, { ...values, tags: tags }, auth.token() ?? "");
+            setState({ status: "success" });
 
-                    mimeType = file.type;
-                }
-            } else {
-                mimeType = "image/jpeg";
-            }
-            if (!file && !values.imageUrl) {
-                setState({
-                    data: "You must upload an image either a url or file",
-                    status: "error",
-                });
-                throw new Error("Missing media");
-            }
-            const body: FormData = new FormData();
-            body.append(
-                "meme",
-                JSON.stringify({
-                    name: values.name,
-                    media_url: values.imageUrl,
-                    mime_type: mimeType,
-                    tags: tags,
-                })
-            );
-            if (file) {
-                body.append("image", file);
-            }
-            const endpoint = new URL(
-                "/api/meme",
-                process.env.NEXT_PUBLIC_API_HOST
-            );
-            fetch(endpoint, {
-                method: "POST",
-                body: body,
-            })
-                .then(async (res) => {
-                    if (!res.ok) {
-                        const errorData = await res.text();
-                        throw new Error("Failed to upload meme " + errorData);
-                    } else {
-                    }
-                    // get header
-                    // if it contains a json response => done else pending content moderation
-                    if (
-                        res.headers
-                            .get("Content-Type")
-                            ?.includes("application/json")
-                    ) {
-                        const json = await res.json();
-                        setState({ status: "success", data: json });
-                        return;
-                    }
-                    setState({ status: "pending", data: "pending" });
-                })
-                .catch((err: Error) => {
-                    console.log(err);
-                    setState({ status: "error", data: err.message });
-                });
         } catch (error: unknown) {
             console.log(error);
             setState({
@@ -236,7 +156,7 @@ export default function UploadMeme({
                 {!["success", "pending"].includes(state.status) ? (
                     <DialogContent className="sm:max-w-[425px] overflow-y-auto max-h-[80vh]  sm:p-6 md:max-h-[90vh] ">
                         <DialogHeader>
-                            <DialogTitle>{t("title")}</DialogTitle>
+                            <DialogTitle>Edit {meme.id}</DialogTitle>
                             <DialogDescription>
                                 {t("description")}
                             </DialogDescription>

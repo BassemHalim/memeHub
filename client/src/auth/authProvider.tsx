@@ -49,11 +49,11 @@ export function useAuth() {
                     return false;
                 });
         },
-        token: () => {
+        token: (): string | undefined => {
             if (typeof window !== "undefined") {
                 const userJson = localStorage.getItem("user");
                 if (!userJson) {
-                    return null;
+                    return;
                 }
                 const user = JSON.parse(userJson);
                 return user.token;

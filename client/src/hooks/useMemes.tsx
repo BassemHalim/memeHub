@@ -76,7 +76,7 @@ export function useMemes(adminToken?: string) {
             .finally(() => {
                 setIsLoading(false);
             });
-    }, []);
+    }, [adminToken]);
 
     useEffect(() => {
         if (!initialized.current) {

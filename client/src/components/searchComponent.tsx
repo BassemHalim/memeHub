@@ -4,7 +4,7 @@ import { Meme } from "@/types/Meme";
 import { ChevronLeft, ChevronRight, Search as SearchIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { cn } from "./lib/utils";
+import { cn } from "../utils/tailwind";
 import { Button } from "./ui/button";
 import { Toggle } from "./ui/toggle";
 

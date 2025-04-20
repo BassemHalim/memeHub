@@ -6,7 +6,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages, getTranslations } from "next-intl/server";
 import { El_Messiri } from "next/font/google";
 
-import { cn } from "@/components/lib/utils";
+import { cn } from "@/utils/tailwind";
 import "./globals.css";
 
 export async function generateMetadata({
@@ -65,7 +65,6 @@ export default async function RootLayout({
                 )}
             >
                 <NextIntlClientProvider messages={messages} locale={locale}>
-                
                     <Header />
                     <main className="grow flex flex-col items-center justify-center w-full">
                         {children}
