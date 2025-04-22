@@ -103,7 +103,7 @@ func (s *Server) GetTimeline(w http.ResponseWriter, r *http.Request) {
 		SortOrder: sortOrder,
 	})
 	if err != nil {
-		s.log.Error("Error getting filtered memes", "ERROR", err)
+		s.log.Error("Error getting filtered memes", "MSG", err)
 		http.Error(w, "Error getting memes", http.StatusInternalServerError)
 		return
 	}

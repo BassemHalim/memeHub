@@ -113,7 +113,7 @@ func (s *Server) GetMeme(ctx context.Context, req *pb.GetMemeRequest) (*pb.MemeR
 		WHERE id = $1
 		`, req.Id).Scan(&resp.MediaUrl, &resp.MediaType, &resp.Name, &dimensions)
 	if err != nil {
-		s.log.Info("Failed to get meme", "ERROR", err)
+		s.log.Error("Failed to get meme", "Msg", err)
 		return nil, fmt.Errorf("error getting the meme")
 	}
 	resp.Dimensions = dimensions
@@ -598,7 +598,7 @@ func (s *Server) UpdateMeme(ctx context.Context, r *pb.UpdateMemeRequest) (*pb.U
 		if oldExtension != newExtension {
 			newFilename = strings.Split(oldFilename, ".")[0] + newExtension
 		}
-		
+
 		// update the DB
 		mediaURL := fmt.Sprintf("/imgs/%s", newFilename)
 		if _, err = txn.ExecContext(ctx, `UPDATE meme
@@ -608,7 +608,7 @@ func (s *Server) UpdateMeme(ctx context.Context, r *pb.UpdateMemeRequest) (*pb.U
 		WHERE id = $4`, mediaURL, r.MediaType, pq.Array(r.Dimensions), r.Id); err != nil {
 			return &pb.UpdateMemeResponse{Success: false}, err
 		}
-		
+
 		// rename the image file name.ext to be name.ext_timestamp to keep old versions
 		err = utils.RenameImage(oldFilename, fmt.Sprintf("%s_%d", oldFilename, time.Now().Unix()))
 		if err != nil {
@@ -621,7 +621,7 @@ func (s *Server) UpdateMeme(ctx context.Context, r *pb.UpdateMemeRequest) (*pb.U
 		}
 	}
 	txn.Commit()
-
+	// TODO: should update cache but not really needed at the moment since the old image is cached on the CDN
 	return &pb.UpdateMemeResponse{
 			Success: true,
 		},
