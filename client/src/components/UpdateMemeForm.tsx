@@ -82,9 +82,12 @@ export default function UpdateMeme({
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            name: "",
-            tags: [],
-            imageUrl: "",
+            name: meme.name,
+            tags: meme.tags.map((tag) => ({
+                label: tag,
+                value: tag,
+            })),
+            imageUrl:"",
             imageFile: undefined,
         },
     });

@@ -16,8 +16,7 @@ export function Delete(id: string, token: string) {
     };
 
     fetch(`/api/admin/meme/${id}`, requestOptions)
-        .then((response) => response.text())
-        .then((result) => console.log(result))
+        .then(() => console.log("Deleted meme ", id))
         .catch((error) => console.error(error));
 }
 

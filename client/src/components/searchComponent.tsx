@@ -137,7 +137,6 @@ export default function SearchComponent({
 
     useEffect(() => {
         const searchQuery = [query, ...selectedTags].join(" ");
-        console.log(selectedTags);
         searchMemes(searchQuery);
     }, [query, selectedTags]);
 

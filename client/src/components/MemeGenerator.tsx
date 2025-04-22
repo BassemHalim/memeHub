@@ -85,7 +85,6 @@ export default function MemeGenerator() {
         if (!ctx) return;
         for (let i = 0; i < textElements.length; i++) {
             if (isClicked(x, y, textElements[i], ctx)) {
-                console.log(i);
                 setSelected(i);
                 setStartPos([x, y]);
             }
