@@ -23,7 +23,8 @@ export function useAuth() {
             }
         },
         login: async (username: string, password: string): Promise<boolean> => {
-            return fetch("/api/login", {
+            const url = new URL("/api/login", process.env.NEXT_PUBLIC_API_HOST);
+            return fetch(url, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
