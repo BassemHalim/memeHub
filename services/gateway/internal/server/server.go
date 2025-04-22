@@ -51,13 +51,14 @@ func New(memeClient pb.MemeServiceClient, config *config.Config, rateLimiter *ra
 	}, nil
 }
 
+func (s *Server) handleError(w http.ResponseWriter, err error, message string, statusCode int) {
+	s.log.Error(message, "ERROR", err)
+	http.Error(w, message, statusCode)
+}
+
 // GET /api/memes
 // Endpoint to get memes for timeline and provide sort order
 func (s *Server) GetTimeline(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
 
 	// parse query parameters
 	queryParams := r.URL.Query()
@@ -103,8 +104,7 @@ func (s *Server) GetTimeline(w http.ResponseWriter, r *http.Request) {
 		SortOrder: sortOrder,
 	})
 	if err != nil {
-		s.log.Error("Error getting filtered memes", "MSG", err)
-		http.Error(w, "Error getting memes", http.StatusInternalServerError)
+		s.handleError(w, err, "Failed to fetch memes", http.StatusInternalServerError)
 		return
 	}
 	// store in cache
@@ -120,10 +120,7 @@ func (s *Server) GetTimeline(w http.ResponseWriter, r *http.Request) {
 
 // POST /api/meme
 func (s *Server) UploadMeme(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
+	
 	// Multipart form data
 	r.ParseMultipartForm(s.config.MaxUploadSize) // limit your max input length to 2MB
 
@@ -131,16 +128,15 @@ func (s *Server) UploadMeme(w http.ResponseWriter, r *http.Request) {
 	jsonData := r.FormValue("meme")
 	var meme meme.UploadRequest
 	if err := json.Unmarshal([]byte(jsonData), &meme); err != nil {
-		s.log.Error("Error parsing the json", "JSON", jsonData, "ERROR", err)
-		http.Error(w, "Error parsing the meme data", http.StatusBadRequest)
+		s.log.Debug("Error parsing the json", "JSON", jsonData, "ERROR", err)
+		s.handleError(w, err, "Error parsing the meme data", http.StatusBadRequest)
 		return
 	}
 	s.log.Debug("Uploaded meme metadata", "JSON", jsonData)
 
 	err := s.structValidator.Struct(meme)
 	if err != nil {
-		s.log.Error("Invalid MemeResponse Struct :", "JSON", jsonData)
-		http.Error(w, "The meme data is invalid or missing required fields", http.StatusBadRequest)
+		s.handleError(w, err, "The meme data is invalid or missing required fields", http.StatusBadRequest)
 		return
 	}
 	s.log.Debug("Parsed Meme", "Meme", meme)
@@ -158,14 +154,12 @@ func (s *Server) UploadMeme(w http.ResponseWriter, r *http.Request) {
 		s.log.Info("File upload")
 		file, _, err := r.FormFile("image")
 		if err != nil {
-			s.log.Error("Couldn't find image in the multipart request", "ERROR", err)
-			http.Error(w, "Error Reading the image", http.StatusBadRequest)
+			s.handleError(w, err, "Couldn't find image in the multipart request", http.StatusBadRequest)
 			return
 		}
 		defer file.Close()
 		if _, err := imgBuf.ReadFrom(file); err != nil {
-			s.log.Error("Error reading the image into butter", "ERROR", err)
-			http.Error(w, "Error reading the image", http.StatusBadRequest)
+			s.handleError(w, err, "Failed to read the image / invalid image", http.StatusBadRequest)
 			return
 		}
 	} else {
@@ -181,29 +175,25 @@ func (s *Server) UploadMeme(w http.ResponseWriter, r *http.Request) {
 
 		resp, err := http.Get(meme.MediaURL)
 		if err != nil {
-			s.log.Error("Error downloading the image", "URL", meme.MediaURL, "STATUS_CODE", resp.StatusCode)
-			http.Error(w, "Error downloading the image", http.StatusBadRequest)
+			s.handleError(w, err, "Error downloading the image from the provided URL", http.StatusBadRequest)
 			return
 		}
 		defer resp.Body.Close()
 		if _, err := imgBuf.ReadFrom(resp.Body); err != nil {
-			s.log.Error("Error reading the image", "Error", err)
-			http.Error(w, "Error reading the image", http.StatusBadRequest)
+			s.log.Error("Error reading the downloaded image", "Error", err)
 			return
 		}
 	}
 	// get the image dimensions from imgBuf
 	imgBytes := imgBuf.Bytes()
 	if len(imgBytes) > int(s.config.MaxUploadSize) {
-		s.log.Error("Uploaded file is too big", "Size", len(imgBytes))
-		http.Error(w, "Uploaded image is too big", http.StatusRequestEntityTooLarge)
+		s.handleError(w, err, fmt.Sprintf("Uploaded file is too big it must be <= %d", s.config.MaxUploadSize), http.StatusRequestEntityTooLarge)
 		return
 	}
 	imgReader := bytes.NewReader(imgBytes)
 	imgConfig, _, err := image.DecodeConfig(imgReader)
 	if err != nil {
-		s.log.Error("Failed to decode image config Likely not an image", "Error", err, "Num_Bytes", len(imgBytes))
-		http.Error(w, "Error reading the image", http.StatusBadRequest)
+		s.handleError(w, err, "Failed to decode image config Likely not an image", http.StatusBadRequest)
 		return
 	}
 	// call the memeService to upload the meme
@@ -220,8 +210,7 @@ func (s *Server) UploadMeme(w http.ResponseWriter, r *http.Request) {
 	resp, err := s.memeClient.UploadMeme(ctx, memeUpload)
 	// TODO: resize it
 	if err != nil {
-		s.log.Error("Error uploading the meme to meme-service", "Error", err)
-		http.Error(w, "Error uploading the meme", http.StatusInternalServerError)
+		s.handleError(w, err, "Error uploading the meme", http.StatusInternalServerError)
 		return
 	}
 	// return the meme ID
@@ -233,10 +222,7 @@ func (s *Server) UploadMeme(w http.ResponseWriter, r *http.Request) {
 
 // api/memes/search?query=query&page=num&pageSize=num
 func (s *Server) SearchMemes(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Invalid Method", http.StatusBadRequest)
-		return
-	}
+	
 	// parse query parameters
 	queryParams := r.URL.Query()
 	// tags := queryParams["tags"]
@@ -260,8 +246,7 @@ func (s *Server) SearchMemes(w http.ResponseWriter, r *http.Request) {
 		PageSize: int32(pageSize),
 	})
 	if err != nil {
-		s.log.Debug("Failed to fetch meme from memeClient", "Error", err)
-		http.Error(w, "Failed to fetch memes", http.StatusInternalServerError)
+		s.handleError(w, err, "Failed to fetch memes", http.StatusInternalServerError)
 		return
 	}
 
@@ -273,10 +258,7 @@ func (s *Server) SearchMemes(w http.ResponseWriter, r *http.Request) {
 
 // GET /api/tags/search?query=tagname&limit=num
 func (s *Server) SearchTags(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Invalid Method", http.StatusBadRequest)
-		return
-	}
+	
 	// parse query parameters
 	queryParams := r.URL.Query()
 	query := queryParams.Get("query")
@@ -290,8 +272,7 @@ func (s *Server) SearchTags(w http.ResponseWriter, r *http.Request) {
 	}
 	limitVal, err := strconv.Atoi(limit)
 	if err != nil {
-		s.log.Debug("Failed to parse limit", "Limit", limit)
-		http.Error(w, "Invalid limit", http.StatusBadRequest)
+		s.handleError(w, err, "Invalid limit", http.StatusBadRequest)
 		return
 	}
 
@@ -312,8 +293,7 @@ func (s *Server) SearchTags(w http.ResponseWriter, r *http.Request) {
 		Limit: int32(limitVal),
 	})
 	if err != nil {
-		s.log.Debug("Failed to fetch tags from memeClient", "Error", err)
-		http.Error(w, "Failed to fetch tags", http.StatusInternalServerError)
+		s.handleError(w, err, "Failed to fetch tags", http.StatusInternalServerError)
 		return
 	}
 	// store in cache
@@ -326,14 +306,11 @@ func (s *Server) SearchTags(w http.ResponseWriter, r *http.Request) {
 
 // DELETE /api/meme/{id}
 func (s *Server) DeleteMeme(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodDelete {
-		http.Error(w, "Invalid Method", http.StatusBadRequest)
-		return
-	}
+	
 	// parse query parameters
 	idString := r.PathValue("id")
 	if err := uuid.Validate(idString); err != nil {
-		http.Error(w, "Invalid Method", http.StatusBadRequest)
+		s.handleError(w, err, "Bad ID", http.StatusBadRequest)
 		return
 	}
 
@@ -344,8 +321,7 @@ func (s *Server) DeleteMeme(w http.ResponseWriter, r *http.Request) {
 		Id: idString,
 	})
 	if err != nil {
-		s.log.Debug("Failed to delete meme", "Error", err)
-		http.Error(w, "Failed to delete meme", http.StatusInternalServerError)
+		s.handleError(w, err, "Failed to delete meme", http.StatusInternalServerError)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
@@ -353,16 +329,11 @@ func (s *Server) DeleteMeme(w http.ResponseWriter, r *http.Request) {
 
 // GET /api/meme/{id}
 func (s *Server) GetMeme(w http.ResponseWriter, r *http.Request) {
-	s.log.Debug("GET /api/meme/id", "Request", r.Method+r.URL.Path)
-	if r.Method != http.MethodGet {
-		http.Error(w, "Invalid Method", http.StatusBadRequest)
-		return
-	}
+	
 	// parse query parameters
 	idString := r.PathValue("id")
 	if err := uuid.Validate(idString); err != nil {
-		s.log.Debug("Bad ID", "ID", idString, "Error", err)
-		http.Error(w, "Bad ID", http.StatusBadRequest)
+		s.handleError(w, err, "Bad ID", http.StatusBadRequest)
 		return
 	}
 	memeCacheKey := fmt.Sprintf("meme_%s", idString)
@@ -381,8 +352,7 @@ func (s *Server) GetMeme(w http.ResponseWriter, r *http.Request) {
 		Id: idString,
 	})
 	if err != nil {
-		s.log.Debug("Failed to Get meme", "Error", err)
-		http.Error(w, "Failed to Get meme", http.StatusInternalServerError)
+		s.handleError(w, err, "Failed to fetch meme", http.StatusInternalServerError)
 		return
 	}
 	// store in cache
@@ -395,26 +365,22 @@ func (s *Server) GetMeme(w http.ResponseWriter, r *http.Request) {
 
 // /api/admin/meme/{id}/tags
 func (s *Server) UpdateTags(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPatch {
-		http.Error(w, "Invalid Method", http.StatusBadRequest)
-		return
-	}
+	
 	id := r.PathValue("id")
 	if err := uuid.Validate(id); err != nil {
-		s.log.Debug("Bad ID", "ID", id, "Error", err)
-		http.Error(w, "Bad ID", http.StatusBadRequest)
+		s.handleError(w, err, "Bad ID", http.StatusBadRequest)
 		return
 	}
 	dec := json.NewDecoder(r.Body)
 	var tagsRequest = meme.AddTagsRequest{}
 	err := dec.Decode(&tagsRequest)
 	if err != nil {
-		http.Error(w, "Invalid body", http.StatusBadRequest)
+		s.handleError(w, err, "Error parsing the json", http.StatusBadRequest)
 		return
 	}
 	err = s.structValidator.Struct(tagsRequest)
 	if err != nil {
-		http.Error(w, "Invalid body", http.StatusBadRequest)
+		s.handleError(w, err, "The meme data is invalid or missing required fields", http.StatusBadRequest)
 		return
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
@@ -425,8 +391,7 @@ func (s *Server) UpdateTags(w http.ResponseWriter, r *http.Request) {
 		Tags:   tagsRequest.Tags,
 	})
 	if err != nil {
-		s.log.Error("Failed to add tags", "ERROR", err)
-		w.WriteHeader(http.StatusInternalServerError)
+		s.handleError(w, err, "Failed to add tags", http.StatusInternalServerError)
 		return
 	}
 	if resp.Success != int32(200) {
@@ -448,14 +413,12 @@ func (s *Server) PatchMeme(w http.ResponseWriter, r *http.Request) {
 	jsonData := r.FormValue("meme")
 	var meme meme.PatchRequest
 	if err := json.Unmarshal([]byte(jsonData), &meme); err != nil {
-		s.log.Error("Error parsing the json", "JSON", jsonData, "ERROR", err)
-		http.Error(w, "Error parsing the meme data", http.StatusBadRequest)
+		s.handleError(w, err, "Error parsing the json", http.StatusBadRequest)
 		return
 	}
 	err := s.structValidator.Struct(meme)
 	if err != nil {
-		s.log.Error("Invalid MemeResponse Struct :", "JSON", jsonData)
-		http.Error(w, "The meme data is invalid or missing required fields", http.StatusBadRequest)
+		s.handleError(w, err, "The meme data is invalid or missing required fields", http.StatusBadRequest)
 		return
 	}
 	// verify if mime type is for an image
@@ -476,8 +439,7 @@ func (s *Server) PatchMeme(w http.ResponseWriter, r *http.Request) {
 			s.log.Info("File upload")
 			file, _, err := r.FormFile("image")
 			if err != nil {
-				s.log.Error("Couldn't find image in the multipart request", "ERROR", err)
-				http.Error(w, "Error Reading the image", http.StatusBadRequest)
+				s.handleError(w, err, "Couldn't find image in the multipart request", http.StatusBadRequest)
 				return
 			}
 			defer file.Close()
@@ -499,8 +461,7 @@ func (s *Server) PatchMeme(w http.ResponseWriter, r *http.Request) {
 
 			resp, err := http.Get(meme.MediaURL)
 			if err != nil {
-				s.log.Error("Error downloading the image", "URL", meme.MediaURL, "STATUS_CODE", resp.StatusCode)
-				http.Error(w, "Error downloading the image", http.StatusBadRequest)
+				s.handleError(w, err, "Error downloading the image from the provided URL", http.StatusBadRequest)
 				return
 			}
 			defer resp.Body.Close()
@@ -520,8 +481,7 @@ func (s *Server) PatchMeme(w http.ResponseWriter, r *http.Request) {
 		imgReader := bytes.NewReader(imgBytes)
 		imgConfig, _, err := image.DecodeConfig(imgReader)
 		if err != nil {
-			s.log.Error("Failed to decode image config Likely not an image", "Error", err, "Num_Bytes", len(imgBytes))
-			http.Error(w, "Error reading the image", http.StatusBadRequest)
+			s.handleError(w, err, "Failed to decode image config Likely not an image", http.StatusBadRequest)
 			return
 		}
 
@@ -546,12 +506,9 @@ func (s *Server) PatchMeme(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 	resp, err := s.memeClient.UpdateMeme(ctx, updateRequest)
 	if err != nil {
-		s.log.Error("Error uploading the meme to meme-service", "Error", err)
-		http.Error(w, "Error uploading the meme", http.StatusInternalServerError)
+		s.handleError(w, err, "Failed to update meme", http.StatusInternalServerError)
 		return
 	}
 	s.log.Debug(resp.String())
-	// w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	// json.NewEncoder(w).Encode(resp)
 }

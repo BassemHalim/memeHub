@@ -18,20 +18,10 @@ The backend is made of 2 services:
 
 TODO:
 
--   [x] endpoint to get tags based on a query
--   [x] Refactor go to follow recommended project structure /cmd /internal etc. (gateway done)
--   [x] endpoint to delete a meme
--   [x] meme page
--   [x] ar/en switch
--   [x] endpoint to update a meme tags or name
--   [x] caching timeline
--   [x] image editing UI
--   [x] caching timeline server-side
--   [x] search page filters UI
 -   [ ] determine if a similar meme already exists (https://github.com/qarmin/czkawka)
 -   [ ] use ocr to get text from images
 -   [ ] moderation/filtering offensive content WIP
 -   [ ] compress images
 -   [ ] add tests WIP
 -   [ ] Upvote memes
--   [x] display upload file in upload form
+-   [ ] save image source

@@ -62,28 +62,31 @@ func run(ctx context.Context) error {
 		return err
 	}
 
-	getMemesTimeline := http.HandlerFunc(gateway.GetTimeline)
-	uploadMeme := http.HandlerFunc(gateway.UploadMeme)
-	searchMemes := http.HandlerFunc(gateway.SearchMemes)
-	getMeme := http.HandlerFunc(gateway.GetMeme)
-	deleteMeme := http.HandlerFunc(gateway.DeleteMeme)
-	searchTags := http.HandlerFunc(gateway.SearchTags)
-	updateTags := http.HandlerFunc(gateway.UpdateTags)
-	patchMeme := http.HandlerFunc(gateway.PatchMeme)
+	getTimelineHandler := http.HandlerFunc(gateway.GetTimeline)
+	searchMemesHandler := http.HandlerFunc(gateway.SearchMemes)
+	searchTagsHandler := http.HandlerFunc(gateway.SearchTags)
+	getMemeHandler := http.HandlerFunc(gateway.GetMeme)
+	uploadMemeHandler := http.HandlerFunc(gateway.UploadMeme)
+	deleteMemeHandler := http.HandlerFunc(gateway.DeleteMeme)
+	updateTagsHandler := http.HandlerFunc(gateway.UpdateTags)
+	patchMemeHandler := http.HandlerFunc(gateway.PatchMeme)
 	
 	apiRouter := http.NewServeMux()
-	apiRouter.Handle("/login", http.HandlerFunc(auth.Login))
-	apiRouter.Handle("GET /memes", middleware.GzipMiddleware(middleware.Cache(limiter.RateLimit(getMemesTimeline), 60)))
-	apiRouter.Handle("GET /memes/search", middleware.GzipMiddleware(middleware.Cache(limiter.RateLimit(searchMemes), 2*60)))
-	apiRouter.Handle("GET /tags/search", middleware.GzipMiddleware(middleware.Cache(limiter.RateLimit(searchTags), 2*60)))
-	apiRouter.Handle("GET /meme/{id}", middleware.Cache(limiter.RateLimit(getMeme), 24*60))
-	apiRouter.Handle("POST /meme", limiter.RateLimit(uploadMeme))
+	apiRouter.HandleFunc("/login", auth.Login)
+	apiRouter.Handle("GET /memes", middleware.GzipMiddleware(middleware.Cache(limiter.RateLimit(getTimelineHandler), 60)))
+	apiRouter.Handle("GET /memes/search", middleware.GzipMiddleware(middleware.Cache(limiter.RateLimit(searchMemesHandler), 2*60)))
+	apiRouter.Handle("GET /tags/search", middleware.GzipMiddleware(middleware.Cache(limiter.RateLimit(searchTagsHandler), 2*60)))
+	apiRouter.Handle("GET /meme/{id}", middleware.Cache(limiter.RateLimit(getMemeHandler), 24*60))
+	apiRouter.Handle("POST /meme", limiter.RateLimit(uploadMemeHandler))
 
-	apiRouter.Handle("DELETE /admin/meme/{id}", limiter.RateLimit(middleware.Auth(deleteMeme)))
-	apiRouter.Handle("PATCH /admin/meme/{id}/tags", limiter.RateLimit(middleware.Auth(updateTags)))
-	apiRouter.Handle("PATCH /admin/meme/{id}", limiter.RateLimit(middleware.Auth(patchMeme)))
-	apiRouter.Handle("GET /admin/memes", middleware.GzipMiddleware(middleware.Auth(getMemesTimeline))) // same as /api/memes but without caching or rate limiting
-
+	adminRouter := http.NewServeMux()
+	adminRouter.Handle("DELETE /meme/{id}", limiter.RateLimit(middleware.Auth(deleteMemeHandler)))
+	adminRouter.Handle("PATCH /meme/{id}/tags", limiter.RateLimit(middleware.Auth(updateTagsHandler)))
+	adminRouter.Handle("PATCH /meme/{id}", limiter.RateLimit(middleware.Auth(patchMemeHandler)))
+	adminRouter.Handle("GET /memes", middleware.GzipMiddleware(middleware.Auth(getTimelineHandler))) // same as /api/memes but without caching or rate limiting
+	
+	apiRouter.Handle("/admin/", http.StripPrefix("/admin", adminRouter))
+	
 	fileServer, err := fileserver.New(log)
 	if err != nil {
 		log.Error("Failed to create file server", "ERROR", err)
