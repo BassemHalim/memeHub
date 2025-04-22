@@ -120,7 +120,6 @@ func (s *Server) GetTimeline(w http.ResponseWriter, r *http.Request) {
 
 // POST /api/meme
 func (s *Server) UploadMeme(w http.ResponseWriter, r *http.Request) {
-	
 	// Multipart form data
 	r.ParseMultipartForm(s.config.MaxUploadSize) // limit your max input length to 2MB
 
@@ -198,11 +197,12 @@ func (s *Server) UploadMeme(w http.ResponseWriter, r *http.Request) {
 	}
 	// call the memeService to upload the meme
 	memeUpload := &pb.UploadMemeRequest{
-		MediaType:  meme.MimeType,
-		Image:      imgBytes,
-		Tags:       meme.Tags,
-		Name:       meme.Name,
-		Dimensions: []int32{int32(imgConfig.Width), int32(imgConfig.Height)},
+		MediaType:      meme.MimeType,
+		Image:          imgBytes,
+		Tags:           meme.Tags,
+		Name:           meme.Name,
+		Dimensions:     []int32{int32(imgConfig.Width), int32(imgConfig.Height)},
+		SocialMediaUrl: meme.MediaURL,
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
@@ -222,7 +222,6 @@ func (s *Server) UploadMeme(w http.ResponseWriter, r *http.Request) {
 
 // api/memes/search?query=query&page=num&pageSize=num
 func (s *Server) SearchMemes(w http.ResponseWriter, r *http.Request) {
-	
 	// parse query parameters
 	queryParams := r.URL.Query()
 	// tags := queryParams["tags"]
@@ -258,7 +257,7 @@ func (s *Server) SearchMemes(w http.ResponseWriter, r *http.Request) {
 
 // GET /api/tags/search?query=tagname&limit=num
 func (s *Server) SearchTags(w http.ResponseWriter, r *http.Request) {
-	
+
 	// parse query parameters
 	queryParams := r.URL.Query()
 	query := queryParams.Get("query")
@@ -306,7 +305,7 @@ func (s *Server) SearchTags(w http.ResponseWriter, r *http.Request) {
 
 // DELETE /api/meme/{id}
 func (s *Server) DeleteMeme(w http.ResponseWriter, r *http.Request) {
-	
+
 	// parse query parameters
 	idString := r.PathValue("id")
 	if err := uuid.Validate(idString); err != nil {
@@ -329,7 +328,7 @@ func (s *Server) DeleteMeme(w http.ResponseWriter, r *http.Request) {
 
 // GET /api/meme/{id}
 func (s *Server) GetMeme(w http.ResponseWriter, r *http.Request) {
-	
+
 	// parse query parameters
 	idString := r.PathValue("id")
 	if err := uuid.Validate(idString); err != nil {
@@ -365,7 +364,7 @@ func (s *Server) GetMeme(w http.ResponseWriter, r *http.Request) {
 
 // /api/admin/meme/{id}/tags
 func (s *Server) UpdateTags(w http.ResponseWriter, r *http.Request) {
-	
+
 	id := r.PathValue("id")
 	if err := uuid.Validate(id); err != nil {
 		s.handleError(w, err, "Bad ID", http.StatusBadRequest)
@@ -487,12 +486,13 @@ func (s *Server) PatchMeme(w http.ResponseWriter, r *http.Request) {
 
 		// create upload request
 		updateRequest = &pb.UpdateMemeRequest{
-			Id:         id,
-			MediaType:  meme.MimeType,
-			Image:      imgBytes,
-			Tags:       meme.Tags,
-			Name:       meme.Name,
-			Dimensions: []int32{int32(imgConfig.Width), int32(imgConfig.Height)},
+			Id:             id,
+			MediaType:      meme.MimeType,
+			Image:          imgBytes,
+			Tags:           meme.Tags,
+			Name:           meme.Name,
+			Dimensions:     []int32{int32(imgConfig.Width), int32(imgConfig.Height)},
+			SocialMediaUrl: meme.MediaURL,
 		}
 	} else {
 		updateRequest = &pb.UpdateMemeRequest{

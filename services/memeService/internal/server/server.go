@@ -84,6 +84,15 @@ func (s *Server) UploadMeme(ctx context.Context, req *pb.UploadMemeRequest) (*pb
 			return nil, fmt.Errorf("error saving the tag %s", err)
 		}
 	}
+
+	// save the image source
+	if req.SocialMediaUrl != "" {
+		s.log.Debug("Saving image source", "Source", req.SocialMediaUrl, "ID", memeID)
+		if err := s.storeImageSource(ctx, tx, memeID, req.SocialMediaUrl); err != nil {
+			log.Error("Failed to insert image source", "Error", err)
+			return nil, fmt.Errorf("error saving the image source")
+		}
+	}
 	// save image
 	if err := utils.SaveImage(utils.UploadDir(), filename, req.Image); err != nil {
 		return nil, err
@@ -102,6 +111,37 @@ func (s *Server) UploadMeme(ctx context.Context, req *pb.UploadMemeRequest) (*pb
 	}, nil
 }
 
+func (s *Server) storeImageSource(ctx context.Context, txn *sql.Tx, memeID string, source string) error {
+	var socialMedia = "Other"
+	if strings.Contains(source, "twimg.com") {
+		socialMedia = "X"
+	} else if strings.Contains(source, "redd.it") {
+		socialMedia = "Reddit"
+	} else if strings.Contains(source, "cdninstagram.com") {
+		socialMedia = "Instagram"
+	} else if strings.Contains(source, "fbcdn.net") {
+		socialMedia = "FB"
+	} else if strings.Contains(source, "pinterest.com") || strings.Contains(source, "pinimg.com") {
+		socialMedia = "Pinterest"
+	} else if strings.Contains(source, "linkedin.com") {
+		socialMedia = "LinkedIn"
+	} else if strings.Contains(source, "imgur.com") {
+		socialMedia = "Imgur"
+	}
+	query := `INSERT INTO images (url, social_media_platform, meme_id)
+			VALUES ($1, $2, $3);`
+	var err error
+	if txn == nil {
+		_, err = s.db.ExecContext(ctx, query, source, socialMedia, memeID)
+	} else {
+		_, err = txn.ExecContext(ctx, query, source, socialMedia, memeID)
+	}
+	if err != nil {
+		s.log.Error("Failed to insert image source", "Error", err)
+		return fmt.Errorf("error saving the image source")
+	}
+	return nil
+}
 func (s *Server) GetMeme(ctx context.Context, req *pb.GetMemeRequest) (*pb.MemeResponse, error) {
 	var resp pb.MemeResponse
 	resp.Id = req.Id
@@ -607,6 +647,14 @@ func (s *Server) UpdateMeme(ctx context.Context, r *pb.UpdateMemeRequest) (*pb.U
 		dimensions = $3
 		WHERE id = $4`, mediaURL, r.MediaType, pq.Array(r.Dimensions), r.Id); err != nil {
 			return &pb.UpdateMemeResponse{Success: false}, err
+		}
+
+		if r.SocialMediaUrl != "" {
+			s.log.Debug("Saving image source", "Source", r.SocialMediaUrl, "ID", r.Id)
+			if err := s.storeImageSource(ctx, txn, r.Id, r.SocialMediaUrl); err != nil {
+				s.log.Error("Failed to insert image source", "Error", err)
+				return &pb.UpdateMemeResponse{Success: false}, fmt.Errorf("error saving the image source")
+			}
 		}
 
 		// rename the image file name.ext to be name.ext_timestamp to keep old versions

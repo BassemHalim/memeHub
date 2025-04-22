@@ -20,6 +20,7 @@ message UploadMemeRequest {
   repeated string tags = 3;
   string name = 4;
   repeated int32 dimensions = 5; 
+  string social_media_url = 6; // optional filed to store the uploaded image URL 
 }
 
 message UpdateMemeRequest {
@@ -29,6 +30,7 @@ message UpdateMemeRequest {
   repeated string tags = 4;
   string name = 5;
   repeated int32 dimensions = 6; 
+  string social_media_url = 7; // optional filed to store the uploaded image URL 
 }
 
 message GetMemeRequest {
