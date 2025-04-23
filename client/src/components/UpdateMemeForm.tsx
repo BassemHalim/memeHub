@@ -83,10 +83,11 @@ export default function UpdateMeme({
         resolver: zodResolver(formSchema),
         defaultValues: {
             name: meme.name,
-            tags: meme.tags.map((tag) => ({
-                label: tag,
-                value: tag,
-            })),
+            // tags: meme.tags.map((tag) => ({
+            //     label: tag,
+            //     value: tag,
+            // })),
+            tags: [],
             imageUrl:"",
             imageFile: undefined,
         },

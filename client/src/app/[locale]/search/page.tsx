@@ -20,9 +20,9 @@ export async function generateMetadata({
             description: t("description"),
             images: [
                 {
-                    url: "https://qasrelmemez.com/logo.png",
-                    width: 588,
-                    height: 588,
+                    url: "https://qasrelmemez.com/og.png",
+                    width: 1200,
+                    height: 630,
                     alt: "Qasr El Memez",
                 },
             ],

@@ -95,10 +95,10 @@ export default function MemeCard({
             <div className="relative group">
                 <Image
                     src={memeURL}
-                    alt={meme.name}
+                    alt={`ميم | رياكشن | ${meme.name}`}
                     height={meme.dimensions[1]}
                     width={meme.dimensions[0]}
-                    className="w-full"
+                    className="w-full group-hover:scale-105 transition-transform duration-300 ease-in-out"
                     unoptimized={meme.media_url.endsWith(".gif")}
                 />
                 <div

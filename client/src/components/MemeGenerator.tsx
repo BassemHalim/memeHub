@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { MouseEvent, TouchEvent, useEffect, useRef, useState } from "react";
 import { Card } from "./ui/card";
 import { Input } from "./ui/input";
+import { Label } from "./ui/label";
 import MemeTextBorder from "./ui/MemeTextBorder";
 
 type TextElementType = {
@@ -51,7 +52,7 @@ const defaultText = {
     color: "#ffffff",
 };
 export default function MemeGenerator() {
-    const [imageURL, setImageURL] = useState("/logo.png");
+    const [imageURL, setImageURL] = useState("");
     const [textElements, setTextElements] = useState<TextElementType[]>([
         { ...defaultText },
     ]);
@@ -118,7 +119,6 @@ export default function MemeGenerator() {
                 if (i == selected) {
                     let nx = e.x + dx;
                     let ny = e.y + dy;
-                    console.log("x", nx, rect.width - w + PADDING);
                     nx = Math.max(
                         PADDING,
                         Math.min(nx, rect.width - w + PADDING)
@@ -206,7 +206,13 @@ export default function MemeGenerator() {
                 onTouchMove={handleMouseMove}
                 onTouchEnd={handleMouseUp}
             >
-                <canvas id="canvas" ref={canvasRef} />
+                <canvas
+                    id="canvas"
+                    ref={canvasRef}
+                    className={
+                        imageURL == "" ? "w-50 h-50 md:w-[700px] md:h-[700px] bg-secondary" : ""
+                    }
+                />
 
                 {textElements?.map((t: TextElementType, i) => {
                     const canvas = canvasRef.current;
@@ -227,9 +233,9 @@ export default function MemeGenerator() {
                 })}
             </div>
             <Card className="flex flex-col p-4 gap-2">
-                <Button onClick={download}>
-                    {t("download")} <Download />
-                </Button>
+                <Label htmlFor="image" className="">
+                    {t("image")}
+                </Label>
                 <Input
                     type="file"
                     accept="image/*"
@@ -332,6 +338,9 @@ export default function MemeGenerator() {
                         </div>
                     );
                 })}
+                <Button onClick={download}>
+                    {t("download")} <Download />
+                </Button>
             </Card>
         </div>
     );

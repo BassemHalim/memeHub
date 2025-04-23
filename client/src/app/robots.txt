@@ -16,4 +16,7 @@ Allow: /
 User-agent: Bingbot
 Disallow: 
 
+User-agen: ia_archiver
+Disallow:
+
 crawl-delay: 10
