@@ -23,6 +23,22 @@ CREATE TABLE IF NOT EXISTS meme_tag (
     PRIMARY KEY (meme_id, tag_id)
 );
 
+-- Create the images table with all required fields
+CREATE TABLE images (
+    id SERIAL PRIMARY KEY,
+    url VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW(),
+    social_media_platform VARCHAR(50) NOT NULL,
+    meme_id UUID,
+    CONSTRAINT valid_platform CHECK (social_media_platform IN ('FB', 'X', 'Instagram', 'LinkedIn', 'Pinterest', 'Reddit', 'Other')),
+    CONSTRAINT fk_reference FOREIGN KEY (meme_id) REFERENCES meme(id) ON DELETE CASCADE
+);
+
+
+-- Add an index on the foreign key for better query performance
+CREATE INDEX idx_images_meme_id ON images(meme_id);
+
+
 -- Create Search Index
 DROP INDEX IF EXISTS meme_search_idx;
 CREATE INDEX meme_search_idx ON meme USING gin(search_vector);
@@ -102,3 +118,5 @@ $$;
 
 
 ALTER FUNCTION public.search_memes(search_query text) OWNER TO postgres;
+
+
