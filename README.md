@@ -8,8 +8,8 @@ The choice to use a microservice architecture is for learning purposes and is no
 The memeService currently stores the memes locally
 
 ## Architecture:
-![system designs](https://github.com/BassemHalim/memeDB/blob/master/docs/System_Design.png?raw=true)
 
+![system designs](https://github.com/BassemHalim/memeDB/blob/master/docs/System_Design.png?raw=true)
 
 The backend is made of 2 services:
 
@@ -21,7 +21,6 @@ TODO:
 -   [ ] determine if a similar meme already exists (https://github.com/qarmin/czkawka)
 -   [ ] use ocr to get text from images
 -   [ ] moderation/filtering offensive content WIP
--   [ ] compress images
+-   [ ] compress images using ffmpeg
 -   [ ] add tests WIP
 -   [ ] Upvote memes
--   [ ] save image source
