@@ -6,6 +6,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"slices"
 	"strings"
 
 	"github.com/BassemHalim/memeDB/gateway/internal/utils"
@@ -53,11 +54,21 @@ func Auth(next http.Handler) http.Handler {
 // Enable CORS for all endpoints
 func CORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		allowed_origins := []string{
+			"https://qasrelmemez.com",
+			"https://www.qasrelmemez.com",
+			"http://localhost:3000",
+		}
+		origin := r.Header.Get("Origin")
 
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS, POST, PATCH", )
+		if !slices.Contains(allowed_origins, origin) {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		w.Header().Set("Access-Control-Allow-Origin", origin)
+		w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS, POST, PATCH")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-		
+
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusOK)
 			return
@@ -104,8 +115,6 @@ func GzipMiddleware(next http.Handler) http.Handler {
 		next.ServeHTTP(gzw, r)
 	})
 }
-
-
 
 func Cache(next http.Handler, mins uint32) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
