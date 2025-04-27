@@ -21,10 +21,21 @@ export default function Header() {
     return (
         <>
             <header className="font-bold text-lg text-center p-1 px-4 flex justify-between items-center sticky top-0 bg-[#060c18]/80 z-10 backdrop-blur-md border-b-2 shadow-border">
-                <Link href="/" className="hidden md:block flex-1 text-start ">
-                    {t("title")}
-                </Link>
-                <Link href="/" >
+                <div className="hidden md:flex justify-start items-center flex-1 text-start gap-2" >
+                    <Link
+                        href="/"
+                    >
+                        {t("title")}
+                    </Link>
+                    {/* <iframe
+                        src="https://ghbtns.com/github-btn.html?user=BassemHalim&repo=memeDB&type=watch&count=true&v=2"
+                        width="150"
+                        height="20"
+                        className=""
+                        title="GitHub"
+                    ></iframe> */}
+                </div>
+                <Link href="/">
                     <Image
                         className="md:mx-auto my-auto"
                         src="/logo.png"
