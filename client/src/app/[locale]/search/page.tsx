@@ -2,16 +2,17 @@ import SearchComponent from "@/components/searchComponent";
 import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 
-export async function generateMetadata({
-    params,
-}: {
+type Props = {
     params: Promise<{ locale: string }>;
-}) {
+    searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+};
+
+export async function generateMetadata({ params, searchParams }: Props) {
     const { locale } = await params;
     const t = await getTranslations({ locale: locale, namespace: "Metadata" });
-
+    const paramsObj = await searchParams;
     return {
-        title: t("title"),
+        title: t("title") + " - " + paramsObj.query,
         description: t("description"),
         openGraph: {
             type: "website",
@@ -48,7 +49,7 @@ export default async function Search({
     const params = await searchParams;
     const query = params.query;
     const tagsParam = params.tags || "";
-    const tags = tagsParam.split(",")
+    const tags = tagsParam.split(",");
     return (
         <Suspense fallback={<div>Loading...</div>}>
             <SearchComponent
