@@ -28,7 +28,7 @@ export async function generateMetadata({
             title: t("title"),
             description: description,
             openGraph: {
-                type: "website",
+                type: "article",
                 url: `https://qasrelmemez.com/meme/${id}`,
                 title: t("title"),
                 description: description,

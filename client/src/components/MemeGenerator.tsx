@@ -8,6 +8,7 @@ import { Card } from "./ui/card";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import MemeTextBorder from "./ui/MemeTextBorder";
+import { useSearchParams } from "next/navigation";
 
 type TextElementType = {
     text: string;
@@ -52,7 +53,9 @@ const defaultText = {
     color: "#ffffff",
 };
 export default function MemeGenerator() {
-    const [imageURL, setImageURL] = useState("");
+    const queryParams = useSearchParams();
+    const imgURL = queryParams.get("img");
+    const [imageURL, setImageURL] = useState(imgURL ?? "");
     const [textElements, setTextElements] = useState<TextElementType[]>([
         { ...defaultText },
     ]);

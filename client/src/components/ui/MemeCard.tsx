@@ -1,7 +1,7 @@
 "use client";
 
 import { Meme } from "@/types/Meme";
-import { ClipboardCheck, Download, Share2 } from "lucide-react";
+import { ClipboardCheck, Download, PencilLine, Share2 } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
 import { cn } from "@/utils/tailwind";
@@ -126,6 +126,15 @@ export default function MemeCard({
                         className="flex justify-center items-center bg-primary border-transparent text-primary-foreground shadow rounded-full w-9 h-9 md:w-8 md:h-8"
                     >
                         {shareLogo}
+                    </a>
+                    <label htmlFor="edit-meme-button" className="sr-only">
+                        edit meme
+                    </label>
+                    <a
+                        className="bg-primary border-transparent text-primary-foreground shadow flex justify-center items-center rounded-full w-9 h-9 md:w-8 md:h-8"
+                        href={`/generator?img=${encodeURIComponent(memeURL)}`}
+                    >
+                        <PencilLine size={20} />
                     </a>
                 </div>
 
