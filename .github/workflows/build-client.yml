@@ -5,7 +5,23 @@ on:
     paths:
       - 'client/**'
       - 'services/**'
-
+  workflow_dispatch:
+    inputs:
+      client:
+        description: 'Build client'
+        required: true
+        default: false
+        type: boolean
+      server:
+        description: 'Build server'
+        required: true
+        default: false
+        type: boolean
+  
+env:
+  REGISTRY: ghcr.io
+  CLIENT_IMAGE_NAME: ${{ github.repository }}/client
+    
 jobs:
   filter:
     runs-on: ubuntu-latest
@@ -46,7 +62,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ env.CLIENT_IMAGE_NAME }}
 
       - name: Build and push Docker image
         id: push
@@ -60,7 +76,7 @@ jobs:
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v2
         with:
-          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}
+          subject-name: ${{ env.REGISTRY }}/${{ env.CLIENT_IMAGE_NAME}}
           subject-digest: ${{ steps.push.outputs.digest }}
           push-to-registry: true
 
