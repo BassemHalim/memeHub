@@ -24,7 +24,7 @@ export default function Header() {
                 <Link href="/" className="hidden md:block flex-1 text-start ">
                     {t("title")}
                 </Link>
-                <Link href="/" className="flex-1">
+                <Link href="/" >
                     <Image
                         className="md:mx-auto my-auto"
                         src="/logo.png"
