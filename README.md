@@ -24,3 +24,4 @@ TODO:
 -   [ ] compress images using ffmpeg
 -   [ ] add tests WIP
 -   [ ] Upvote memes
+-   [ ] meme generator: option to add top or bottom padding + accept any url + edit onsite memes

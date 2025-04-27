@@ -28,12 +28,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: build and push client
+      - name: build client
         run: |
           cd client
           echo "NEXT_PUBLIC_API_HOST=${{ secrets.NEXT_PUBLIC_API_HOST }}" > .env.production
           echo "NEXT_PUBLIC_GOOGLE_ANALYTICS_TAG=${{ secrets.NEXT_PUBLIC_GOOGLE_ANALYTICS_TAG }}" >> .env.production
-          docker build -t qasrelmemez/client .
+          docker build -t ghcr.io/${{ github.repository }}/client:latest .
+      - name: login to ghcr
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+      - name: push client
+        run: |
+          echo "Pushing client"
+          docker push ghcr.io/${{ github.repository }}/client:latest
   build-server:
     needs: filter
     if: needs.filter.outputs.server_changed == 'true'
