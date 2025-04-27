@@ -172,7 +172,14 @@ func (s *Server) UploadMeme(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		resp, err := http.Get(meme.MediaURL)
+		req, err := http.NewRequest("GET", meme.MediaURL, nil)
+		if err != nil {
+			s.handleError(w, err, "Error creating the request to download the image", http.StatusBadRequest)
+			return
+		}
+		req.Header.Set("Accept", "image/*")
+
+		resp, err:= s.client.Do(req)
 		if err != nil {
 			s.handleError(w, err, "Error downloading the image from the provided URL", http.StatusBadRequest)
 			return
