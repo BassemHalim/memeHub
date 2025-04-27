@@ -16,13 +16,14 @@ on:
 env:
     REGISTRY: ghcr.io
     CLIENT_IMAGE_NAME: ${{ github.repository }}/client
+    GATEWAY_IMAGE_NAME: ${{ github.repository }}/gateway
 
 jobs:
     filter:
         runs-on: ubuntu-latest
         outputs:
             client_changed: ${{ steps.filter.outputs.client }}
-            server_changed: ${{ steps.filter.outputs.server }}
+            backend_changed: ${{ steps.filter.outputs.backend }}
         steps:
             - uses: actions/checkout@v4
             - uses: dorny/paths-filter@v3
@@ -31,7 +32,7 @@ jobs:
                   filters: |
                       client:
                         - 'client/**'
-                      server:
+                      backend:
                         - 'services/**'
     build-client:
         permissions:
@@ -68,7 +69,7 @@ jobs:
                       type=raw,value=latest
                       type=raw,value=qasrelmemez/client
 
-            - name: Build and push Docker image
+            - name: Build and push client image
               id: push
               uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
               with:
@@ -84,12 +85,48 @@ jobs:
                   subject-digest: ${{ steps.push.outputs.digest }}
                   push-to-registry: true
 
-    build-server:
+    build-backend:
+        permissions:
+            contents: read
+            packages: write
+            attestations: write
+            id-token: write
+
         needs: filter
-        if: needs.filter.outputs.server_changed == 'true'
+        if: needs.filter.outputs.backend_changed == 'true'
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
-            - name: build and push server
-              run: |
-                  echo "Building server"
+
+            - name: Log in to the Container registry
+              uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
+              with:
+                  registry: ghcr.io
+                  username: ${{ github.actor }}
+                  password: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: Extract metadata (tags, labels) for Docker
+              id: meta
+              uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
+              with:
+                  images: ${{ env.REGISTRY }}/${{ env.GATEWAY_IMAGE_NAME }}
+                  tags: |
+                      type=raw,value=latest
+                      type=raw,value=qasrelmemez/gateway
+
+            - name: Build and push gateway image
+              id: push
+              uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
+              with:
+                  context: services
+                  file: gatewaty.Dockerfile
+                  push: true
+                  tags: ${{ steps.meta.outputs.tags }}
+                  labels: ${{ steps.meta.outputs.labels }}
+
+            - name: Generate artifact attestation
+              uses: actions/attest-build-provenance@v2
+              with:
+                  subject-name: ${{ env.REGISTRY }}/${{ env.GATEWAY_IMAGE_NAME }}
+                  subject-digest: ${{ steps.push.outputs.digest }}
+                  push-to-registry: true
