@@ -33,13 +33,14 @@ jobs:
           cd client
           echo "NEXT_PUBLIC_API_HOST=${{ secrets.NEXT_PUBLIC_API_HOST }}" > .env.production
           echo "NEXT_PUBLIC_GOOGLE_ANALYTICS_TAG=${{ secrets.NEXT_PUBLIC_GOOGLE_ANALYTICS_TAG }}" >> .env.production
-          docker build -t ghcr.io/${{ github.repository }}/client:latest .
+          docker build -t qasrelmemez/client .
       - name: login to ghcr
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
       - name: push client
         run: |
           echo "Pushing client"
+          docker tag qasrelmemez/client ghcr.io/${{ github.repository }}/client:latest
           docker push ghcr.io/${{ github.repository }}/client:latest
   build-server:
     needs: filter
