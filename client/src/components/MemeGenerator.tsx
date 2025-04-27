@@ -52,6 +52,7 @@ const defaultText = {
     bgColor: "rgba(255, 255, 255, 0)",
     color: "#ffffff",
 };
+
 export default function MemeGenerator() {
     const queryParams = useSearchParams();
     const imgURL = queryParams.get("img");
