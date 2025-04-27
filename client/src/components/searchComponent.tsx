@@ -2,7 +2,7 @@
 import Timeline from "@/components/ui/Timeline";
 import { Meme } from "@/types/Meme";
 import { ChevronLeft, ChevronRight, Search as SearchIcon } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/i18n/navigation";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { cn } from "../utils/tailwind";
 import { Button } from "./ui/button";
@@ -60,12 +60,19 @@ export default function SearchComponent({
 
     function search(query: string, tags?: string[]) {
         // go to /search?query={query}&tags={tags}
-        const url = new URL("search", window.location.origin);
-        url.searchParams.append("query", query);
-        if (tags && tags.length > 0)
-            url.searchParams.append("tags", tags?.join(","));
-        router.push(url.href);
+        type searchQuery = {
+            query: string;
+            tags?: string;
+        }
+        const queryObj: searchQuery = {
+            query: query,
+        }
+        if (tags && tags.length > 0) {
+            queryObj.tags = tags.join(",");
+        }
+        router.push({pathname: "/search", query: queryObj});
     }
+
     function onSubmit(e: FormEvent) {
         e.preventDefault();
         const form = e.target as HTMLFormElement;
@@ -140,7 +147,6 @@ export default function SearchComponent({
         searchMemes(searchQuery);
     }, [query, selectedTags]);
 
-    console.log(tagsOverflow);
 
     return (
         <section className="w-full flex-1 mt-4 gap-2 flex flex-col overflow-hidden">

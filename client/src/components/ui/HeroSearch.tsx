@@ -1,7 +1,7 @@
 import { Search } from "lucide-react";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/i18n/navigation";
 import { FormEvent } from "react";
 
 const HeroSearch = () => {
@@ -15,10 +15,7 @@ const HeroSearch = () => {
             return;
         }
         // go to /search?query={query}
-        const url = new URL("search", window.location.origin);
-        url.searchParams.append("query", query);
-
-        router.push(url.href);
+        router.push({pathname: "/search", query: { query }});
     }
     const t = useTranslations("Home");
     return (

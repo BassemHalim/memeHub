@@ -6,7 +6,7 @@ import { ClipboardCheck, Download, PencilLine, Share2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/utils/tailwind";
 import Image from "next/image";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { MouseEventHandler, useEffect, useState } from "react";
 
 type variantType = "timeline" | "page";
@@ -69,7 +69,7 @@ export default function MemeCard({
                 mode: "cors",
             });
             if (!response.ok) {
-                console.log(response.statusText);
+                // console.log(response.statusText);
                 return;
             }
             const blob = await response.blob();

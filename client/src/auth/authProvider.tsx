@@ -70,7 +70,6 @@ export default function AuthProvider({
 }) {
     const [user, setUser] = useState<User>({ role: "user" });
     useEffect(() => {
-        console.log("AuthProvider");
         if (typeof window !== "undefined") {
             const userJson = localStorage.getItem("user");
             if (!userJson) {

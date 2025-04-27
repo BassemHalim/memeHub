@@ -1,7 +1,7 @@
 "use client";
 import { Plus, Upload } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { Suspense, useState } from "react";
 
 import { sendGTMEvent } from "@next/third-parties/google";

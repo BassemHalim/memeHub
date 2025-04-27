@@ -29,7 +29,6 @@ async function fetchMemes(
     url.searchParams.append("page", pageNum.toString());
     url.searchParams.append("pageSize", "10");
     url.searchParams.append("sort", "newest");
-    console.log("fetching memes from", url.toString());
     const res = await fetch(url, {
         headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : {},
     });
