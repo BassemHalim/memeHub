@@ -1,0 +1,45 @@
+name: Build Services on Directory change
+
+on:
+  push:
+    paths:
+      - 'client/**'
+      - 'services/**'
+
+jobs:
+  filter:
+    runs-on: ubuntu-latest
+    outputs:
+      client_changed: ${{ steps.filter.outputs.client }}
+      server_changed: ${{ steps.filter.outputs.server }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            client:
+              - 'client/**'
+            server:
+              - 'services/**'
+  build-client:
+    needs: filter
+    if: needs.filter.outputs.client_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: build and push client
+        run: |
+          cd client
+          echo "NEXT_PUBLIC_API_HOST=${{ secrets.NEXT_PUBLIC_API_HOST }}" > .env.production
+          echo "NEXT_PUBLIC_GOOGLE_ANALYTICS_TAG=${{ secrets.NEXT_PUBLIC_GOOGLE_ANALYTICS_TAG }}" >> .env.production
+          docker build -t qasrelmemez/client .
+  build-server:
+    needs: filter
+    if: needs.filter.outputs.server_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: build and push server
+        run: |
+          echo "Building server"
