@@ -1,98 +1,95 @@
 name: Build Services on Directory change
 
 on:
-  push:
-    paths:
-      - 'client/**'
-      - 'services/**'
-  workflow_dispatch:
-    inputs:
-      client:
-        description: 'Build client'
-        required: true
-        default: false
-        type: boolean
-      server:
-        description: 'Build server'
-        required: true
-        default: false
-        type: boolean
-  
+    push:
+        paths:
+            - "client/**"
+            - "services/**"
+    workflow_dispatch:
+        inputs:
+            all:
+                description: "Build all services"
+                required: true
+                default: true
+                type: boolean
+
 env:
-  REGISTRY: ghcr.io
-  CLIENT_IMAGE_NAME: ${{ github.repository }}/client
-    
+    REGISTRY: ghcr.io
+    CLIENT_IMAGE_NAME: ${{ github.repository }}/client
+
 jobs:
-  filter:
-    runs-on: ubuntu-latest
-    outputs:
-      client_changed: ${{ steps.filter.outputs.client }}
-      server_changed: ${{ steps.filter.outputs.server }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v3
-        id: filter
-        with:
-          filters: |
-            client:
-              - 'client/**'
-            server:
-              - 'services/**'
-  build-client:
-    permissions:
-      contents: read
-      packages: write
-      attestations: write
-      id-token: write
-      
-    needs: filter
-    if: needs.filter.outputs.client_changed == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        
-      - name: create env.production
-        run: |
-          cd client
-          echo "NEXT_PUBLIC_API_HOST=${{ secrets.NEXT_PUBLIC_API_HOST }}" > .env.production
-          echo "NEXT_PUBLIC_GOOGLE_ANALYTICS_TAG=${{ secrets.NEXT_PUBLIC_GOOGLE_ANALYTICS_TAG }}" >> .env.production
+    filter:
+        runs-on: ubuntu-latest
+        outputs:
+            client_changed: ${{ steps.filter.outputs.client }}
+            server_changed: ${{ steps.filter.outputs.server }}
+        steps:
+            - uses: actions/checkout@v4
+            - uses: dorny/paths-filter@v3
+              id: filter
+              with:
+                  filters: |
+                      client:
+                        - 'client/**'
+                      server:
+                        - 'services/**'
+    build-client:
+        permissions:
+            contents: read
+            packages: write
+            attestations: write
+            id-token: write
 
-      - name: Log in to the Container registry
-        uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+        needs: filter
+        if: needs.filter.outputs.client_changed == 'true'
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
 
-      - name: Extract metadata (tags, labels) for Docker
-        id: meta
-        uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.CLIENT_IMAGE_NAME }}
+            - name: create env.production
+              run: |
+                  cd client
+                  echo "NEXT_PUBLIC_API_HOST=${{ secrets.NEXT_PUBLIC_API_HOST }}" > .env.production
+                  echo "NEXT_PUBLIC_GOOGLE_ANALYTICS_TAG=${{ secrets.NEXT_PUBLIC_GOOGLE_ANALYTICS_TAG }}" >> .env.production
 
-      - name: Build and push Docker image
-        id: push
-        uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
-        with:
-          context: client
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+            - name: Log in to the Container registry
+              uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
+              with:
+                  registry: ghcr.io
+                  username: ${{ github.actor }}
+                  password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Generate artifact attestation
-        uses: actions/attest-build-provenance@v2
-        with:
-          subject-name: ${{ env.REGISTRY }}/${{ env.CLIENT_IMAGE_NAME}}
-          subject-digest: ${{ steps.push.outputs.digest }}
-          push-to-registry: true
+            - name: Extract metadata (tags, labels) for Docker
+              id: meta
+              uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
+              with:
+                  images: ${{ env.REGISTRY }}/${{ env.CLIENT_IMAGE_NAME }}
+                  tags: |
+                      type=raw,value=latest
+                      type=raw,value=qasrelmemez/client
 
-  build-server:
-    needs: filter
-    if: needs.filter.outputs.server_changed == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: build and push server
-        run: |
-          echo "Building server"
+            - name: Build and push Docker image
+              id: push
+              uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
+              with:
+                  context: client
+                  push: true
+                  tags: ${{ steps.meta.outputs.tags }}
+                  labels: ${{ steps.meta.outputs.labels }}
 
+            - name: Generate artifact attestation
+              uses: actions/attest-build-provenance@v2
+              with:
+                  subject-name: ${{ env.REGISTRY }}/${{ env.CLIENT_IMAGE_NAME}}
+                  subject-digest: ${{ steps.push.outputs.digest }}
+                  push-to-registry: true
+
+    build-server:
+        needs: filter
+        if: needs.filter.outputs.server_changed == 'true'
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - name: build and push server
+              run: |
+                  echo "Building server"
