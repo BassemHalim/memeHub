@@ -96,7 +96,7 @@ func (s *Server) GetTimeline(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	// get timeline memes
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), time.Second)
 	defer cancel()
 	resp, err := s.memeClient.GetTimelineMemes(ctx, &pb.GetTimelineRequest{
 		Page:      int32(page),
@@ -179,13 +179,13 @@ func (s *Server) UploadMeme(w http.ResponseWriter, r *http.Request) {
 		}
 		req.Header.Set("Accept", "image/*")
 
-		resp, err:= s.client.Do(req)
+		resp, err := s.client.Do(req)
 		if err != nil {
 			s.handleError(w, err, "Error downloading the image from the provided URL", http.StatusBadRequest)
 			return
 		}
 		defer resp.Body.Close()
-		if _, err := imgBuf.ReadFrom(resp.Body); err != nil {
+		if _, err := imgBuf.ReadFrom(http.MaxBytesReader(w, resp.Body, s.config.MaxUploadSize)); err != nil {
 			s.log.Error("Error reading the downloaded image", "Error", err)
 			return
 		}
@@ -212,7 +212,7 @@ func (s *Server) UploadMeme(w http.ResponseWriter, r *http.Request) {
 		SocialMediaUrl: meme.MediaURL,
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), time.Second)
 	defer cancel()
 	resp, err := s.memeClient.UploadMeme(ctx, memeUpload)
 	// TODO: resize it
@@ -244,7 +244,7 @@ func (s *Server) SearchMemes(w http.ResponseWriter, r *http.Request) {
 		pageSize = 10
 	}
 	s.log.Debug("Search Query", "Query", query, "page", page, "pageSize", pageSize)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), time.Second)
 	defer cancel()
 	resp, err := s.memeClient.SearchMemes(ctx, &pb.SearchMemesRequest{
 		Query:    query[0],
@@ -292,7 +292,7 @@ func (s *Server) SearchTags(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.log.Debug("Search Tags", "Query", query, "Limit", limit)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), time.Second)
 	defer cancel()
 	resp, err := s.memeClient.SearchTags(ctx, &pb.SearchTagsRequest{
 		Query: query,
@@ -321,7 +321,7 @@ func (s *Server) DeleteMeme(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.log.Info("Delete Meme", "ID", idString)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), time.Second)
 	defer cancel()
 	_, err := s.memeClient.DeleteMeme(ctx, &pb.DeleteMemeRequest{
 		Id: idString,
@@ -352,7 +352,7 @@ func (s *Server) GetMeme(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.log.Info("Get Meme", "ID", idString)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), time.Second)
 	defer cancel()
 	resp, err := s.memeClient.GetMeme(ctx, &pb.GetMemeRequest{
 		Id: idString,
@@ -389,7 +389,7 @@ func (s *Server) UpdateTags(w http.ResponseWriter, r *http.Request) {
 		s.handleError(w, err, "The meme data is invalid or missing required fields", http.StatusBadRequest)
 		return
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), time.Second)
 	defer cancel()
 	s.log.Info("Adding tags to meme", "ID", id, "Tags", tagsRequest.Tags)
 	resp, err := s.memeClient.AddTags(ctx, &pb.AddTagsRequest{
@@ -471,7 +471,7 @@ func (s *Server) PatchMeme(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			defer resp.Body.Close()
-			if _, err := imgBuf.ReadFrom(resp.Body); err != nil {
+			if _, err := imgBuf.ReadFrom(http.MaxBytesReader(w, resp.Body, s.config.MaxUploadSize)); err != nil {
 				s.log.Error("Error reading the image", "Error", err)
 				http.Error(w, "Error reading the image", http.StatusBadRequest)
 				return
@@ -509,7 +509,7 @@ func (s *Server) PatchMeme(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), time.Second)
 	defer cancel()
 	resp, err := s.memeClient.UpdateMeme(ctx, updateRequest)
 	if err != nil {

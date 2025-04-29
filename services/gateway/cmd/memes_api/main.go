@@ -13,11 +13,10 @@ import (
 	"github.com/BassemHalim/memeDB/gateway/internal/auth"
 	"github.com/BassemHalim/memeDB/gateway/internal/config"
 	"github.com/BassemHalim/memeDB/gateway/internal/fileserver"
+	"github.com/BassemHalim/memeDB/gateway/internal/middleware"
 	"github.com/BassemHalim/memeDB/gateway/internal/server"
 
 	"github.com/patrickmn/go-cache"
-
-	"github.com/BassemHalim/memeDB/gateway/internal/middleware"
 
 	rateLimiter "github.com/BassemHalim/memeDB/rate-limiter/IP_ratelimiter"
 	"golang.org/x/time/rate"

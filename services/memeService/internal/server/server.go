@@ -53,7 +53,7 @@ func (s *Server) UploadMeme(ctx context.Context, req *pb.UploadMemeRequest) (*pb
 
 	// save the meme in the database
 	var memeID string
-	err = tx.QueryRow(`
+	err = tx.QueryRowContext(ctx, `
 		INSERT INTO meme (media_url, media_type, name, dimensions)
 		VALUES ($1, $2, $3, $4)
 		RETURNING id::text
@@ -128,7 +128,7 @@ func (s *Server) GetMeme(ctx context.Context, req *pb.GetMemeRequest) (*pb.MemeR
 	resp.Id = req.Id
 	// get meme details
 	var dimensions pq.Int32Array
-	err := s.db.QueryRow(`
+	err := s.db.QueryRowContext(ctx, `
 		SELECT media_url, media_type, name, dimensions
 		FROM meme
 		WHERE id = $1
@@ -138,7 +138,7 @@ func (s *Server) GetMeme(ctx context.Context, req *pb.GetMemeRequest) (*pb.MemeR
 	}
 	resp.Dimensions = dimensions
 	// get tags
-	rows, err := s.db.Query(`
+	rows, err := s.db.QueryContext(ctx, `
 	SELECT t.name
 	FROM tag t
 	JOIN meme_tag mt ON t.id = mt.tag_id
@@ -197,7 +197,7 @@ func (s *Server) GetTimelineMemes(ctx context.Context, req *pb.GetTimelineReques
 	}
 
 	// Execute main query
-	rows, err := s.db.Query(baseQuery, req.PageSize, offset)
+	rows, err := s.db.QueryContext(ctx, baseQuery, req.PageSize, offset)
 	if err != nil {
 		return nil, s.handleError("error querying memes", err, codes.Internal)
 	}
@@ -274,7 +274,7 @@ func (s *Server) SearchMemes(ctx context.Context, req *pb.SearchMemesRequest) (*
 
 	// Get total count of search results
 	var totalCount int32
-	err := s.db.QueryRow("SELECT COUNT(*) FROM search_memes($1)", query).Scan(&totalCount)
+	err := s.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM search_memes($1)", query).Scan(&totalCount)
 	if err != nil {
 		return nil, s.handleError("error counting memes", err, codes.Internal)
 	}
@@ -329,7 +329,7 @@ func (s *Server) DeleteMeme(ctx context.Context, req *pb.DeleteMemeRequest) (*pb
 		return &pb.DeleteMemeResponse{Success: false}, s.handleError("error deleting meme_tag", err, codes.Internal)
 	}
 
-	_, err = txn.Exec("DELETE FROM meme WHERE id = $1", req.Id)
+	_, err = txn.ExecContext(ctx, "DELETE FROM meme WHERE id = $1", req.Id)
 	if err != nil {
 		return &pb.DeleteMemeResponse{Success: false}, s.handleError("error deleting meme", err, codes.Internal)
 	}
@@ -349,7 +349,7 @@ func (s *Server) SearchTags(ctx context.Context, req *pb.SearchTagsRequest) (*pb
 
 	var tags []string
 	pattern := "%" + query + "%"
-	rows, err := s.db.Query("SELECT name FROM tag WHERE name ILIKE $1 LIMIT $2", pattern, limit)
+	rows, err := s.db.QueryContext(ctx, "SELECT name FROM tag WHERE name ILIKE $1 LIMIT $2", pattern, limit)
 	if err != nil {
 		return nil, s.handleError("error searching tags", err, codes.Internal)
 	}

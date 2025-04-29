@@ -43,7 +43,12 @@ func (s *Server) ValidateUploadURL(memeURL string) bool {
 		return false
 	}
 
-	if !utils.ValidateImageContent(memeURL, s.client) {
+	ok, err := utils.ValidateImageContent(memeURL, s.client)
+	if err != nil { // TODO: fixme
+		s.log.Error("Failed to run HEAD request but will still proceed with GET", "Error", err, "URL", memeURL) // some websites block HEAD requests
+		return true
+	}
+	if !ok {
 		s.log.Debug("Invalid file content")
 		return false
 	}
