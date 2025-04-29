@@ -55,7 +55,8 @@ func run(ctx context.Context) error {
 	// }
 	// defer MemeQueue.Close()
 
-	gateway, err := server.New(memeClient, cfg, limiter, log, &http.Client{Timeout: 1 * time.Second}, c)
+	gateway, err := server.New(memeClient, cfg, limiter, log, &http.Client{Transport: &http.Transport{ForceAttemptHTTP2: true},
+		Timeout: 1 * time.Second}, c)
 	if err != nil {
 		log.Error("failed to create server", "ERROR", err)
 		return err

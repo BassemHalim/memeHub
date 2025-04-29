@@ -3,6 +3,7 @@ package utils
 import (
 	"net/http"
 	"os"
+	"net/url"
 	"strconv"
 	"strings"
 )
@@ -18,10 +19,17 @@ func GetEnvOrDefault(key, defaultValue string) string {
 
 // validates that the provided url is a valid image with size < 2MB
 // data is validated with HEAD request so you should still re-validate the result
-func ValidateImageContent(url string, client *http.Client) (bool, error) {
+func ValidateImageContent(URL string, client *http.Client) (bool, error) {
 
 	// Check MIME type via HEAD
-	resp, err := client.Head(url)
+	req := &http.Request{
+		Method: http.MethodHead,
+		URL:    &url.URL{Path: URL},
+		Header: http.Header{
+			"Accept": []string{"image/*"},
+		},
+	}
+	resp, err := client.Do(req)
 	if err != nil || resp.StatusCode != 200 {
 		return false, err
 	}

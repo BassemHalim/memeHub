@@ -37,8 +37,16 @@ func NewMemeClient() (pb.MemeServiceClient, error) {
 	if err != nil{
 		return nil, err
 	}
-	host := os.Getenv("GRPC_HOST")
-	port := os.Getenv("GRPC_PORT")
+	host, found := os.LookupEnv("GRPC_HOST")
+	if !found {
+		return nil, fmt.Errorf("GRPC_HOST not set")
+	}
+	
+	port, found := os.LookupEnv("GRPC_PORT")
+	if !found {
+		return nil, fmt.Errorf("GRPC_PORT not set")
+	}
+
 	connString := fmt.Sprintf("%s:%s", host, port)
 	conn, err := grpc.NewClient(connString, grpc.WithTransportCredentials(creds))
 	if err != nil {
