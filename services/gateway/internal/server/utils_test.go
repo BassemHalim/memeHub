@@ -11,8 +11,38 @@ import (
 	"testing"
 
 	"github.com/BassemHalim/memeDB/gateway/internal/config"
+	// queue "github.com/BassemHalim/memeDB/queue"
 )
 
+// func NewTestServer() (*Server, error) {
+// 	remoteServer := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+// 		switch r.URL.Path {
+// 		case "/valid.jpg":
+// 			w.Header().Set("Content-Length", "1000000") // 1MB
+// 			w.Header().Set("Content-Type", "image/jpg")
+// 			w.Write([]byte("fake image data"))
+// 		case "/toobig.jpg":
+// 			w.Header().Set("Content-Length", "11000000") // 11MB
+// 			w.Header().Set("Content-Type", "image/jpg")
+// 			w.Write([]byte("fake image data"))
+// 		}
+// 	}))
+
+//		client := remoteServer.Client()
+//		whitelist := []string{strings.TrimPrefix(remoteServer.URL, "https://")}
+//		config := config.Config{
+//			WhitelistedDomains: whitelist,
+//			MaxUploadSize:      10000000, // 10MB
+//		}
+//		log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
+//		MemeQueue, err := queue.NewMemeQueue(os.Getenv("RABBIT_MQ_URL"))
+//		if err != nil {
+//			log.Error("Failed to connect to RabbitMQ", "ERROR", err)
+//			return nil, err
+//		}
+//		server, err := New(nil, &config, nil, log, client, MemCache, MemeQueue)
+//		return server, err
+//	}
 func Test_isWhitelisted(t *testing.T) {
 	whitelist := []string{"example.com"}
 	test_url, err := url.Parse("https://example.com")
@@ -63,8 +93,7 @@ func Test_isWhitelistedSubdomain(t *testing.T) {
 }
 
 func Test_validateURLFileSize(t *testing.T) {
-	// Setup test server
-	remoteServer:= httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	remoteServer := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/valid.jpg":
 			w.Header().Set("Content-Length", "1000000") // 1MB
@@ -76,21 +105,26 @@ func Test_validateURLFileSize(t *testing.T) {
 			w.Write([]byte("fake image data"))
 		}
 	}))
-	defer remoteServer.Close()
+
 	client := remoteServer.Client()
 	whitelist := []string{strings.TrimPrefix(remoteServer.URL, "https://")}
 	config := config.Config{
 		WhitelistedDomains: whitelist,
-		MaxUploadSize:        10000000, // 10MB
+		MaxUploadSize:      10000000, // 10MB
 	}
 	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
-	server, err := New(nil, &config, nil, log, client)
+	// MemeQueue, err := queue.NewMemeQueue(os.Getenv("RABBIT_MQ_URL"))
+	// if err != nil {
+	// 	log.Error("Failed to connect to RabbitMQ", "ERROR", err)
+	// 	t.Fatal(err)
+	// }
+	server, err := New(nil, &config, nil, log, client, MemCache)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Test valid file size
-	
+
 	validURL := remoteServer.URL + "/valid.jpg"
 	fmt.Println(validURL, whitelist)
 	if !server.ValidateUploadURL(validURL) {
@@ -103,5 +137,3 @@ func Test_validateURLFileSize(t *testing.T) {
 		t.Fatal("File exceeding max size should fail validation")
 	}
 }
-
-

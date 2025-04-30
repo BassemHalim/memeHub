@@ -10,16 +10,34 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+	"time"
 
 	pb "github.com/BassemHalim/memeDB/proto/memeService"
+	// queue "github.com/BassemHalim/memeDB/queue"
+	"github.com/patrickmn/go-cache"
 	"google.golang.org/grpc"
 )
 
 func GetDebugLogger() *slog.Logger {
 	return slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 }
+
+// func NewMemeQueue() (*queue.MemeQueue, error) {
+// 	MemeQueue, err := queue.NewMemeQueue(os.Getenv("RABBIT_MQ_URL"))
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return &MemeQueue, nil
+// }
+
+var MemCache *cache.Cache = cache.New(2*time.Minute, 2*time.Minute)
+
 func TestBadGetMeme(t *testing.T) {
-	server, err := New(nil, nil, nil, GetDebugLogger(), nil)
+	// MemeQ, err := NewMemeQueue()
+	// if err != nil {
+	// 	t.Fatal("Failed to create Meme Queue")
+	// }
+	server, err := New(nil, nil, nil, GetDebugLogger(), nil, MemCache)
 	if err != nil {
 		t.Fatal("Failed to create server")
 	}
@@ -57,6 +75,8 @@ type MockGRPCClient struct {
 	SearchMemesFunc       func(ctx context.Context, in *pb.SearchMemesRequest, opts ...grpc.CallOption) (*pb.MemesResponse, error)
 	SearchTagsFunc        func(ctx context.Context, in *pb.SearchTagsRequest, opts ...grpc.CallOption) (*pb.TagsResponse, error)
 	AddTagsFunc           func(ctx context.Context, in *pb.AddTagsRequest, opts ...grpc.CallOption) (*pb.AddTagsResponse, error)
+	UpdateMemeFunc        func(ctx context.Context, in *pb.UpdateMemeRequest, opts ...grpc.CallOption) (*pb.UpdateMemeResponse, error)
+
 }
 
 func (c *MockGRPCClient) GetMeme(ctx context.Context, in *pb.GetMemeRequest, opts ...grpc.CallOption) (*pb.MemeResponse, error) {
@@ -96,10 +116,16 @@ func (m *MockGRPCClient) AddTags(ctx context.Context, in *pb.AddTagsRequest, opt
 	return m.AddTagsFunc(ctx, in, opts...)
 }
 
+func (m *MockGRPCClient) UpdateMeme(ctx context.Context, in *pb.UpdateMemeRequest, opts ...grpc.CallOption) (*pb.UpdateMemeResponse, error) {
+	return m.UpdateMemeFunc(ctx, in, opts...)
+}
 func TestGetMeme(t *testing.T) {
 	client := MockGRPCClient{}
-
-	server, err := New(&client, nil, nil, GetDebugLogger(), nil)
+	// MemeQ, err := NewMemeQueue()
+	// if err != nil {
+	// 	t.Fatal("Failed to create Meme Queue")
+	// }
+	server, err := New(&client, nil, nil, GetDebugLogger(), &http.Client{}, MemCache)
 	if err != nil {
 		t.Fatal("Failed to create server")
 	}

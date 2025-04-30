@@ -186,7 +186,7 @@ func (s *Server) UploadMeme(w http.ResponseWriter, r *http.Request) {
 		}
 		defer resp.Body.Close()
 		if _, err := imgBuf.ReadFrom(http.MaxBytesReader(w, resp.Body, s.config.MaxUploadSize)); err != nil {
-			s.log.Error("Error reading the downloaded image", "Error", err)
+			s.handleError(w, err, "Error reading the downloaded image", http.StatusInternalServerError)
 			return
 		}
 	}
