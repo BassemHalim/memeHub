@@ -22,6 +22,12 @@ const nextConfig: NextConfig = {
                           port: "8080",
                           pathname: "/imgs/**",
                       },
+                      {
+                          protocol: "http" as const,
+                          hostname: "localhost",
+                          port: "3000",
+                          pathname: "/imgs/**",
+                      },
                   ]
                 : [
                       {
@@ -38,11 +44,16 @@ const nextConfig: NextConfig = {
                   ]),
         ],
     },
+
     async rewrites() {
         return [
             {
-                source: "/api/:path*",
-                destination: "http://localhost:8080/api/:path*",
+                source: "/api/:path",
+                destination: "https://qasrelmemez.com/api/:path",
+            },
+            {
+                source: "/imgs/:path",
+                destination: "https://qasrelmemez.com/imgs/:path",
             },
         ];
     },
