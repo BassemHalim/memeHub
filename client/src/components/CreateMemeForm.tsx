@@ -22,6 +22,7 @@ import {
 import { Input } from "@/components/ui/input";
 import Loader from "@/components/ui/loader";
 import MultipleSelector, { Option } from "@/components/ui/multipleSelector";
+import { MAX_FILE_SIZE } from "@/const";
 import { Meme } from "@/types/Meme";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { TriangleAlert } from "lucide-react";
@@ -32,7 +33,6 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { validateImage } from "../utils/img";
 import ImageInput from "./ui/imageInput";
-import { MAX_FILE_SIZE } from "@/const";
 
 const OPTIONS: Option[] = [
     { label: "فيلم", value: "فيلم" },
@@ -98,7 +98,12 @@ export default function CreateMeme({
             imageFile: undefined,
         },
     });
-    const searchTags = async (input: string): Promise<Option[]> => {
+    let abortController: AbortController | undefined;
+
+    const searchTags = async (
+        input: string,
+        abortSignal?: AbortSignal
+    ): Promise<Option[]> => {
         if (input.length < 3) {
             return OPTIONS;
         }
@@ -107,7 +112,8 @@ export default function CreateMeme({
             process.env.NEXT_PUBLIC_API_HOST
         );
         url.searchParams.append("query", input);
-        return fetch(url)
+
+        return fetch(url, { signal: abortSignal })
             .then(async (res) => {
                 if (!res.ok) {
                     throw new Error("Failed to fetch tags");
@@ -289,9 +295,23 @@ export default function CreateMeme({
                                             <FormLabel>{t("tags")}</FormLabel>
                                             <FormControl>
                                                 <MultipleSelector
-                                                    onSearch={async (input) =>
-                                                        searchTags(input)
-                                                    }
+                                                    delay={200}
+                                                    onSearch={async (input) => {
+                                                        if (abortController) {
+                                                            console.log(
+                                                                "canceling previous request"
+                                                            );
+                                                            abortController.abort(
+                                                                "new search query arrived"
+                                                            );
+                                                        }
+                                                        abortController =
+                                                            new AbortController();
+                                                        return searchTags(
+                                                            input,
+                                                            abortController.signal
+                                                        );
+                                                    }}
                                                     defaultOptions={OPTIONS}
                                                     creatable
                                                     placeholder={t(
