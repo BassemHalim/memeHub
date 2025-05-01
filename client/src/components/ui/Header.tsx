@@ -4,8 +4,7 @@ import Image from "next/image";
 import { Link } from "@/i18n/navigation";
 import { Suspense, useState } from "react";
 
-import { sendGTMEvent } from "@next/third-parties/google";
-
+import {sendEvent} from "@/utils/googleAnalytics";
 import CreateMeme from "@/components/CreateMemeForm";
 import { Button } from "@/components/ui/button";
 import LanguageSwitch from "@/components/ui/languageSwitch";
@@ -15,8 +14,9 @@ export default function Header() {
     const [isOpen, setIsOpen] = useState(false);
     const showModal = () => {
         setIsOpen(true);
-        sendGTMEvent({ event: "meme-upload" });
+        sendEvent("open_upload_form" )
     };
+    
     const t = useTranslations("Home");
     return (
         <>

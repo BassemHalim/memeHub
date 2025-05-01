@@ -4,10 +4,18 @@ import { Meme } from "@/types/Meme";
 import { ClipboardCheck, Download, PencilLine, Share2 } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
+import { Link } from "@/i18n/navigation";
+import { sendEvent } from "@/utils/googleAnalytics";
 import { cn } from "@/utils/tailwind";
 import Image from "next/image";
-import { Link } from "@/i18n/navigation";
 import { MouseEventHandler, useEffect, useState } from "react";
+
+function logDownloadEvent(meme: Meme) {
+    sendEvent("meme_download", { meme_id: meme.id });
+}
+function logShareEvent(meme: Meme) {
+    sendEvent("meme_share", { meme_id: meme.id });
+}
 
 type variantType = "timeline" | "page";
 export default function MemeCard({
@@ -43,7 +51,7 @@ export default function MemeCard({
     const parts = meme.media_url.split(".");
     const extension = parts[parts.length - 1];
     const tags = new Set(meme.tags.map((tag) => tag.toLowerCase()));
-    tags.add(meme.name.toLowerCase());
+    // tags.add(meme.name.toLowerCase());
     const badges = Array.from(tags);
     useEffect(() => {
         const isMobile = window.matchMedia("(max-width: 600px)").matches;
@@ -53,6 +61,7 @@ export default function MemeCard({
     const handleShare: MouseEventHandler = (e) => {
         e.stopPropagation();
         e.preventDefault();
+        logShareEvent(meme);
         const shareLink = `https://qasrelmemez.com/meme/${meme.id}`;
         navigator.clipboard.writeText(shareLink).then(() => {
             setShareLogo(ClipboardIcon);
@@ -62,11 +71,12 @@ export default function MemeCard({
         });
     };
     const handleDownload: MouseEventHandler = async (e) => {
+        // send analytics event
+        logDownloadEvent(meme);
         e.stopPropagation();
         try {
             const response = await fetch(memeURL, {
                 method: "GET",
-                mode: "cors",
             });
             if (!response.ok) {
                 // console.log(response.statusText);
@@ -127,20 +137,29 @@ export default function MemeCard({
                     >
                         {shareLogo}
                     </a>
-                    <label htmlFor="edit-meme-button" className="sr-only">
-                        edit meme
-                    </label>
-                    <a
-                        className="bg-primary border-transparent text-primary-foreground shadow flex justify-center items-center rounded-full w-9 h-9 md:w-8 md:h-8"
-                        href={`/generator?img=${encodeURIComponent(memeURL)}`}
-                    >
-                        <PencilLine size={20} />
-                    </a>
+                    {!meme.media_type.endsWith("gif") && (
+                        <>
+                            <label
+                                htmlFor="edit-meme-button"
+                                className="sr-only"
+                            >
+                                edit meme
+                            </label>
+                            <a
+                                className="bg-primary border-transparent text-primary-foreground shadow flex justify-center items-center rounded-full w-9 h-9 md:w-8 md:h-8"
+                                href={`/generator?img=${encodeURIComponent(
+                                    memeURL
+                                )}`}
+                            >
+                                <PencilLine size={20} />
+                            </a>
+                        </>
+                    )}
                 </div>
 
                 <div
                     className={cn(
-                        `bottom-0 left-0 right-0 bg-gray-800/50 text-white p-2 flex-wrap backdrop-blur-sm gap-2 ${
+                        `bottom-0 left-0 right-0 bg-gray-800/50 text-white p-2 backdrop-blur-sm flex flex-col gap-2 ${
                             variant === "page"
                                 ? "text-lg font-bold p-3"
                                 : "text-xs"
@@ -148,23 +167,36 @@ export default function MemeCard({
                         extraClasses
                     )}
                 >
-                    {badges.map((tag: string) => {
-                        return (
-                            <Link
-                                href={
-                                    "/search?" +
-                                    new URLSearchParams([["query", tag]])
-                                }
-                                key={tag}
-                                className="my-[2px] hover:text-amber-400"
-                                dir={
-                                    /[\u0600-\u06FF]/.test(tag) ? "rtl" : "ltr"
-                                }
-                            >
-                                #{tag.replaceAll(" ", "_")}
-                            </Link>
-                        );
-                    })}
+                    <Link
+                        href={
+                            "/search?" +
+                            new URLSearchParams([["query", meme.name]])
+                        }
+                        className="font-bold text-sm hover:text-amber-400"
+                    >
+                        {meme.name}
+                    </Link>
+                    <div className="flex flex-wrap gap-2 ">
+                        {badges.map((tag: string) => {
+                            return (
+                                <Link
+                                    href={
+                                        "/search?" +
+                                        new URLSearchParams([["query", tag]])
+                                    }
+                                    key={tag}
+                                    className="my-[2px] hover:text-amber-400"
+                                    dir={
+                                        /[\u0600-\u06FF]/.test(tag)
+                                            ? "rtl"
+                                            : "ltr"
+                                    }
+                                >
+                                    #{tag.replaceAll(" ", "_")}
+                                </Link>
+                            );
+                        })}
+                    </div>
                 </div>
             </div>
         </Card>
