@@ -48,12 +48,12 @@ const nextConfig: NextConfig = {
     async rewrites() {
         return [
             {
-                source: "/api/:path",
-                destination: "https://qasrelmemez.com/api/:path",
+            source: "/api/:path*",
+            destination: "https://qasrelmemez.com/api/:path*",
             },
             {
-                source: "/imgs/:path",
-                destination: "https://qasrelmemez.com/imgs/:path",
+            source: "/imgs/:path*",
+            destination: "https://qasrelmemez.com/imgs/:path*",
             },
         ];
     },
