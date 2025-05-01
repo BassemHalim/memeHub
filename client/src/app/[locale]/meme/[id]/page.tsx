@@ -23,9 +23,8 @@ export async function generateMetadata({
         tags.add(meme.name.toLowerCase());
 
         const description = `${t("description")} | ` + [...tags].join(" - ");
-
         return {
-            title: t("title"),
+            title: `${t("title")} | ${meme.name}`,
             description: description,
             openGraph: {
                 type: "article",
@@ -62,7 +61,7 @@ export default async function Page({
         const id = (await params).id;
         const url = new URL(
             `/api/meme/${id}`,
-            process.env.NEXT_PUBLIC_API_HOST || ""
+            process.env.NEXT_PUBLIC_API_HOST
         );
 
         try {
