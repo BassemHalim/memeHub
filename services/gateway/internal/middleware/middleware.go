@@ -6,7 +6,6 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/BassemHalim/memeDB/gateway/internal/utils"
@@ -53,12 +52,8 @@ func Auth(next http.Handler) http.Handler {
 
 func CORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		DevMode := os.Getenv("DEVELOPMENT")
-		if DevMode != "" {
-			w.Header().Set("Access-Control-Allow-Origin", "*")
-		} else {
-			w.Header().Set("Access-Control-Allow-Origin", "https://qasrelmemez.com")
-		}
+
+		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Vary", "Origin")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS, POST, PATCH")
 		w.Header().Set("Access-Control-Allow-Headers", "*")

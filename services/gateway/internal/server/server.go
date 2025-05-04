@@ -519,3 +519,9 @@ func (s *Server) PatchMeme(w http.ResponseWriter, r *http.Request) {
 	s.log.Debug(resp.String())
 	w.WriteHeader(http.StatusOK)
 }
+
+func (s *Server) FlushCache(w http.ResponseWriter, r *http.Request) {
+	s.log.Info("Clearing cache")
+	s.cache.Flush()
+	w.WriteHeader(http.StatusOK)
+}
