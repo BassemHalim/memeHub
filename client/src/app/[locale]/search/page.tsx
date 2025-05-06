@@ -30,12 +30,12 @@ export async function generateMetadata({ params, searchParams }: Props) {
         },
         alternates: {
             canonical:
-                "https://www.qasrelmemez.com/search?query=%D9%81%D9%8A%D9%84%D9%85",
+                "https://qasrelmemez.com/search?query=%D9%81%D9%8A%D9%84%D9%85",
             languages: {
                 "en-US":
-                    "https://www.qasrelmemez.com/en/search?query=%D9%81%D9%8A%D9%84%D9%85",
+                    "https://qasrelmemez.com/en/search?query=%D9%81%D9%8A%D9%84%D9%85",
                 "ar-EG":
-                    "https://www.qasrelmemez.com/search?query=%D9%81%D9%8A%D9%84%D9%85",
+                    "https://qasrelmemez.com/search?query=%D9%81%D9%8A%D9%84%D9%85",
             },
         },
     };

@@ -38,7 +38,7 @@ const OPTIONS: Option[] = [
     { label: "فيلم", value: "فيلم" },
     { label: "مسلسل", value: "مسلسل" },
     { label: "مسرحية", value: "مسرحية" },
-    { label: "blank", value: "blank" },
+    { label: "تمبلت", value: "تمبلت" },
 ];
 const formSchema = z
     .object({
@@ -58,7 +58,9 @@ const formSchema = z
                 : z
                       .instanceof(File)
                       .refine((file) => file.size < MAX_FILE_SIZE, {
-                          message: "Your image must be less than 2MB.",
+                          message: `Image too big, Your image must be less than ${Math.floor(
+                              MAX_FILE_SIZE / 1000000
+                          )} MB`,
                       })
                       .optional(),
     })
@@ -91,6 +93,7 @@ export default function CreateMeme({
     const t = useTranslations("uploadMeme");
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
+        mode: "onChange",
         defaultValues: {
             name: "",
             tags: [],
@@ -374,11 +377,14 @@ export default function CreateMeme({
                                             ...fieldProps
                                         },
                                     }) => (
-                                        <ImageInput
-                                            label={t("upload-image")}
-                                            {...fieldProps}
-                                            onChange={onChange}
-                                        />
+                                        <>
+                                            <ImageInput
+                                                label={t("upload-image")}
+                                                {...fieldProps}
+                                                onChange={onChange}
+                                            />
+                                            <FormMessage />
+                                        </>
                                     )}
                                 />
                             </form>
