@@ -1,14 +1,17 @@
 "use client";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import PopoverColorPicker from "@/components/ui/popovercolorpicker";
 import { Download, Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useSearchParams } from "next/navigation";
 import { MouseEvent, TouchEvent, useEffect, useRef, useState } from "react";
 import { Card } from "./ui/card";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
+
+import { CheckedState } from "@radix-ui/react-checkbox";
 import MemeTextBorder from "./ui/MemeTextBorder";
-import { useSearchParams } from "next/navigation";
 
 type TextElementType = {
     text: string;
@@ -60,6 +63,8 @@ export default function MemeGenerator() {
     const [textElements, setTextElements] = useState<TextElementType[]>([
         { ...defaultText },
     ]);
+    const [topPadding, setTopPadding] = useState<boolean>(false);
+    const [bottomPadding, setBottomPadding] = useState<boolean>(false);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const inputRef = useRef(null);
     const [selected, setSelected] = useState(-1);
@@ -154,7 +159,6 @@ export default function MemeGenerator() {
             link.click();
         }, "image/png");
     };
-
     useEffect(() => {
         function drawFrame() {
             const canvas = canvasRef.current! as HTMLCanvasElement;
@@ -166,7 +170,23 @@ export default function MemeGenerator() {
             image.onload = () => {
                 canvas.width = imageWidth;
                 canvas.height = (canvas.width * image.height) / image.width;
-                ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+                const padding = 0.2 * canvas.height;
+                if (topPadding) {
+                    canvas.height += padding;
+                }
+                if (bottomPadding) {
+                    canvas.height += padding;
+                }
+
+                ctx.fillStyle = "white";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(
+                    image,
+                    0,
+                    topPadding ? padding : 0,
+                    canvas.width,
+                    canvas.height - (topPadding ? padding : 0) - (bottomPadding ? padding : 0)
+                );
 
                 // draw each text box
                 for (let i = 0; i < textElements.length; i++) {
@@ -196,7 +216,7 @@ export default function MemeGenerator() {
         if (!imageURL) return;
         drawFrame();
         return () => {};
-    }, [imageURL, textElements, imageWidth]);
+    }, [imageURL, textElements, imageWidth, topPadding, bottomPadding]);
 
     return (
         <div className="flex flex-wrap justify-center">
@@ -214,7 +234,9 @@ export default function MemeGenerator() {
                     id="canvas"
                     ref={canvasRef}
                     className={
-                        imageURL == "" ? "w-50 h-50 md:w-[700px] md:h-[700px] bg-secondary" : ""
+                        imageURL == ""
+                            ? "w-50 h-50 md:w-[700px] md:h-[700px] bg-secondary"
+                            : ""
                     }
                 />
 
@@ -247,6 +269,30 @@ export default function MemeGenerator() {
                     ref={inputRef}
                     onChange={handleImageChange}
                 />
+                <div className="flex flex-col gap-2 p-2">
+                    <div className="flex gap-1 items-center">
+                        <Checkbox
+                            id="top-padding"
+                            checked={topPadding}
+                            onCheckedChange={(checked: CheckedState) => {
+                                setTopPadding(Boolean(checked));
+                            }}
+                        />
+                        <Label htmlFor="top-padding">{t("top-padding")}</Label>
+                    </div>
+                    <div className="flex gap-1 items-center">
+                        <Checkbox
+                            id="bottom-padding"
+                            checked={bottomPadding}
+                            onCheckedChange={(checked: CheckedState) => {
+                                setBottomPadding(Boolean(checked));
+                            }}
+                        />
+                        <Label htmlFor="bottom-padding">
+                            {t("bottom-padding")}
+                        </Label>
+                    </div>
+                </div>
                 <Button
                     variant="secondary"
                     onClick={() => {

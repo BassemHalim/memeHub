@@ -46,6 +46,8 @@
         "instructions-title": "How to Use the Meme Generator",
         "step-1": "<strong>Upload Your Image:</strong> Click the \"Choose File\" button to upload your photo or image.",
         "step-2": "<strong>Add Your Text:</strong> Use the \"Add Text Box\" option to write captions. You can move the text, resize it, or change its color to fit your style.",
-        "step-3": "<strong>Download Your Meme:</strong> Once you’re happy with the result, hit \"Download\" and save your meme instantly."
+        "step-3": "<strong>Download Your Meme:</strong> Once you’re happy with the result, hit \"Download\" and save your meme instantly.",
+        "top-padding": "top padding",
+        "bottom-padding": "bottom padding"
     }
 }

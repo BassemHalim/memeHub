@@ -24,6 +24,7 @@ import {
 import { Input } from "@/components/ui/input";
 import Loader from "@/components/ui/loader";
 import MultipleSelector, { Option } from "@/components/ui/multipleSelector";
+import { MAX_FILE_SIZE } from "@/const";
 import { Meme } from "@/types/Meme";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { TriangleAlert } from "lucide-react";
@@ -34,7 +35,6 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import ImageInput from "./ui/imageInput";
 
-const MAX_FILE_SIZE = 2 * 1024 * 1024;
 const OPTIONS: Option[] = [
     { label: "فيلم", value: "فيلم" },
     { label: "مسلسل", value: "مسلسل" },
@@ -56,7 +56,9 @@ const formSchema = z.object({
             : z
                   .instanceof(File)
                   .refine((file) => file.size < MAX_FILE_SIZE, {
-                      message: "Your image must be less than 2MB.",
+                      message: `Your image must be less than ${Math.floor(
+                          MAX_FILE_SIZE / 1000000
+                      )} MB`,
                   })
                   .optional(),
 });
@@ -81,6 +83,7 @@ export default function UpdateMeme({
     const t = useTranslations("uploadMeme");
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
+        mode: "onChange",
         defaultValues: {
             name: meme.name,
             // tags: meme.tags.map((tag) => ({
@@ -88,7 +91,7 @@ export default function UpdateMeme({
             //     value: tag,
             // })),
             tags: [],
-            imageUrl:"",
+            imageUrl: "",
             imageFile: undefined,
         },
     });
@@ -129,9 +132,12 @@ export default function UpdateMeme({
         try {
             setState({ status: "loading" });
             const tags = values.tags.map((tag) => tag.value);
-            await Memes.Patch(meme.id, { ...values, tags: tags }, auth.token() ?? "");
+            await Memes.Patch(
+                meme.id,
+                { ...values, tags: tags },
+                auth.token() ?? ""
+            );
             setState({ status: "success" });
-
         } catch (error: unknown) {
             console.log(error);
             setState({
@@ -278,11 +284,16 @@ export default function UpdateMeme({
                                             ...fieldProps
                                         },
                                     }) => (
-                                        <ImageInput
-                                            label={t("upload-image")}
-                                            {...fieldProps}
-                                            onChange={onChange}
-                                        />
+                                        <FormItem>
+                                            <ImageInput
+                                                label={t("upload-image")}
+                                                {...fieldProps}
+                                                onChange={(file) => {
+                                                    onChange(file);
+                                                }}
+                                            />
+                                            <FormMessage />
+                                        </FormItem>
                                     )}
                                 />
                             </form>

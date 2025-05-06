@@ -2,7 +2,7 @@ import { Plus } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
 import { ControllerRenderProps } from "react-hook-form";
-import { FormControl, FormItem, FormLabel, FormMessage } from "./form";
+import { FormControl, FormItem, FormLabel } from "./form";
 import { Input } from "./input";
 export default function ImageInput({
     onChange,
@@ -41,11 +41,10 @@ export default function ImageInput({
                             setImageURL(url);
                             onChange?.(file);
                         }
-                        onChange!(event.target.files && file);
+                        onChange!((event.target.files && file) || null);
                     }}
                 />
             </FormControl>
-            <FormMessage />
         </FormItem>
     );
 }
