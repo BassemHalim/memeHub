@@ -30,7 +30,7 @@ export default function MemeCard({
         <ClipboardCheck size={20} className="animate-fade-in-scale mx-auto" />
     );
     const [shareLogo, setShareLogo] = useState<JSX.Element>(ShareIcon);
-    const [showMobilCtrl, setShowMobilCtrl] = useState(false);
+    const [showMobilCtrl, setShowMobilCtrl] = useState(true);
     const [isMobile, setIsMobile] = useState(false);
     const memeURL = `${process.env.NEXT_PUBLIC_API_HOST}${meme.media_url}`;
     let extraClasses = "";
@@ -51,7 +51,6 @@ export default function MemeCard({
     const parts = meme.media_url.split(".");
     const extension = parts[parts.length - 1];
     const tags = new Set(meme.tags.map((tag) => tag.toLowerCase()));
-    // tags.add(meme.name.toLowerCase());
     const badges = Array.from(tags);
     useEffect(() => {
         const isMobile = window.matchMedia("(max-width: 600px)").matches;
