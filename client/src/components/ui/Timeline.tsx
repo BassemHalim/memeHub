@@ -6,7 +6,7 @@ import MemeCard from "@/components/ui/MemeCard";
 import { Edit, Loader2, Trash } from "lucide-react";
 import { MasonryProps, useInfiniteLoader } from "masonic";
 import dynamic from "next/dynamic";
-import { ComponentType, useCallback, useState } from "react";
+import { ComponentType, useCallback, useRef, useState } from "react";
 import { Meme } from "../../types/Meme";
 import UpdateMeme from "../UpdateMemeForm";
 import { Button } from "./button";
@@ -33,6 +33,7 @@ export default function Timeline({
 }: TimelineProps) {
     const [editMeme, setEditMeme] = useState("");
     const auth = useAuth();
+    const lastLoadedIndex = useRef(0)
     
     const MasonryItem = useCallback(
         ({ data }: { data: Meme; index: number; width: number }) => {
@@ -79,15 +80,17 @@ export default function Timeline({
         async (startIndex, stopIndex, currItems) => {
             /**
              * Load Items items[startIndex:stopIndex+1] from the server
+             * it will get called multiple times on the same start and stop index hence the lastLoadedIndex ref
              */
-            console.log(`load memes[${startIndex}:${stopIndex + 1}]`);
-            if (isLoading) {
+            
+            if (isLoading || lastLoadedIndex.current >= stopIndex) {
                 return;
             }
             if (!hasMore) {
                 console.log("No more items to load");
                 return;
             }
+            lastLoadedIndex.current = stopIndex;
             next();
         },
         {

@@ -64,7 +64,7 @@ export function useMemes(adminToken?: string) {
                 const newMemes = memesResp.memes;
                 setMemes((prev) => [...prev, ...newMemes]);
                 page.current += 1;
-                if (memesResp.page === memesResp.total_pages) {
+                if (memesResp.page >= memesResp.total_pages) {
                     setHasMore(false);
                 }
             })

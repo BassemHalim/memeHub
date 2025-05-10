@@ -1,5 +1,5 @@
 "use client";
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 type User = {
     role: string;
@@ -12,7 +12,8 @@ export function useAuth() {
     if (!context) {
         throw new Error("useAuth must be used within an AuthProvider");
     }
-    return {
+
+    return useMemo(() => ({
         context: context,
         isAdmin: context.role === "admin",
         isUser: context.role === "user",
@@ -60,7 +61,7 @@ export function useAuth() {
                 return user.token;
             }
         },
-    };
+    }), [context]);
 }
 
 export default function AuthProvider({
