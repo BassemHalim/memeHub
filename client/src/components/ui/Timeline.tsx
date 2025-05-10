@@ -6,7 +6,7 @@ import MemeCard from "@/components/ui/MemeCard";
 import { Edit, Loader2, Trash } from "lucide-react";
 import { MasonryProps, useInfiniteLoader } from "masonic";
 import dynamic from "next/dynamic";
-import { ComponentType, useState } from "react";
+import { ComponentType, useCallback, useState } from "react";
 import { Meme } from "../../types/Meme";
 import UpdateMeme from "../UpdateMemeForm";
 import { Button } from "./button";
@@ -31,84 +31,82 @@ export default function Timeline({
     next = () => {},
     admin = false,
 }: TimelineProps) {
-    const [lastStartIndex, setLastStartIndex] = useState(-1);
     const [editMeme, setEditMeme] = useState("");
     const auth = useAuth();
-    function MasonryItem({
-        data,
-    }: {
-        data: Meme;
-        index: number;
-        width: number;
-    }) {
-        return admin ? (
-            <div className="border-2 border-primary rounded-lg p-2">
-                <div className="flex justify-center gap-2 m-2">
-                    <Button
-                        className="text-red-700"
-                        onClick={() => {
-                            const response = confirm(
-                                `Delete meme with id: ${data.id}`
-                            );
-                            if (response === true) {
-                                Memes.Delete(data.id, auth.token() ?? "");
-                            }
+    
+    const MasonryItem = useCallback(
+        ({ data }: { data: Meme; index: number; width: number }) => {
+            return admin ? (
+                <div className="border-2 border-primary rounded-lg p-2">
+                    <div className="flex justify-center gap-2 m-2">
+                        <Button
+                            className="text-red-700"
+                            onClick={() => {
+                                const response = confirm(
+                                    `Delete meme with id: ${data.id}`
+                                );
+                                if (response === true) {
+                                    Memes.Delete(data.id, auth.token() ?? "");
+                                }
+                            }}
+                        >
+                            <Trash />
+                        </Button>
+                        <Button
+                            onClick={() => {
+                                setEditMeme(data.id);
+                            }}
+                        >
+                            <Edit />
+                        </Button>
+                    </div>
+                    <UpdateMeme
+                        meme={data}
+                        open={editMeme === data.id}
+                        onOpen={() => {
+                            setEditMeme("");
                         }}
-                    >
-                        <Trash />
-                    </Button>
-                    <Button
-                        onClick={() => {
-                            setEditMeme(data.id);
-                        }}
-                    >
-                        <Edit />
-                    </Button>
+                    />
+                    <MemeCard meme={data} />
                 </div>
-                <UpdateMeme
-                    meme={data}
-                    open={editMeme === data.id}
-                    onOpen={() => {
-                        setEditMeme("");
-                    }}
-                />
+            ) : (
                 <MemeCard meme={data} />
-            </div>
-        ) : (
-            MemeCard({ meme: data })
-        );
-    }
-    const loadMore = useInfiniteLoader(
-        async (startIndex) => {
-            if (lastStartIndex === startIndex || isLoading) {
+            );
+        },
+        []
+    );
+    const maybeLoadMore = useInfiniteLoader(
+        async (startIndex, stopIndex, currItems) => {
+            /**
+             * Load Items items[startIndex:stopIndex+1] from the server
+             */
+            console.log(`load memes[${startIndex}:${stopIndex + 1}]`);
+            if (isLoading) {
                 return;
             }
-            setLastStartIndex(startIndex);
             if (!hasMore) {
                 console.log("No more items to load");
                 return;
             }
             next();
         },
-
         {
             isItemLoaded: (index, items) => !!items[index],
-            minimumBatchSize: 4,
+            minimumBatchSize: 20,
             threshold: 1, // new data should be loaded when the user scrolls within 4 items of the end
-            totalItems: hasMore ? memes.length + 1 : memes.length,
         }
     );
     return (
         <section className="container mx-auto py-4 px-4 grow-2">
             <div>
                 <Masonry
-                    key={memes[0]?.name + memes[1]?.name || "empty"}
+                    // key={memes[0]?.id}
                     items={memes}
                     render={MasonryItem}
                     columnWidth={350}
                     columnGutter={10}
-                    onRender={loadMore}
-                    itemKey={(data) => data?.id}
+                    onRender={maybeLoadMore}
+                    itemKey={(data) => data?.id ?? ""}
                 />
 
                 {isLoading && (

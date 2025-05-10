@@ -27,7 +27,7 @@ async function fetchMemes(
         url = new URL("/api/admin/memes", process.env.NEXT_PUBLIC_API_HOST);
     }
     url.searchParams.append("page", pageNum.toString());
-    url.searchParams.append("pageSize", "10");
+    url.searchParams.append("pageSize", "20");
     url.searchParams.append("sort", "newest");
     const res = await fetch(url, {
         headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : {},
