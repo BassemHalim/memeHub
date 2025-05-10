@@ -77,7 +77,8 @@ export default function Timeline({
         [admin, auth, editMeme]
     );
     const maybeLoadMore = useInfiniteLoader(
-        async (startIndex, stopIndex, currItems) => {
+    
+        async (_startIndex, stopIndex, _currItems) => {
             /**
              * Load Items items[startIndex:stopIndex+1] from the server
              * it will get called multiple times on the same start and stop index hence the lastLoadedIndex ref
