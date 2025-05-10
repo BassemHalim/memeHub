@@ -2,3 +2,4 @@ docker-compose.yml
 config.json
 cert/*.pem
 cert/server-ext.cnf
+backups
