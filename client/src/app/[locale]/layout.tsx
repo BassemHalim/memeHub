@@ -1,3 +1,5 @@
+// ReactScan must be imported before react
+import { ReactScan } from "@/components/ui/reactScan";
 import Footer from "@/components/ui/Footer";
 import Header from "@/components/ui/Header";
 import { GoogleAnalytics } from "@next/third-parties/google";
@@ -58,6 +60,7 @@ export default async function RootLayout({
     const messages = await getMessages();
     return (
         <html lang={locale} dir={locale == "ar" ? "rtl" : "ltr"}>
+            <ReactScan />
             <body
                 className={cn(
                     "antialiased flex flex-col min-h-screen",
