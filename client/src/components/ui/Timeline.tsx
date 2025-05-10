@@ -73,7 +73,7 @@ export default function Timeline({
                 <MemeCard meme={data} />
             );
         },
-        []
+        [admin, auth, editMeme]
     );
     const maybeLoadMore = useInfiniteLoader(
         async (startIndex, stopIndex, currItems) => {
