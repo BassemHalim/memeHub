@@ -19,9 +19,15 @@ The backend is made of 2 services:
 TODO:
 
 -   [ ] determine if a similar meme already exists (https://github.com/qarmin/czkawka)
--   [ ] use ocr to get text from images
 -   [ ] moderation/filtering offensive content WIP
 -   [ ] compress images using ffmpeg
 -   [ ] add tests WIP
+-   [x] meme generator: option to add top or bottom padding 
+-   [x] use viper for configs
+-   [ ] integrate with grafana + prometheus
+-   
+Nice to Have:
+-   [ ] require uploading a new meme to download more than x memes per day to promote uploading content
+-   [ ] use ocr to get text from images
 -   [ ] Upvote memes
--   [ ] meme generator: option to add top or bottom padding 
+
