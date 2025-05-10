@@ -1,6 +1,6 @@
 "use client";
 
-import MemeGenerator from "@/components/MemeGenerator";
+import MemeEditor from "@/components/memeEditor";
 import { useTranslations } from "next-intl";
 
 export default function Page() {
@@ -13,7 +13,7 @@ export default function Page() {
                 </h1>
                 <p>{t("subtitle")}</p>
             </div>
-            <MemeGenerator />
+            <MemeEditor />
             <div className="p-4">
                 <h2 className="font-semibold text-2xl p-2">
                     {t("instructions-title")}
@@ -24,12 +24,16 @@ export default function Page() {
                             strong: (chunks) => <strong>{chunks}</strong>,
                         })}
                     </li>
-                    <li>  {t.rich("step-2", {
+                    <li>
+                        {t.rich("step-2", {
                             strong: (chunks) => <strong>{chunks}</strong>,
-                        })}</li>
-                    <li>  {t.rich("step-3", {
+                        })}
+                    </li>
+                    <li>
+                        {t.rich("step-3", {
                             strong: (chunks) => <strong>{chunks}</strong>,
-                        })}</li>
+                        })}
+                    </li>
                 </ol>
             </div>
         </main>

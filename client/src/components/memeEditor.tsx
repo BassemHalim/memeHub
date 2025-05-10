@@ -56,7 +56,7 @@ const defaultText = {
     color: "#ffffff",
 };
 
-export default function MemeGenerator() {
+export default function MemeEditor() {
     const queryParams = useSearchParams();
     const imgURL = queryParams.get("img");
     const [imageURL, setImageURL] = useState(imgURL ?? "");
@@ -185,7 +185,9 @@ export default function MemeGenerator() {
                     0,
                     topPadding ? padding : 0,
                     canvas.width,
-                    canvas.height - (topPadding ? padding : 0) - (bottomPadding ? padding : 0)
+                    canvas.height -
+                        (topPadding ? padding : 0) -
+                        (bottomPadding ? padding : 0)
                 );
 
                 // draw each text box
