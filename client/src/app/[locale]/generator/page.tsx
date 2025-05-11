@@ -1,6 +1,6 @@
 "use client";
 
-import MemeEditor from "@/components/memeEditor";
+import MemeEditor from "@/components/ui/memeEditor/memeEditor";
 import { useTranslations } from "next-intl";
 
 export default function Page() {

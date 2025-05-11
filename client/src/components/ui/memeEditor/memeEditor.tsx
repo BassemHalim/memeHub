@@ -1,26 +1,25 @@
 "use client";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import PopoverColorPicker from "@/components/ui/popovercolorpicker";
+import { CheckedState } from "@radix-ui/react-checkbox";
 import { Download, Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
-import { MouseEvent, TouchEvent, useEffect, useRef, useState } from "react";
-import { Card } from "./ui/card";
-import { Input } from "./ui/input";
-import { Label } from "./ui/label";
+import {
+    MouseEvent,
+    TouchEvent,
+    useCallback,
+    useEffect,
+    useRef,
+    useState,
+} from "react";
+import { Card } from "../card";
+import { Input } from "../input";
+import { Label } from "../label";
+import MemeTextBorder from "./MemeTextBorder";
+import TextElementEditor from "./textElementEditor";
+import { TextElementType } from "./types";
 
-import { CheckedState } from "@radix-ui/react-checkbox";
-import MemeTextBorder from "./ui/MemeTextBorder";
-
-type TextElementType = {
-    text: string;
-    x: number;
-    y: number;
-    fontSize: number;
-    bgColor: string;
-    color: string;
-};
 const PADDING = 10;
 
 // returns if the user is clicking on textElement
@@ -30,11 +29,14 @@ function isClicked(
     textElement: TextElementType,
     ctx: CanvasRenderingContext2D
 ) {
-    const [rx, ry, w, h] = rectPos(textElement, ctx);
+    const [rx, ry, w, h] = boundingRectanglePosition(textElement, ctx);
     return rx <= x && x <= rx + w && ry <= y && y <= ry + h;
 }
 
-function rectPos(e: TextElementType, ctx: CanvasRenderingContext2D) {
+function boundingRectanglePosition(
+    e: TextElementType,
+    ctx: CanvasRenderingContext2D
+) {
     const canvas = ctx.canvas;
     const fontSize = e.fontSize;
     ctx.font = `bold ${fontSize}px El Messiri,El Messiri Fallback`;
@@ -74,76 +76,85 @@ export default function MemeEditor() {
     if (typeof window !== "undefined") {
         imageWidth = Math.min(window.innerWidth - 20, imageWidth);
     }
-    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
+    const handleImageChange = useCallback(
+        (e: React.ChangeEvent<HTMLInputElement>) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
 
-        setImageURL(URL.createObjectURL(file));
-    };
+            setImageURL(URL.createObjectURL(file));
+        },
+        []
+    );
 
-    const handleMouseDown = (
-        e: MouseEvent<HTMLDivElement> | TouchEvent<HTMLDivElement>
-    ) => {
-        e.preventDefault();
-        const rect = e.currentTarget.getBoundingClientRect();
-        const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
-        const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
-        const x = clientX - rect.left;
-        const y = clientY - rect.top;
+    const handleMouseDown = useCallback(
+        (e: MouseEvent<HTMLDivElement> | TouchEvent<HTMLDivElement>) => {
+            e.preventDefault();
+            const rect = e.currentTarget.getBoundingClientRect();
+            const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
+            const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
+            const x = clientX - rect.left;
+            const y = clientY - rect.top;
 
-        const ctx = canvasRef.current?.getContext("2d");
-        if (!ctx) return;
-        for (let i = 0; i < textElements.length; i++) {
-            if (isClicked(x, y, textElements[i], ctx)) {
-                setSelected(i);
-                setStartPos([x, y]);
-            }
-        }
-    };
-
-    const handleMouseUp = (
-        e: MouseEvent<HTMLDivElement> | TouchEvent<HTMLDivElement>
-    ) => {
-        e.preventDefault();
-        setSelected(-1);
-    };
-
-    const handleMouseMove = (
-        e: MouseEvent<HTMLDivElement> | TouchEvent<HTMLDivElement>
-    ) => {
-        e.preventDefault();
-        if (selected < 0) return;
-        const rect = e.currentTarget.getBoundingClientRect();
-        const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
-        const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
-        const x = clientX - rect.left;
-        const y = clientY - rect.top;
-        const dx = x - startPos![0];
-        const dy = y - startPos![1];
-        const ctx = canvasRef?.current?.getContext("2d");
-        const [, , w, h] = rectPos(textElements[selected], ctx!);
-        setStartPos([x, y]);
-        setTextElements((prev) =>
-            prev.map((e, i) => {
-                if (i == selected) {
-                    let nx = e.x + dx;
-                    let ny = e.y + dy;
-                    nx = Math.max(
-                        PADDING,
-                        Math.min(nx, rect.width - w + PADDING)
-                    );
-                    ny = Math.max(
-                        PADDING,
-                        Math.min(ny, rect.height - h + PADDING)
-                    );
-                    return { ...e, x: nx, y: ny };
+            const ctx = canvasRef.current?.getContext("2d");
+            if (!ctx) return;
+            for (let i = 0; i < textElements.length; i++) {
+                if (isClicked(x, y, textElements[i], ctx)) {
+                    setSelected(i);
+                    setStartPos([x, y]);
                 }
-                return e;
-            })
-        );
-    };
+            }
+        },
+        [textElements]
+    );
 
-    const download = () => {
+    const handleMouseUp = useCallback(
+        (e: MouseEvent<HTMLDivElement> | TouchEvent<HTMLDivElement>) => {
+            e.preventDefault();
+            setSelected(-1);
+        },
+        []
+    );
+
+    const handleMouseMove = useCallback(
+        (e: MouseEvent<HTMLDivElement> | TouchEvent<HTMLDivElement>) => {
+            // e.preventDefault();
+            if (selected < 0) return;
+            const rect = e.currentTarget.getBoundingClientRect();
+            const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
+            const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
+            const x = clientX - rect.left;
+            const y = clientY - rect.top;
+            const dx = x - startPos![0];
+            const dy = y - startPos![1];
+            const ctx = canvasRef?.current?.getContext("2d");
+            const [, , w, h] = boundingRectanglePosition(
+                textElements[selected],
+                ctx!
+            );
+            setStartPos([x, y]);
+            setTextElements((prev) =>
+                prev.map((e, i) => {
+                    if (i == selected) {
+                        let nx = e.x + dx;
+                        let ny = e.y + dy;
+                        nx = Math.max(
+                            PADDING,
+                            Math.min(nx, rect.width - w + PADDING)
+                        );
+                        ny = Math.max(
+                            PADDING,
+                            Math.min(ny, rect.height - h + PADDING)
+                        );
+                        return { ...e, x: nx, y: ny };
+                    }
+                    return e;
+                })
+            );
+        },
+        [selected, startPos, textElements]
+    );
+
+    const download = useCallback(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
         canvas.toBlob((blob) => {
@@ -158,7 +169,8 @@ export default function MemeEditor() {
             link.href = URL.createObjectURL(blob);
             link.click();
         }, "image/png");
-    };
+    }, []);
+
     useEffect(() => {
         function drawFrame() {
             const canvas = canvasRef.current! as HTMLCanvasElement;
@@ -197,8 +209,27 @@ export default function MemeEditor() {
                     if (!text || text.length == 0) {
                         continue;
                     }
-
-                    const [rx, ry, w, h] = rectPos(ele, ctx);
+                    const [rx, ry, w, h] = boundingRectanglePosition(ele, ctx);
+                    if (w > 0.75 * canvas.width) {
+                        // if the text is too long, break it into multiple lines
+                        const words = text.split(" ");
+                        let line = "";
+                        let lineHeight = ele.fontSize;
+                        const lines: string[] = [];
+                        for (let j = 0; j < words.length; j++) {
+                            const testLine = line + words[j] + " ";
+                            const metrics = ctx.measureText(testLine);
+                            const testWidth = metrics.width;
+                            if (testWidth > w) {
+                                lines.push(line);
+                                line = words[j] + " ";
+                            } else {
+                                line = testLine;
+                            }
+                        }
+                        lines.push(line);
+                        console.log(lines);
+                    }
                     // Draw text background
                     ctx.fillStyle = ele.bgColor;
                     ctx.fillRect(rx, ry, w, h);
@@ -219,6 +250,20 @@ export default function MemeEditor() {
         drawFrame();
         return () => {};
     }, [imageURL, textElements, imageWidth, topPadding, bottomPadding]);
+
+    const onElementChange = useCallback((i: number) => {
+        const handler = (e: TextElementType) => {
+            setTextElements((prev) =>
+                prev.map((el, j) => {
+                    if (j == i) {
+                        return e;
+                    }
+                    return el;
+                })
+            );
+        };
+        return handler;
+    }, []);
 
     return (
         <div className="flex flex-wrap justify-center">
@@ -248,7 +293,7 @@ export default function MemeEditor() {
                     if (ctx == null) {
                         return;
                     }
-                    const [rx, ry, w, h] = rectPos(t, ctx);
+                    const [rx, ry, w, h] = boundingRectanglePosition(t, ctx);
                     return (
                         <MemeTextBorder
                             key={i}
@@ -311,83 +356,11 @@ export default function MemeEditor() {
                 </Button>
                 {textElements.map((txt, i) => {
                     return (
-                        <div key={i} className="flex gap-1">
-                            <Input
-                                className=""
-                                placeholder={t("text-placeholder")}
-                                type="text"
-                                value={txt?.text ?? ""}
-                                onChange={(e) => {
-                                    const newText = {
-                                        ...txt,
-                                        text: e.target.value,
-                                    };
-                                    setTextElements((prev) =>
-                                        prev.map((ele, j) => {
-                                            if (i == j) {
-                                                return newText;
-                                            }
-                                            return ele;
-                                        })
-                                    );
-                                }}
-                            />
-                            <Input
-                                type="range"
-                                min={0}
-                                max={60}
-                                className="w-24"
-                                value={txt.fontSize}
-                                onChange={(e) => {
-                                    const newText = {
-                                        ...txt,
-                                        fontSize: Number(e.target.value),
-                                    };
-                                    setTextElements((prev) =>
-                                        prev.map((ele, j) => {
-                                            if (i == j) {
-                                                return newText;
-                                            }
-                                            return ele;
-                                        })
-                                    );
-                                }}
-                            />
-                            <PopoverColorPicker
-                                color={txt.color}
-                                setColor={(color) => {
-                                    const newText = {
-                                        ...txt,
-                                        color: color,
-                                    };
-                                    setTextElements((prev) =>
-                                        prev.map((ele, j) => {
-                                            if (i == j) {
-                                                return newText;
-                                            }
-                                            return ele;
-                                        })
-                                    );
-                                }}
-                            />
-                            <PopoverColorPicker
-                                color={txt.bgColor}
-                                setColor={(color) => {
-                                    const newText = {
-                                        ...txt,
-                                        bgColor: color,
-                                    };
-                                    setTextElements((prev) =>
-                                        prev.map((ele, j) => {
-                                            if (i == j) {
-                                                return newText;
-                                            }
-                                            return ele;
-                                        })
-                                    );
-                                }}
-                            />
-                        </div>
+                        <TextElementEditor
+                            textElement={txt}
+                            onElementChange={onElementChange(i)}
+                            key={i}
+                        />
                     );
                 })}
                 <Button onClick={download}>

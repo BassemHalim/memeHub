@@ -1,3 +1,5 @@
+import { memo } from "react";
+
 export type MemeTextBorderProps = {
     x?: number;
     y?: number;
@@ -5,12 +7,12 @@ export type MemeTextBorderProps = {
     h?: number;
 };
 
-export default function MemeTextBorder({
+const MemeTextBorder = memo(({
     x = 0,
     y = 0,
     w = 0,
     h = 0,
-}: MemeTextBorderProps) {
+}: MemeTextBorderProps) => {
     return (
         <div
             className={`absolute hidden group-hover:block z-10 border-4 border-dashed border-amber-500`}
@@ -22,4 +24,6 @@ export default function MemeTextBorder({
             }}
         ></div>
     );
-}
+});
+
+export default MemeTextBorder;

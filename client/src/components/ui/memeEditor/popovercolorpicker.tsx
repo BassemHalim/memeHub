@@ -1,6 +1,6 @@
 import { PopoverTrigger } from "@radix-ui/react-popover";
 import { HexAlphaColorPicker } from "react-colorful";
-import { Popover, PopoverContent } from "./popover";
+import { Popover, PopoverContent } from "../popover";
 
 interface PopoverColorPickerProps {
     color: string;
