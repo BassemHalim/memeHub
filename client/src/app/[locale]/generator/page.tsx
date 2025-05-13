@@ -11,10 +11,10 @@ export default function Page() {
                 <h1 className="font-bold text-2xl sm:text-3xl md:text-4xl text-center p-4 text-wrap">
                     {t("title")}
                 </h1>
-                <p>{t("subtitle")}</p>
             </div>
             <MemeEditor />
-            <div className="p-4">
+            <div className="p-4 max-w-[90vw] flex flex-col justify-center items-center mx-auto">
+                <p>{t("subtitle")}</p>
                 <h2 className="font-semibold text-2xl p-2">
                     {t("instructions-title")}
                 </h2>

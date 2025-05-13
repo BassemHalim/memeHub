@@ -267,44 +267,6 @@ export default function MemeEditor() {
 
     return (
         <div className="flex flex-wrap justify-center">
-            <div
-                id="preview"
-                className="relative group p-0 border-0 touch-none"
-                onMouseDown={handleMouseDown}
-                onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseUp}
-                onTouchStart={handleMouseDown}
-                onTouchMove={handleMouseMove}
-                onTouchEnd={handleMouseUp}
-            >
-                <canvas
-                    id="canvas"
-                    ref={canvasRef}
-                    className={
-                        imageURL == ""
-                            ? "w-50 h-50 md:w-[700px] md:h-[700px] bg-secondary"
-                            : ""
-                    }
-                />
-
-                {textElements?.map((t: TextElementType, i) => {
-                    const canvas = canvasRef.current;
-                    const ctx = canvas?.getContext("2d");
-                    if (ctx == null) {
-                        return;
-                    }
-                    const [rx, ry, w, h] = boundingRectanglePosition(t, ctx);
-                    return (
-                        <MemeTextBorder
-                            key={i}
-                            x={rx}
-                            y={ry}
-                            w={Math.min(w, imageWidth)}
-                            h={h}
-                        />
-                    );
-                })}
-            </div>
             <Card className="flex flex-col p-4 gap-2">
                 <Label htmlFor="image" className="">
                     {t("image")}
@@ -370,6 +332,44 @@ export default function MemeEditor() {
                     {t("download")} <Download />
                 </Button>
             </Card>
+            <div
+                id="preview"
+                className="relative group p-0 border-0 touch-none"
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onTouchStart={handleMouseDown}
+                onTouchMove={handleMouseMove}
+                onTouchEnd={handleMouseUp}
+            >
+                <canvas
+                    id="canvas"
+                    ref={canvasRef}
+                    className={
+                        imageURL == ""
+                            ? "w-50 h-50 md:w-[700px] md:h-[700px] bg-secondary"
+                            : ""
+                    }
+                />
+
+                {textElements?.map((t: TextElementType, i) => {
+                    const canvas = canvasRef.current;
+                    const ctx = canvas?.getContext("2d");
+                    if (ctx == null) {
+                        return;
+                    }
+                    const [rx, ry, w, h] = boundingRectanglePosition(t, ctx);
+                    return (
+                        <MemeTextBorder
+                            key={i}
+                            x={rx}
+                            y={ry}
+                            w={Math.min(w, imageWidth)}
+                            h={h}
+                        />
+                    );
+                })}
+            </div>
         </div>
     );
 }

@@ -102,6 +102,7 @@ export default function MemeCard({
             }}
         >
             <div className="relative group">
+                <div className="absolute w-full h-full inset-0p z-10"></div>
                 <Image
                     src={memeURL}
                     alt={`ميم | رياكشن | ${meme.name}`}
@@ -112,7 +113,7 @@ export default function MemeCard({
                 />
                 <div
                     className={cn(
-                        "absolute top-1 right-2 m-2 space-x-2",
+                        "absolute top-1 right-2 m-2 space-x-2 z-10",
                         extraClasses,
                     )}
                 >
@@ -158,7 +159,7 @@ export default function MemeCard({
 
                 <div
                     className={cn(
-                        `bottom-0 left-0 right-0 bg-gray-800/50 text-white p-2 backdrop-blur-sm flex flex-col gap-2 ${
+                        `bottom-0 left-0 right-0 bg-gray-800/50 text-white p-2 backdrop-blur-sm flex flex-col gap-2 z-10 ${
                             variant === "page"
                                 ? "text-lg font-bold p-3"
                                 : "text-xs"
