@@ -48,7 +48,7 @@ const formSchema = z
                 z.object({
                     label: z.string(),
                     value: z.string(),
-                })
+                }),
             )
             .min(1, "At least one tag is required"),
         imageUrl: z.union([z.literal(""), z.string().trim().url()]),
@@ -59,7 +59,7 @@ const formSchema = z
                       .instanceof(File)
                       .refine((file) => file.size < MAX_FILE_SIZE, {
                           message: `Image too big, Your image must be less than ${Math.floor(
-                              MAX_FILE_SIZE / 1000000
+                              MAX_FILE_SIZE / 1000000,
                           )} MB`,
                       })
                       .optional(),
@@ -72,7 +72,7 @@ const formSchema = z
         {
             message: "You must provide an image url or upload an image",
             path: ["root"],
-        }
+        },
     );
 
 interface UploadStatus {
@@ -105,14 +105,14 @@ export default function CreateMeme({
 
     const searchTags = async (
         input: string,
-        abortSignal?: AbortSignal
+        abortSignal?: AbortSignal,
     ): Promise<Option[]> => {
         if (input.length < 3) {
             return OPTIONS;
         }
         const url = new URL(
             "/api/tags/search",
-            process.env.NEXT_PUBLIC_API_HOST
+            process.env.NEXT_PUBLIC_API_HOST,
         );
         url.searchParams.append("query", input);
 
@@ -181,14 +181,14 @@ export default function CreateMeme({
                     media_url: values.imageUrl,
                     mime_type: mimeType,
                     tags: tags,
-                })
+                }),
             );
             if (file) {
                 body.append("image", file);
             }
             const endpoint = new URL(
                 "/api/meme",
-                process.env.NEXT_PUBLIC_API_HOST
+                process.env.NEXT_PUBLIC_API_HOST,
             );
             fetch(endpoint, {
                 method: "POST",
@@ -280,7 +280,7 @@ export default function CreateMeme({
                                             <FormControl>
                                                 <Input
                                                     placeholder={t(
-                                                        "name-placeholder"
+                                                        "name-placeholder",
                                                     )}
                                                     {...field}
                                                 />
@@ -302,23 +302,23 @@ export default function CreateMeme({
                                                     onSearch={async (input) => {
                                                         if (abortController) {
                                                             console.log(
-                                                                "canceling previous request"
+                                                                "canceling previous request",
                                                             );
                                                             abortController.abort(
-                                                                "new search query arrived"
+                                                                "new search query arrived",
                                                             );
                                                         }
                                                         abortController =
                                                             new AbortController();
                                                         return searchTags(
                                                             input,
-                                                            abortController.signal
+                                                            abortController.signal,
                                                         );
                                                     }}
                                                     defaultOptions={OPTIONS}
                                                     creatable
                                                     placeholder={t(
-                                                        "tags-placeholder"
+                                                        "tags-placeholder",
                                                     )}
                                                     loadingIndicator={
                                                         <Loader />
@@ -347,7 +347,7 @@ export default function CreateMeme({
                                                     {...field}
                                                     type="url"
                                                     placeholder={t(
-                                                        "image-url-placeholder"
+                                                        "image-url-placeholder",
                                                     )}
                                                 />
                                             </FormControl>

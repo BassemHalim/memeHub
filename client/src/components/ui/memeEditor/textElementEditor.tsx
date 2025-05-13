@@ -15,7 +15,7 @@ export default function TextElementEditor({
 }: TextElementEditorProps) {
     const t = useTranslations("memeGenerator");
     const handleTextChange: ChangeEventHandler<HTMLInputElement> | undefined = (
-        e: ChangeEvent<HTMLInputElement>
+        e: ChangeEvent<HTMLInputElement>,
     ) => {
         const newText = {
             ...textElement,
@@ -51,7 +51,7 @@ export default function TextElementEditor({
             };
             onElementChange(newText);
         },
-        [textElement]
+        [textElement],
     );
 
     return (

@@ -64,7 +64,7 @@ export default async function RootLayout({
             <body
                 className={cn(
                     "antialiased flex flex-col min-h-screen",
-                    font.className
+                    font.className,
                 )}
             >
                 <NextIntlClientProvider messages={messages} locale={locale}>

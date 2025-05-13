@@ -13,7 +13,7 @@ import { Button } from "./button";
 
 const Masonry: ComponentType<MasonryProps<Meme>> = dynamic(
     () => import("masonic").then((mod) => mod.Masonry),
-    { ssr: false }
+    { ssr: false },
 );
 
 interface TimelineProps {
@@ -33,8 +33,8 @@ export default function Timeline({
 }: TimelineProps) {
     const [editMeme, setEditMeme] = useState("");
     const auth = useAuth();
-    const lastLoadedIndex = useRef(0)
-    
+    const lastLoadedIndex = useRef(0);
+
     const MasonryItem = useCallback(
         ({ data }: { data: Meme; index: number; width: number }) => {
             return admin ? (
@@ -44,7 +44,7 @@ export default function Timeline({
                             className="text-red-700"
                             onClick={() => {
                                 const response = confirm(
-                                    `Delete meme with id: ${data.id}`
+                                    `Delete meme with id: ${data.id}`,
                                 );
                                 if (response === true) {
                                     Memes.Delete(data.id, auth.token() ?? "");
@@ -74,16 +74,15 @@ export default function Timeline({
                 <MemeCard meme={data} />
             );
         },
-        [admin, auth, editMeme]
+        [admin, auth, editMeme],
     );
     const maybeLoadMore = useInfiniteLoader(
-    
         async (_startIndex, stopIndex, _currItems) => {
             /**
              * Load Items items[startIndex:stopIndex+1] from the server
              * it will get called multiple times on the same start and stop index hence the lastLoadedIndex ref
              */
-            
+
             if (isLoading || lastLoadedIndex.current >= stopIndex) {
                 return;
             }
@@ -98,7 +97,7 @@ export default function Timeline({
             isItemLoaded: (index, items) => !!items[index],
             minimumBatchSize: 20,
             threshold: 1, // new data should be loaded when the user scrolls within 4 items of the end
-        }
+        },
     );
     return (
         <section className="container mx-auto py-4 px-4 grow-2">

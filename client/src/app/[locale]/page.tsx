@@ -1,4 +1,4 @@
-'use client'
+"use client";
 import HeroSearch from "@/components/ui/HeroSearch";
 import Timeline from "@/components/ui/Timeline";
 import { useMemes } from "@/hooks/useMemes";

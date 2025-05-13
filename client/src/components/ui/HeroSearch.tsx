@@ -15,7 +15,7 @@ const HeroSearch = () => {
             return;
         }
         // go to /search?query={query}
-        router.push({pathname: "/search", query: { query }});
+        router.push({ pathname: "/search", query: { query } });
     }
     const t = useTranslations("Home");
     return (

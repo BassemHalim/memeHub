@@ -1,8 +1,9 @@
 "use client";
 import Timeline from "@/components/ui/Timeline";
-import { Meme } from "@/types/Meme";
-import { ChevronLeft, ChevronRight, Search as SearchIcon } from "lucide-react";
 import { useRouter } from "@/i18n/navigation";
+import { Meme } from "@/types/Meme";
+import { sendEvent } from "@/utils/googleAnalytics";
+import { ChevronLeft, ChevronRight, Search as SearchIcon } from "lucide-react";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { cn } from "../utils/tailwind";
 import { Button } from "./ui/button";
@@ -32,7 +33,7 @@ export default function SearchComponent({
                 if (selectedTags.includes(tag))
                     return { name: tag, pressed: true };
                 return { name: tag, pressed: false };
-            })
+            }),
     );
 
     const [error, setError] = useState(false);
@@ -41,7 +42,9 @@ export default function SearchComponent({
     const router = useRouter();
     const tagsRef = useRef<HTMLDivElement>(null);
     const [tagsOverflow, setTagsOverflow] = useState(true);
-
+    useEffect(() => {
+        sendEvent("memes_search", { query: query });
+    }, []);
     useEffect(() => {
         const checkOverflow = () => {
             if (tagsRef.current) {
@@ -63,14 +66,14 @@ export default function SearchComponent({
         type searchQuery = {
             query: string;
             tags?: string;
-        }
+        };
         const queryObj: searchQuery = {
             query: query,
-        }
+        };
         if (tags && tags.length > 0) {
             queryObj.tags = tags.join(",");
         }
-        router.push({pathname: "/search", query: queryObj});
+        router.push({ pathname: "/search", query: queryObj });
     }
 
     function onSubmit(e: FormEvent) {
@@ -98,7 +101,7 @@ export default function SearchComponent({
         // make fetch request to /api/memes?query
         const url = new URL(
             "/api/memes/search",
-            process.env.NEXT_PUBLIC_API_HOST
+            process.env.NEXT_PUBLIC_API_HOST,
         );
         url.searchParams.append("query", query);
         url.searchParams.append("pageSize", "100");
@@ -132,8 +135,8 @@ export default function SearchComponent({
             [...new Set(memes.map((meme) => meme.tags).flat()).values()].map(
                 (tag) => {
                     return { name: tag, pressed: selectedTags.includes(tag) };
-                }
-            )
+                },
+            ),
         );
         setTimeout(() => {
             if (tagsRef.current) {
@@ -146,7 +149,6 @@ export default function SearchComponent({
         const searchQuery = [query, ...selectedTags].join(" ");
         searchMemes(searchQuery);
     }, [query, selectedTags]);
-
 
     return (
         <section className="w-full flex-1 mt-4 gap-2 flex flex-col overflow-hidden">
@@ -184,7 +186,7 @@ export default function SearchComponent({
                 <div
                     className={cn(
                         "flex  gap-2 justify-center",
-                        tagsOverflow ? "absolute" : ""
+                        tagsOverflow ? "absolute" : "",
                     )}
                     ref={tagsRef}
                     style={{ left: 0 }}
@@ -225,12 +227,12 @@ export default function SearchComponent({
                                     const incr = screen.width / 2;
                                     const carouselWidth = parseInt(
                                         getComputedStyle(carousel).width,
-                                        10
+                                        10,
                                     );
                                     carousel.style.left = `${Math.max(
                                         parseInt(carousel.style.left, 10) -
                                             incr,
-                                        -carouselWidth + screen.width - 140
+                                        -carouselWidth + screen.width - 140,
                                     )}px`;
                                 }
                             }}
@@ -246,7 +248,7 @@ export default function SearchComponent({
                                     carousel.style.left = `${Math.min(
                                         parseInt(carousel.style.left, 10) +
                                             incr,
-                                        70
+                                        70,
                                     )}px`;
                                 }
                             }}

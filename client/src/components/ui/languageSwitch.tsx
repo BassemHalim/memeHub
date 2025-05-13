@@ -36,7 +36,7 @@ export default function LanguageSwitch() {
             startTransition(() => {
                 // Create a new URLSearchParams instance to properly handle query parameters
                 const newSearchParams = new URLSearchParams(
-                    searchParams.toString()
+                    searchParams.toString(),
                 );
 
                 router.replace(
@@ -49,11 +49,11 @@ export default function LanguageSwitch() {
                             ? { query: Object.fromEntries(newSearchParams) }
                             : {}),
                     },
-                    { locale: nextLocale }
+                    { locale: nextLocale },
                 );
             });
         },
-        [params, pathname, router, searchParams]
+        [params, pathname, router, searchParams],
     );
 
     useEffect(() => {

@@ -47,7 +47,7 @@ const formSchema = z.object({
         z.object({
             label: z.string(),
             value: z.string(),
-        })
+        }),
     ),
     imageUrl: z.union([z.literal(""), z.string().trim().url()]),
     imageFile:
@@ -57,7 +57,7 @@ const formSchema = z.object({
                   .instanceof(File)
                   .refine((file) => file.size < MAX_FILE_SIZE, {
                       message: `Your image must be less than ${Math.floor(
-                          MAX_FILE_SIZE / 1000000
+                          MAX_FILE_SIZE / 1000000,
                       )} MB`,
                   })
                   .optional(),
@@ -102,7 +102,7 @@ export default function UpdateMeme({
         }
         const url = new URL(
             "/api/tags/search",
-            process.env.NEXT_PUBLIC_API_HOST
+            process.env.NEXT_PUBLIC_API_HOST,
         );
         url.searchParams.append("query", input);
         return fetch(url)
@@ -135,7 +135,7 @@ export default function UpdateMeme({
             await Memes.Patch(
                 meme.id,
                 { ...values, tags: tags },
-                auth.token() ?? ""
+                auth.token() ?? "",
             );
             setState({ status: "success" });
         } catch (error: unknown) {
@@ -201,7 +201,7 @@ export default function UpdateMeme({
                                             <FormControl>
                                                 <Input
                                                     placeholder={t(
-                                                        "name-placeholder"
+                                                        "name-placeholder",
                                                     )}
                                                     {...field}
                                                 />
@@ -225,7 +225,7 @@ export default function UpdateMeme({
                                                     defaultOptions={OPTIONS}
                                                     creatable
                                                     placeholder={t(
-                                                        "tags-placeholder"
+                                                        "tags-placeholder",
                                                     )}
                                                     loadingIndicator={
                                                         <Loader />
@@ -254,7 +254,7 @@ export default function UpdateMeme({
                                                     {...field}
                                                     type="url"
                                                     placeholder={t(
-                                                        "image-url-placeholder"
+                                                        "image-url-placeholder",
                                                     )}
                                                 />
                                             </FormControl>

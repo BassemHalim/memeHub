@@ -15,7 +15,7 @@ const ajv = new Ajv();
  */
 async function fetchMemes(
     pageNum: number,
-    adminToken?: string
+    adminToken?: string,
 ): Promise<MemesResponse> {
     if (memeCache.has(pageNum)) {
         return memeCache.get(pageNum)!;

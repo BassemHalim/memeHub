@@ -39,13 +39,11 @@ export default function AdminLogin() {
             >
                 <Input type="text" name="username" placeholder="Username" />
                 <Input type="password" name="password" placeholder="Password" />
-                <Button type="submit" disabled={isLoading}>Login</Button>
+                <Button type="submit" disabled={isLoading}>
+                    Login
+                </Button>
             </form>
-            {error && (
-                <div className="text-red-500 text-sm mt-2">
-                    {error}
-                </div>
-            )}
+            {error && <div className="text-red-500 text-sm mt-2">{error}</div>}
         </div>
     );
 }

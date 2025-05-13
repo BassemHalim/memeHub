@@ -113,7 +113,7 @@ export default function MemeCard({
                 <div
                     className={cn(
                         "absolute top-1 right-2 m-2 space-x-2",
-                        extraClasses
+                        extraClasses,
                     )}
                 >
                     <label htmlFor="download-meme-button" className="sr-only">
@@ -147,7 +147,7 @@ export default function MemeCard({
                             <a
                                 className="bg-primary border-transparent text-primary-foreground shadow flex justify-center items-center rounded-full w-9 h-9 md:w-8 md:h-8"
                                 href={`/generator?img=${encodeURIComponent(
-                                    memeURL
+                                    memeURL,
                                 )}`}
                             >
                                 <PencilLine size={20} />
@@ -163,7 +163,7 @@ export default function MemeCard({
                                 ? "text-lg font-bold p-3"
                                 : "text-xs"
                         } `,
-                        extraClasses
+                        extraClasses,
                     )}
                 >
                     <Link

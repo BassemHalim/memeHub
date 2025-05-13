@@ -12,7 +12,7 @@ export async function generateMetadata({
     const { id, locale } = await params;
     const url = new URL(
         `/api/meme/${id}`,
-        process.env.NEXT_PUBLIC_API_HOST || ""
+        process.env.NEXT_PUBLIC_API_HOST || "",
     );
 
     const t = await getTranslations({ locale: locale, namespace: "Metadata" });
@@ -61,7 +61,7 @@ export default async function Page({
         const id = (await params).id;
         const url = new URL(
             `/api/meme/${id}`,
-            process.env.NEXT_PUBLIC_API_HOST
+            process.env.NEXT_PUBLIC_API_HOST,
         );
 
         try {

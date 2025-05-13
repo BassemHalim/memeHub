@@ -27,7 +27,7 @@ function isClicked(
     x: number,
     y: number,
     textElement: TextElementType,
-    ctx: CanvasRenderingContext2D
+    ctx: CanvasRenderingContext2D,
 ) {
     const [rx, ry, w, h] = boundingRectanglePosition(textElement, ctx);
     return rx <= x && x <= rx + w && ry <= y && y <= ry + h;
@@ -35,7 +35,7 @@ function isClicked(
 
 function boundingRectanglePosition(
     e: TextElementType,
-    ctx: CanvasRenderingContext2D
+    ctx: CanvasRenderingContext2D,
 ) {
     const canvas = ctx.canvas;
     const fontSize = e.fontSize;
@@ -83,7 +83,7 @@ export default function MemeEditor() {
 
             setImageURL(URL.createObjectURL(file));
         },
-        []
+        [],
     );
 
     const handleMouseDown = useCallback(
@@ -104,7 +104,7 @@ export default function MemeEditor() {
                 }
             }
         },
-        [textElements]
+        [textElements],
     );
 
     const handleMouseUp = useCallback(
@@ -112,7 +112,7 @@ export default function MemeEditor() {
             e.preventDefault();
             setSelected(-1);
         },
-        []
+        [],
     );
 
     const handleMouseMove = useCallback(
@@ -129,7 +129,7 @@ export default function MemeEditor() {
             const ctx = canvasRef?.current?.getContext("2d");
             const [, , w, h] = boundingRectanglePosition(
                 textElements[selected],
-                ctx!
+                ctx!,
             );
             setStartPos([x, y]);
             setTextElements((prev) =>
@@ -139,19 +139,19 @@ export default function MemeEditor() {
                         let ny = e.y + dy;
                         nx = Math.max(
                             PADDING,
-                            Math.min(nx, rect.width - w + PADDING)
+                            Math.min(nx, rect.width - w + PADDING),
                         );
                         ny = Math.max(
                             PADDING,
-                            Math.min(ny, rect.height - h + PADDING)
+                            Math.min(ny, rect.height - h + PADDING),
                         );
                         return { ...e, x: nx, y: ny };
                     }
                     return e;
-                })
+                }),
             );
         },
-        [selected, startPos, textElements]
+        [selected, startPos, textElements],
     );
 
     const download = useCallback(() => {
@@ -199,7 +199,7 @@ export default function MemeEditor() {
                     canvas.width,
                     canvas.height -
                         (topPadding ? padding : 0) -
-                        (bottomPadding ? padding : 0)
+                        (bottomPadding ? padding : 0),
                 );
 
                 // draw each text box
@@ -259,7 +259,7 @@ export default function MemeEditor() {
                         return e;
                     }
                     return el;
-                })
+                }),
             );
         };
         return handler;
@@ -321,9 +321,12 @@ export default function MemeEditor() {
                         <Checkbox
                             id="top-padding"
                             checked={topPadding}
-                            onCheckedChange={(checked: CheckedState) => {
-                                setTopPadding(Boolean(checked));
-                            }}
+                            onCheckedChange={useCallback(
+                                (checked: CheckedState) => {
+                                    setTopPadding(Boolean(checked));
+                                },
+                                [],
+                            )}
                         />
                         <Label htmlFor="top-padding">{t("top-padding")}</Label>
                     </div>
