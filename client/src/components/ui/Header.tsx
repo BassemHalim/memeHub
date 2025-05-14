@@ -20,7 +20,7 @@ export default function Header() {
     const t = useTranslations("Home");
     return (
         <>
-            <header className="font-bold text-lg text-center p-1 px-4 flex justify-between items-center sticky top-0 bg-[#060c18]/80 z-10 backdrop-blur-md border-b-2 shadow-border">
+            <header className="font-bold text-lg text-center p-1 px-4 flex justify-between items-center sticky top-0 bg-[#060c18]/80 z-40 backdrop-blur-md border-b-2 shadow-border">
                 <div className="hidden md:flex justify-start items-center flex-1 text-start gap-2">
                     <Link href="/">{t("title")}</Link>
                     {/* <iframe

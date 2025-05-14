@@ -159,7 +159,7 @@ export default function MemeCard({
 
                 <div
                     className={cn(
-                        `bottom-0 left-0 right-0 bg-gray-800/50 text-white p-2 backdrop-blur-sm flex flex-col gap-2 z-10 ${
+                        `bottom-0 left-0 right-0 bg-gray-800/50 text-white p-2 backdrop-blur-sm flex flex-col gap-2 z-20 ${
                             variant === "page"
                                 ? "text-lg font-bold p-3"
                                 : "text-xs"

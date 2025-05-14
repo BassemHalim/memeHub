@@ -80,7 +80,7 @@ export default async function Page({
     return (
         <div className="max-w-full w-[800px] self-center">
             <Suspense>
-                <MemeCard meme={meme} variant="page" />
+                <MemeCard meme={meme} />
             </Suspense>
         </div>
     );
