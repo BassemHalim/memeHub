@@ -154,7 +154,7 @@ export default function MemeEditor() {
         [selected, startPos, textElements],
     );
 
-    const download = useCallback(() => {
+    const handleDownload = () => {
         const canvas = canvasRef.current;
         if (!canvas) return;
         canvas.toBlob((blob) => {
@@ -169,7 +169,7 @@ export default function MemeEditor() {
             link.href = URL.createObjectURL(blob);
             link.click();
         }, "image/png");
-    }, []);
+    };
 
     useEffect(() => {
         function drawFrame() {
@@ -328,7 +328,7 @@ export default function MemeEditor() {
                         />
                     );
                 })}
-                <Button onClick={download}>
+                <Button onClick={handleDownload}>
                     {t("download")} <Download />
                 </Button>
             </Card>
