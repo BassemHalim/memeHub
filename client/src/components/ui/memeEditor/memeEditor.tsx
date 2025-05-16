@@ -60,8 +60,8 @@ const defaultText = {
 
 export default function MemeEditor() {
     const queryParams = useSearchParams();
-    const imgURL = queryParams.get("img");
-    const [imageURL, setImageURL] = useState(imgURL ?? "");
+    const imgParam = queryParams.get("img");
+    const [imageURL, setImageURL] = useState(imgParam ?? "");
     const [textElements, setTextElements] = useState<TextElementType[]>([
         { ...defaultText },
     ]);
@@ -268,16 +268,20 @@ export default function MemeEditor() {
     return (
         <div className="flex flex-wrap justify-center">
             <Card className="flex flex-col p-4 gap-2">
-                <Label htmlFor="image" className="">
-                    {t("image")}
-                </Label>
-                <Input
-                    type="file"
-                    accept="image/*"
-                    id="image"
-                    ref={inputRef}
-                    onChange={handleImageChange}
-                />
+                {!imgParam && (
+                    <>
+                        <Label htmlFor="image" className="">
+                            {t("image")}
+                        </Label>
+                        <Input
+                            type="file"
+                            accept="image/*"
+                            id="image"
+                            ref={inputRef}
+                            onChange={handleImageChange}
+                        />
+                    </>
+                )}
                 <div className="flex flex-col gap-2 p-2">
                     <div className="flex gap-1 items-center">
                         <Checkbox
