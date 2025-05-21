@@ -25,9 +25,9 @@ TODO:
 -   [x] meme generator: option to add top or bottom padding 
 -   [x] use viper for configs
 -   [ ] integrate with grafana + prometheus
--   
 Nice to Have:
 -   [ ] require uploading a new meme to download more than x memes per day to promote uploading content
+-   [ ] add connections between memes to suggest similar images (i.e. a template image and its memes)
 -   [ ] use ocr to get text from images
 -   [ ] Upvote memes
 

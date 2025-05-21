@@ -32,7 +32,6 @@ func NewConfig() (*Config, error) {
 	return conf, nil
 }
 
-
 func (c *Config) PrintConfig() {
 	fmt.Println("--------------------Config--------------------")
 	fmt.Printf("Whitelisted Domains: %v\n", c.WhitelistedDomains)
@@ -44,13 +43,18 @@ func (c *Config) PrintConfig() {
 	fmt.Println("---------------------------------------------")
 }
 func loadViperConfig() *Config {
-	viper.SetConfigFile("config.json")
-	viper.SetConfigType("json")
+	viper.SetConfigFile("config.yaml")
+	viper.SetConfigType("yaml")
 	err := viper.ReadInConfig()
 	if err != nil {
 		panic(fmt.Errorf("fatal error config file: %w", err))
 	}
-
+	viper.SetDefault("max_upload_size", 2000000) // 2 MB
+	viper.SetDefault("port", 8080)
+	viper.SetDefault("rate_limit", 100)
+	viper.SetDefault("burst_rate", 10)
+	viper.SetDefault("log_level", 1)
+	viper.SetDefault("whitelisted_domains", []string{"gstatic.com"})
 	cfg := Config{
 		WhitelistedDomains: viper.GetStringSlice("whitelisted_domains"),
 		MaxUploadSize:      viper.GetInt64("max_upload_size"),
