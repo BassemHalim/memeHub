@@ -441,7 +441,7 @@ func (s *Server) UpdateMeme(ctx context.Context, r *pb.UpdateMemeRequest) (*pb.U
 	}
 
 	if len(r.Image) > 0 {
-		// will keep same image path (unless mime type changes in which case the id will remain but extension will change)
+		// will always create a new filename to update cache)
 		// get meme
 		meme, err := s.GetMeme(ctx, &pb.GetMemeRequest{Id: r.Id})
 		if err != nil {
@@ -449,15 +449,10 @@ func (s *Server) UpdateMeme(ctx context.Context, r *pb.UpdateMemeRequest) (*pb.U
 		}
 		// get the image file name
 		oldFilename := filepath.Base(meme.MediaUrl)
-		newFilename := oldFilename
-		oldExtension := filepath.Ext(meme.MediaType)
 		newExtension, err := utils.MimeToExtension(r.MediaType)
+		newFilename := utils.RandomUUID() + newExtension
 		if err != nil {
 			return &pb.UpdateMemeResponse{Success: false}, s.handleError("error getting new extension, Bad MediaType", err, codes.InvalidArgument)
-		}
-
-		if oldExtension != newExtension {
-			newFilename = strings.Split(oldFilename, ".")[0] + newExtension
 		}
 
 		// update the DB
@@ -489,7 +484,6 @@ func (s *Server) UpdateMeme(ctx context.Context, r *pb.UpdateMemeRequest) (*pb.U
 		}
 	}
 	txn.Commit()
-	// TODO: should update cache but not really needed at the moment since the old image is cached on the CDN
 	return &pb.UpdateMemeResponse{
 			Success: true,
 		},
