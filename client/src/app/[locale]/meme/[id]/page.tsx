@@ -2,6 +2,7 @@ import MemeCard from "@/components/ui/MemeCard";
 import { Meme } from "@/types/Meme";
 import { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
+import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 export async function generateMetadata({
@@ -75,7 +76,7 @@ export default async function Page({
 
     const meme = await fetchMeme();
 
-    if (!meme) return null;
+    if (!meme) notFound();
 
     return (
         <div className="max-w-full w-[800px] self-center">
