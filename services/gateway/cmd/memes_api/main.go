@@ -17,6 +17,7 @@ import (
 	"github.com/BassemHalim/memeDB/gateway/internal/server"
 
 	"github.com/patrickmn/go-cache"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	rateLimiter "github.com/BassemHalim/memeDB/rate-limiter/IP_ratelimiter"
 	"golang.org/x/time/rate"
@@ -85,7 +86,7 @@ func run(ctx context.Context) error {
 	adminRouter.Handle("PATCH /meme/{id}", limiter.RateLimit(middleware.Auth(patchMemeHandler)))
 	adminRouter.Handle("GET /memes", middleware.GzipMiddleware(middleware.Auth(getTimelineHandler))) // same as /api/memes but without caching or rate limiting
 	adminRouter.Handle("DELETE /cache", middleware.Auth(flushCache))
-	
+
 	apiRouter.Handle("/admin/", http.StripPrefix("/admin", adminRouter))
 
 	fileServer, err := fileserver.New(log)
@@ -95,6 +96,7 @@ func run(ctx context.Context) error {
 	serveMedia := http.HandlerFunc(fileServer.Handler)
 	mainRouter := http.NewServeMux()
 	mainRouter.Handle("/imgs/", limiter.RateLimit(serveMedia))
+	mainRouter.Handle("/metrics", promhttp.Handler())
 	mainRouter.Handle("/api/", http.StripPrefix("/api", apiRouter))
 
 	corsRouter := middleware.CORS(mainRouter)
@@ -102,7 +104,7 @@ func run(ctx context.Context) error {
 	log.Info("Starting server", "PORT", cfg.Port)
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.Port),
-		Handler: corsRouter,
+		Handler: middleware.PrometheusMiddleware(corsRouter),
 	}
 	go func() {
 
