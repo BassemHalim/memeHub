@@ -5,6 +5,8 @@ on:
         paths:
             - "client/**"
             - "services/**"
+        branches:
+            - main
     workflow_dispatch:
         inputs:
             all:
