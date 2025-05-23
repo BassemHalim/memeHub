@@ -1,7 +1,5 @@
 # MemeHub
 
-## **This is a Work in Progress Project**
-
 A microservice-based meme sharing platform for uploading and searching for relevant memes.
 
 The choice to use a microservice architecture is for learning purposes and is not the most ideal choice.
