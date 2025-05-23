@@ -15,7 +15,6 @@ export default function NavigationDrawer() {
     };
     const isSearchPage = pathname.startsWith("/search");
     const isGeneratorPage = pathname.startsWith("/generator");
-    console.log(pathname);
     return (
         <div className="fixed bottom-0 left-0 right-0 z-50  bg-[#060c18] min-h-[10vh] rounded-t-2xl flex justify-center items-center border-t-2 border-slate-500 shadow-border md:hidden">
             <div className="flex p-2 justify-around flex-row-reverse w-full">
