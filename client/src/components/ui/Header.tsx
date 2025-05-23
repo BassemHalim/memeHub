@@ -20,7 +20,7 @@ export default function Header() {
     return (
         <>
             <header className="font-bold text-lg text-center p-1 px-4 flex justify-between items-center sticky top-0 bg-[#060c18]/80 z-40 backdrop-blur-md border-b-2 shadow-border">
-                <div className="hidden md:flex justify-start items-center flex-1 text-start gap-2">
+                <div className="flex justify-start items-center flex-1 text-start gap-2">
                     <Link href="/">{t("title")}</Link>
                     {/* <iframe
                         src="https://ghbtns.com/github-btn.html?user=BassemHalim&repo=memeDB&type=watch&count=true&v=2"
@@ -30,7 +30,7 @@ export default function Header() {
                         title="GitHub"
                     ></iframe> */}
                 </div>
-                <Link href="/">
+                <Link href="/" className="flex flex-col justify-center items-center ">
                     <Image
                         className="md:mx-auto my-auto"
                         src="/logo.png"
@@ -39,7 +39,7 @@ export default function Header() {
                         height={70}
                     />
                 </Link>
-                <div className="flex justify-end items-center gap-4 flex-1 ">
+                <div className="hidden md:flex justify-end items-center gap-4 flex-1 ">
                     {/* <LanguageSwitch /> */}
                     <Button
                         asChild

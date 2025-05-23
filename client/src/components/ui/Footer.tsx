@@ -1,6 +1,6 @@
 export default function Footer() {
     return (
-        <footer className="text-center p-5" dir="ltr">
+        <footer className="text-center p-5 hidden md:block" dir="ltr">
             <div>
                 <p className="text-lg">
                     <strong>قصر الميمز</strong>

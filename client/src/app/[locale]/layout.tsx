@@ -1,13 +1,14 @@
 // ReactScan must be imported before react
-import { ReactScan } from "@/components/ui/reactScan";
-import Footer from "@/components/ui/Footer";
 import Header from "@/components/ui/Header";
+import { ReactScan } from "@/components/ui/reactScan";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import type { Viewport } from "next";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages, getTranslations } from "next-intl/server";
 import { El_Messiri } from "next/font/google";
 
+import NavigationDrawer from "@/components/ui/bottomNavigationDrawer";
+import Footer from "@/components/ui/Footer";
 import { cn } from "@/utils/tailwind";
 import "./globals.css";
 
@@ -59,15 +60,16 @@ export default async function RootLayout({
             <body
                 className={cn(
                     "antialiased flex flex-col min-h-screen",
-                    font.className,
+                    font.className
                 )}
             >
                 <NextIntlClientProvider messages={messages} locale={locale}>
                     <Header />
-                    <main className="grow flex flex-col items-center justify-center w-full">
+                    <main className="grow flex flex-col items-center justify-center w-full pb-[10vh]">
                         {children}
                     </main>
                     <Footer />
+                    <NavigationDrawer />
                 </NextIntlClientProvider>
             </body>
             <GoogleAnalytics
