@@ -30,11 +30,6 @@ export async function generateMetadata({
         },
         alternates: {
             canonical: `https://qasrelmemez.com/generator`,
-
-            languages: {
-                "en-US": "https://qasrelmemez.com/en/generator",
-                "ar-EG": "https://qasrelmemez.com/generator",
-            },
         },
     };
 }

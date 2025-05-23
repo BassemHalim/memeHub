@@ -1,12 +1,11 @@
 "use client";
 import { Link } from "@/i18n/navigation";
-import { Plus, Upload } from "lucide-react";
+import { SquarePlus, Upload } from "lucide-react";
 import Image from "next/image";
 import { Suspense, useState } from "react";
 
 import CreateMeme from "@/components/CreateMemeForm";
 import { Button } from "@/components/ui/button";
-import LanguageSwitch from "@/components/ui/languageSwitch";
 import { sendEvent } from "@/utils/googleAnalytics";
 import { useTranslations } from "next-intl";
 
@@ -41,14 +40,14 @@ export default function Header() {
                     />
                 </Link>
                 <div className="flex justify-end items-center gap-4 flex-1 ">
-                    <LanguageSwitch />
+                    {/* <LanguageSwitch /> */}
                     <Button
                         asChild
                         className="bg-primary text-secondary  rounded-lg flex justify-center items-center gap-1"
                     >
                         <Link href={"/generator"}>
                             <p className="md:flex hidden">{t("create")}</p>
-                            <Plus />
+                            <SquarePlus size={36} />
                         </Link>
                     </Button>
                     <Button

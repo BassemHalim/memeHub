@@ -38,11 +38,6 @@ export async function generateMetadata({
         },
         alternates: {
             canonical: `https://qasrelmemez.com`,
-
-            languages: {
-                "en-US": "https://qasrelmemez.com/en",
-                "ar-EG": "https://qasrelmemez.com",
-            },
         },
     };
 }

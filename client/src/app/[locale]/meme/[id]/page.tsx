@@ -36,11 +36,6 @@ export async function generateMetadata({
             },
             alternates: {
                 canonical: `https://qasrelmemez.com/meme/${id}`,
-
-                languages: {
-                    "en-US": `https://qasrelmemez.com/en/meme/${id}`,
-                    "ar-EG": `https://qasrelmemez.com/meme/${id}`,
-                },
             },
         };
     } catch (error) {

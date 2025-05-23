@@ -31,12 +31,6 @@ export async function generateMetadata({ params, searchParams }: Props) {
         alternates: {
             canonical:
                 "https://qasrelmemez.com/search?query=%D9%81%D9%8A%D9%84%D9%85",
-            languages: {
-                "en-US":
-                    "https://qasrelmemez.com/en/search?query=%D9%81%D9%8A%D9%84%D9%85",
-                "ar-EG":
-                    "https://qasrelmemez.com/search?query=%D9%81%D9%8A%D9%84%D9%85",
-            },
         },
     };
 }
@@ -50,11 +44,15 @@ export default async function Search({
     const query = params.query;
     const tagsParam = params.tags || "";
     const tags = tagsParam.split(",");
+    const t = await getTranslations({ locale: "ar", namespace: "Home" });
     return (
         <Suspense fallback={<div>Loading...</div>}>
+            <h1 className="text-5xl font-bold text-white text-center m-2">
+                {t("title")}
+            </h1>
             <SearchComponent
                 key={[query, ...tags].join("-") || ""}
-                query={query || ""}
+                query={query}
                 selectedTags={tags}
             />
         </Suspense>
