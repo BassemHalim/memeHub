@@ -1,5 +1,6 @@
 "use client";
 import Timeline from "@/components/ui/Timeline";
+import { useMemes } from "@/hooks/useMemes";
 import { useRouter } from "@/i18n/navigation";
 import { Meme } from "@/types/Meme";
 import { sendEvent } from "@/utils/googleAnalytics";
@@ -42,7 +43,8 @@ export default function SearchComponent({
     const router = useRouter();
     const tagsRef = useRef<HTMLDivElement>(null);
     const [tagsOverflow, setTagsOverflow] = useState(true);
-    const t = useTranslations("Home");
+    const { memes: recommendedMemes } = useMemes(undefined, 10);
+    const t = useTranslations("search");
 
     useEffect(() => {
         if (!query) {
@@ -178,8 +180,7 @@ export default function SearchComponent({
             {noMatch ? (
                 <div className="h-12 flex flex-col justify-center">
                     <h2 className="text-xl font-bold text-center p-4">
-                        Sorry, we couldn&apos;t find relevant Memes for this
-                        search
+                        {t("no-matches")}
                     </h2>
                 </div>
             ) : null}
@@ -266,7 +267,18 @@ export default function SearchComponent({
                     </>
                 )}
             </div>
-            <Timeline memes={memes} isLoading={isLoading} />
+            {noMatch ? (
+                <>
+                    <p className="text-center">{t("you-might-like")}</p>
+                    <Timeline
+                        memes={recommendedMemes}
+                        isLoading={false}
+                        hasMore={false}
+                    />
+                </>
+            ) : (
+                <Timeline memes={memes} isLoading={isLoading} />
+            )}
         </section>
     );
 }

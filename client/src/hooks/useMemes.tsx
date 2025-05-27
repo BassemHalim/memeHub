@@ -15,7 +15,8 @@ const ajv = new Ajv();
  */
 async function fetchMemes(
     pageNum: number,
-    adminToken?: string,
+    pageSize: number,
+    adminToken?: string
 ): Promise<MemesResponse> {
     if (memeCache.has(pageNum)) {
         return memeCache.get(pageNum)!;
@@ -27,7 +28,7 @@ async function fetchMemes(
         url = new URL("/api/admin/memes", process.env.NEXT_PUBLIC_API_HOST);
     }
     url.searchParams.append("page", pageNum.toString());
-    url.searchParams.append("pageSize", "20");
+    url.searchParams.append("pageSize", String(pageSize));
     url.searchParams.append("sort", "newest");
     const res = await fetch(url, {
         headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : {},
@@ -47,7 +48,7 @@ async function fetchMemes(
     return data;
 }
 
-export function useMemes(adminToken?: string) {
+export function useMemes(adminToken?: string, pageSize = 20) {
     const [memes, setMemes] = useState<Meme[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [hasMore, setHasMore] = useState(true);
@@ -59,7 +60,7 @@ export function useMemes(adminToken?: string) {
         const currentPage = page.current;
         setIsLoading(true);
         setError(null);
-        fetchMemes(currentPage + 1, adminToken)
+        fetchMemes(currentPage + 1, pageSize, adminToken)
             .then((memesResp) => {
                 const newMemes = memesResp.memes;
                 setMemes((prev) => [...prev, ...newMemes]);

@@ -29,8 +29,11 @@ export async function generateMetadata({ params, searchParams }: Props) {
             ],
         },
         alternates: {
-            canonical:
-                "https://qasrelmemez.com/search?query=%D9%81%D9%8A%D9%84%D9%85",
+            canonical: `https://qasrelmemez.com/search${
+                paramsObj.query
+                    ? `?query=${encodeURIComponent(paramsObj.query as string)}`
+                    : ""
+            }`,
         },
     };
 }

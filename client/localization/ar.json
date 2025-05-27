@@ -14,6 +14,11 @@
         "upload": "upload",
         "create": "create"
     },
+    "search": {
+        "meme-search": "ابحث عن ميمز...",
+        "no-matches":"لم يتم العثور على أي ميمز تطابق بحثك لو لقيت الميم ممكن ترفعه من خلال زرار upload",
+        "you-might-like": "ممكن تعجبك الميمز دي"
+    },
     "uploadMeme": {
         "title": "ارفع ميم",
         "description": "ارفع الميم المفضل عندك",
