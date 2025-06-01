@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"os"
 	"strconv"
@@ -13,8 +14,9 @@ import (
 
 var API_URL string 
 var CHAT_ID int64  
-
+var log *slog.Logger
 func init() {
+	log = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug})).With("Service", "NOTIFICATION_SERVICE")
 	host_url, found:= os.LookupEnv("NOTIFICATION_SERVICE_HOST")
 	if !found {
 		fmt.Println("NOTIFICATION_SERVICE_HOST environment variable not set")
@@ -32,6 +34,7 @@ func init() {
 		return
 	}
 	CHAT_ID = int_chat_id
+
 }
 type Meme struct {
 	Id       string
@@ -48,8 +51,8 @@ type sendPhotoPayload struct {
 }
 
 func NewMeme(meme Meme) error {
+	log.Info("New Meme Notification", "MemeID", meme.Id, "Name", meme.Name, "Tags", meme.Tags, "MediaUrl", meme.MediaUrl)
 	method := "POST"
-
 	payload := sendPhotoPayload{
 		ChatID: CHAT_ID,
 		Photo:  meme.MediaUrl,
