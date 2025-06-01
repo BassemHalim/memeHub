@@ -89,6 +89,7 @@ func (s *Server) UploadMeme(ctx context.Context, req *pb.UploadMemeRequest) (*pb
 		MediaUrl:  mediaURL,
 		MediaType: req.MediaType,
 		Tags:      req.Tags,
+		Name:       req.Name,
 	}, nil
 }
 
