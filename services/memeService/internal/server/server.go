@@ -14,6 +14,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/BassemHalim/memeDB/memeService/internal/utils"
+	"github.com/BassemHalim/memeDB/notifications"
 	pb "github.com/BassemHalim/memeDB/proto/memeService"
 	"github.com/lib/pq"
 )
@@ -82,7 +83,12 @@ func (s *Server) UploadMeme(ctx context.Context, req *pb.UploadMemeRequest) (*pb
 	if err = tx.Commit(); err != nil {
 		return nil, s.handleError("Error committing the transaction", err, codes.Internal)
 	}
-
+	notifications.NewMeme(notifications.Meme{
+		Id:       memeID,
+		MediaUrl: mediaURL,
+		Name:     req.Name,
+		Tags:     req.Tags,
+	})
 	// return the meme
 	return &pb.MemeResponse{
 		Id:        memeID,
