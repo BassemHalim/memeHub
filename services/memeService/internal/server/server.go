@@ -83,12 +83,15 @@ func (s *Server) UploadMeme(ctx context.Context, req *pb.UploadMemeRequest) (*pb
 	if err = tx.Commit(); err != nil {
 		return nil, s.handleError("Error committing the transaction", err, codes.Internal)
 	}
-	notifications.NewMeme(notifications.Meme{
+	err = notifications.NewMeme(notifications.Meme{
 		Id:       memeID,
-		MediaUrl: mediaURL,
+		MediaUrl: fmt.Sprintf("https://qasrelmemez.com%s", mediaURL),
 		Name:     req.Name,
 		Tags:     req.Tags,
 	})
+	if err != nil {
+		s.log.Error("Error sending notification", "Error", err)
+	}
 	// return the meme
 	return &pb.MemeResponse{
 		Id:        memeID,

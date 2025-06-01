@@ -17,7 +17,7 @@ var CHAT_ID int64
 func init() {
 	host_url, found:= os.LookupEnv("NOTIFICATION_SERVICE_HOST")
 	if !found {
-		fmt.Println("NOTIFICATION_SERVICE_HOST_URL environment variable not set")
+		fmt.Println("NOTIFICATION_SERVICE_HOST environment variable not set")
 		return
 	}
 	API_URL = host_url
@@ -47,7 +47,7 @@ type sendPhotoPayload struct {
 	ParseMode string `json:"parse_mode"`
 }
 
-func NewMeme(meme Meme) {
+func NewMeme(meme Meme) error {
 	method := "POST"
 
 	payload := sendPhotoPayload{
@@ -59,28 +59,25 @@ func NewMeme(meme Meme) {
 	}
 	payloadBytes, err := json.Marshal(payload)
 	if err != nil {
-		fmt.Println(err)
-		return
+		return err
 	}
 
 	client := &http.Client{}
 	req, err := http.NewRequest(method, API_URL, bytes.NewReader(payloadBytes))
 
 	if err != nil {
-		fmt.Println(err)
-		return
+		return err
 	}
 	req.Header.Add("Content-Type", "application/json")
 
 	res, err := client.Do(req)
 	if err != nil {
-		fmt.Println(err)
-		return
+		return err
 	}
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(res.Body)
-		fmt.Printf("Error: %s, Status Code: %d\n", body, res.StatusCode)
-		return
+		return fmt.Errorf("Error: %s, Status Code: %d\n", body, res.StatusCode)
 	}
+	return nil
 }
