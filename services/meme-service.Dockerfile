@@ -4,6 +4,7 @@ WORKDIR /app
 
 COPY memeService/ memeService
 COPY proto/ proto/
+COPY notifications/ notifications
 COPY go.mod .
 COPY go.sum .
 
