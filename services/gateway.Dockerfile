@@ -6,6 +6,7 @@ WORKDIR /app
 COPY gateway/ gateway/
 COPY proto/ proto/
 COPY rate-limiter/ rate-limiter/
+COPY notifications/ notifications
 COPY go.mod .
 COPY go.sum .
 

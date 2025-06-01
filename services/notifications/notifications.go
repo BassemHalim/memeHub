@@ -80,7 +80,7 @@ func NewMeme(meme Meme) error {
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(res.Body)
-		return fmt.Errorf("Error: %s, Status Code: %d\n", body, res.StatusCode)
+		return fmt.Errorf("error: %s, Status Code: %d", body, res.StatusCode)
 	}
 	return nil
 }

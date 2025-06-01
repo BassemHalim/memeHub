@@ -23,6 +23,7 @@ import (
 
 	"github.com/BassemHalim/memeDB/gateway/internal/config"
 	"github.com/BassemHalim/memeDB/gateway/internal/meme"
+	"github.com/BassemHalim/memeDB/notifications"
 
 	pb "github.com/BassemHalim/memeDB/proto/memeService"
 	rateLimiter "github.com/BassemHalim/memeDB/rate-limiter/IP_ratelimiter"
@@ -220,6 +221,20 @@ func (s *Server) UploadMeme(w http.ResponseWriter, r *http.Request) {
 		s.handleError(w, err, "Error uploading the meme", http.StatusInternalServerError)
 		return
 	}
+	defer func() {
+		time.Sleep(2 * time.Second) 
+		meme := notifications.Meme{
+			Id:       resp.Id,
+			MediaUrl: fmt.Sprintf("https://qasrelmemez.com%s", resp.MediaUrl),
+			Name:     resp.Name,
+			Tags:     resp.Tags,
+		}
+
+		err = notifications.NewMeme(meme)
+		if err != nil {
+			s.log.Error("Error sending notification", "Error", err)
+		}
+	}()
 	// return the meme ID
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)

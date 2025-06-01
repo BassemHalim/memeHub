@@ -5,7 +5,7 @@ db-up:
 db-down:
 	sudo docker compose down
 server-up:
-	go run memeService/cmd/memeservice/server.go || true
+	export $$(cat 'memeService/.env' | xargs) && go run memeService/cmd/memeservice/server.go 
 gateway:
 	export $$(cat 'gateway/.env' | xargs) && go run gateway/cmd/memes_api/main.go
 moderator:
