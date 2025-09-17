@@ -1,8 +1,9 @@
+import MemeCard from "@/components/ui/MemeCard";
 import { Meme } from "@/types/Meme";
-import { memePagePath } from "@/utils/memeUrl";
 import { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
-import { notFound, permanentRedirect, RedirectType } from "next/navigation";
+import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
 export async function generateMetadata({
     params,
@@ -12,7 +13,7 @@ export async function generateMetadata({
     const { id, locale } = await params;
     const url = new URL(
         `/api/meme/${id}`,
-        process.env.NEXT_PUBLIC_API_HOST || ""
+        process.env.NEXT_PUBLIC_API_HOST || "",
     );
 
     const t = await getTranslations({ locale: locale, namespace: "Metadata" });
@@ -56,7 +57,7 @@ export default async function Page({
         const id = (await params).id;
         const url = new URL(
             `/api/meme/${id}`,
-            process.env.NEXT_PUBLIC_API_HOST
+            process.env.NEXT_PUBLIC_API_HOST,
         );
 
         try {
@@ -69,7 +70,14 @@ export default async function Page({
     };
 
     const meme = await fetchMeme();
+
     if (!meme) notFound();
-    const dest = memePagePath(meme);
-    permanentRedirect(dest, RedirectType.replace);
+
+    return (
+        <div className="max-w-full w-[800px] self-center">
+            <Suspense>
+                <MemeCard meme={meme} />
+            </Suspense>
+        </div>
+    );
 }

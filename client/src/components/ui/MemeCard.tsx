@@ -9,6 +9,7 @@ import { sendEvent } from "@/utils/googleAnalytics";
 import { cn } from "@/utils/tailwind";
 import Image from "next/image";
 import { MouseEventHandler, useEffect, useState } from "react";
+import { memePagePath } from "@/utils/memeUrl";
 
 function logDownloadEvent(meme: Meme) {
     sendEvent("meme_download", { meme_id: meme.id });
@@ -61,7 +62,7 @@ export default function MemeCard({
         e.stopPropagation();
         e.preventDefault();
         logShareEvent(meme);
-        const shareLink = `https://qasrelmemez.com/meme/${meme.id}`;
+        const shareLink = `https://qasrelmemez.com` +memePagePath(meme)
         navigator.clipboard.writeText(shareLink).then(() => {
             setShareLogo(ClipboardIcon);
             setTimeout(() => {
@@ -131,7 +132,7 @@ export default function MemeCard({
                         share meme
                     </label>
                     <a
-                        href={`https://qasrelmemez.com/meme/${meme.id}`}
+                        href={`https://qasrelmemez.com` + memePagePath(meme)}
                         onClick={handleShare}
                         className="flex justify-center items-center bg-primary border-transparent text-primary-foreground shadow rounded-full w-9 h-9 md:w-8 md:h-8"
                     >
