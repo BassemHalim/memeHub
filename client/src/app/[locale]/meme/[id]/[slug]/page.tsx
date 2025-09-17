@@ -1,5 +1,6 @@
 import MemeCard from "@/components/ui/MemeCard";
 import { Meme } from "@/types/Meme";
+import { memePagePath } from "@/utils/memeUrl";
 import { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
@@ -29,13 +30,13 @@ export async function generateMetadata({
             description: description,
             openGraph: {
                 type: "article",
-                url: `https://qasrelmemez.com/meme/${id}`,
-                title: t("title"),
+                url: `https://qasrelmemez.com${memePagePath(meme)}`,
+                title: `${t("title")} | ${meme.name}`,
                 description: description,
                 images: ["https://qasrelmemez.com" + meme.media_url],
             },
             alternates: {
-                canonical: `https://qasrelmemez.com/meme/${id}`,
+                canonical: `https://qasrelmemez.com${memePagePath(meme)}`,
             },
         };
     } catch (error) {
