@@ -54,5 +54,8 @@
         "step-3": "<strong>نزّل الميم:</strong> لما تكون راضي عن النتيجة، دوس \"download\" واحفظ الميم .",
         "top-padding": "مسافة فوق",
         "bottom-padding": "مسافة تحت"
+    },
+    "MemePage":{
+        "recommendations": "ممكن يعجبك كمان"
     }
 }

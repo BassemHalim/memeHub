@@ -49,5 +49,8 @@
         "step-3": "<strong>Download Your Meme:</strong> Once you’re happy with the result, hit \"Download\" and save your meme instantly.",
         "top-padding": "top padding",
         "bottom-padding": "bottom padding"
+    },
+    "MemePage": {
+        "recommendations": "You might also like"
     }
 }

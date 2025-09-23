@@ -1,4 +1,6 @@
 import MemeCard from "@/components/ui/MemeCard";
+import Recommendations from "@/components/ui/Recommendations";
+import { fetchMemes } from "@/functions/fetchMemes";
 import { Meme } from "@/types/Meme";
 import { memePagePath } from "@/utils/memeUrl";
 import { Metadata } from "next";
@@ -14,7 +16,7 @@ export async function generateMetadata({
     const { id, locale } = await params;
     const url = new URL(
         `/api/meme/${id}`,
-        process.env.NEXT_PUBLIC_API_HOST || "",
+        process.env.NEXT_PUBLIC_API_HOST || ""
     );
 
     const t = await getTranslations({ locale: locale, namespace: "Metadata" });
@@ -51,14 +53,14 @@ export async function generateMetadata({
 export default async function Page({
     params,
 }: {
-    params: Promise<{ id: string }>;
+    params: Promise<{ id: string; locale: string }>;
 }) {
     const fetchMeme = async (): Promise<Meme> => {
         let data = null;
         const id = (await params).id;
         const url = new URL(
             `/api/meme/${id}`,
-            process.env.NEXT_PUBLIC_API_HOST,
+            process.env.NEXT_PUBLIC_API_HOST
         );
 
         try {
@@ -71,13 +73,22 @@ export default async function Page({
     };
 
     const meme = await fetchMeme();
-
+    // TODO: add a recommendations endpoint and use it here
+    // we don't currently have a recommendation system so just fetch some memes from the first 10 pages
+    const recommendationsResponse = await fetchMemes(
+        Math.floor(Math.random() * 10) + 1,
+        4
+    );
+    const recommendations = recommendationsResponse.memes;
+    const locale = (await params).locale;
     if (!meme) notFound();
-
     return (
-        <div className="max-w-full w-[800px] self-center">
+        <div className="max-w-full w-[800px] flex flex-col grow p-4">
             <Suspense>
-                <MemeCard meme={meme} />
+                <div className="flex flex-col gap-4 justify-start">
+                    <MemeCard meme={meme} />
+                    <Recommendations memes={recommendations} locale={locale} />
+                </div>
             </Suspense>
         </div>
     );

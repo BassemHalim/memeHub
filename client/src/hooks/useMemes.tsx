@@ -21,7 +21,7 @@ async function fetchMemes(
     if (memeCache.has(pageNum)) {
         return memeCache.get(pageNum)!;
     }
-    console.log("loading page", pageNum);
+    // console.log("loading page", pageNum);
 
     let url = new URL("/api/memes", process.env.NEXT_PUBLIC_API_HOST);
     if (adminToken) {
