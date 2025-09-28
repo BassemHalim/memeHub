@@ -6,6 +6,8 @@ const isDevelopment = process.env.NODE_ENV === "development";
 const nextConfig: NextConfig = {
     output: "standalone",
     poweredByHeader: false,
+    // temporally disable streaming metadata until it is fully studied, google currently can't see the canonical link in body
+    htmlLimitedBots: /.*/,
     images: {
         minimumCacheTTL: 60 * 60 * 24,
         remotePatterns: [
