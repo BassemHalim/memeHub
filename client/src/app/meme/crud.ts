@@ -28,7 +28,7 @@ export async function Patch(
         imageUrl?: string;
         imageFile?: File;
     },
-    token: string,
+    token: string
 ) {
     // Call API to upload meme
     let file: File | undefined, mimeType;
@@ -56,17 +56,13 @@ export async function Patch(
             media_url: meme.imageUrl,
             mime_type: mimeType,
             tags: meme.tags,
-        }),
+        })
     );
     if (file) {
         body.append("image", file);
     }
-    const endpoint = new URL(
-        `/api/admin/meme/${id}`,
-        process.env.NEXT_PUBLIC_API_HOST,
-    );
 
-    return fetch(endpoint, {
+    return fetch(`/api/admin/meme/${id}`, {
         method: "PATCH",
         headers: {
             Authorization: "Bearer " + token,

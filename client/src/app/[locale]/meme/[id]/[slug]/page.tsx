@@ -1,5 +1,6 @@
 import MemeCard from "@/components/ui/MemeCard";
 import Recommendations from "@/components/ui/Recommendations";
+import fetchMeme from "@/functions/fetchMeme";
 import { fetchMemes } from "@/functions/fetchMemes";
 import { Meme } from "@/types/Meme";
 import { memePagePath } from "@/utils/memeUrl";
@@ -55,24 +56,9 @@ export default async function Page({
 }: {
     params: Promise<{ id: string; locale: string }>;
 }) {
-    const fetchMeme = async (): Promise<Meme> => {
-        let data = null;
-        const id = (await params).id;
-        const url = new URL(
-            `/api/meme/${id}`,
-            process.env.NEXT_PUBLIC_API_HOST
-        );
+    const { id } = await params;
 
-        try {
-            const response = await fetch(url);
-            data = await response.json();
-        } catch (error) {
-            console.log(error);
-        }
-        return data as Meme;
-    };
-
-    const meme = await fetchMeme();
+    const meme = await fetchMeme(id);
     // TODO: add a recommendations endpoint and use it here
     // we don't currently have a recommendation system so just fetch some memes from the first 10 pages
     const recommendationsResponse = await fetchMemes(

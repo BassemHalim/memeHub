@@ -1,3 +1,4 @@
+import fetchMeme from "@/functions/fetchMeme";
 import { Meme } from "@/types/Meme";
 import { memePagePath } from "@/utils/memeUrl";
 import { Metadata } from "next";
@@ -51,24 +52,8 @@ export default async function Page({
 }: {
     params: Promise<{ id: string }>;
 }) {
-    const fetchMeme = async (): Promise<Meme> => {
-        let data = null;
-        const id = (await params).id;
-        const url = new URL(
-            `/api/meme/${id}`,
-            process.env.NEXT_PUBLIC_API_HOST
-        );
-
-        try {
-            const response = await fetch(url);
-            data = await response.json();
-        } catch (error) {
-            console.log(error);
-        }
-        return data as Meme;
-    };
-
-    const meme = await fetchMeme();
+    const { id } = await params;
+    const meme = await fetchMeme(id);
     if (!meme) notFound();
     const dest = memePagePath(meme);
     permanentRedirect(dest, RedirectType.replace);
