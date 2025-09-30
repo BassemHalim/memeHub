@@ -14,18 +14,23 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/BassemHalim/memeDB/memeService/internal/utils"
+	"github.com/BassemHalim/memeDB/memeService/storage"
 	pb "github.com/BassemHalim/memeDB/proto/memeService"
 	"github.com/lib/pq"
 )
 
 type Server struct {
 	pb.UnimplementedMemeServiceServer
-	db  *sql.DB
-	log *slog.Logger
+	db      *sql.DB
+	log     *slog.Logger
+	storage storage.Storage
 }
 
-func New(db *sql.DB, logger *slog.Logger) *Server {
-	return &Server{db: db, log: logger}
+func New(db *sql.DB, logger *slog.Logger, storage storage.Storage) *Server {
+	return &Server{
+		db:      db,
+		log:     logger,
+		storage: storage}
 }
 
 func (s *Server) handleError(msg string, err error, code codes.Code) error {
@@ -75,7 +80,7 @@ func (s *Server) UploadMeme(ctx context.Context, req *pb.UploadMemeRequest) (*pb
 		}
 	}
 	// save image
-	if err := utils.SaveImage(utils.UploadDir(), filename, req.Image); err != nil {
+	if err := s.storage.SaveImage(filename, req.Image); err != nil {
 		return nil, s.handleError("Error saving the image", err, codes.Internal)
 	}
 
@@ -89,7 +94,7 @@ func (s *Server) UploadMeme(ctx context.Context, req *pb.UploadMemeRequest) (*pb
 		MediaUrl:  mediaURL,
 		MediaType: req.MediaType,
 		Tags:      req.Tags,
-		Name:       req.Name,
+		Name:      req.Name,
 	}, nil
 }
 
@@ -249,7 +254,9 @@ func (s *Server) GetTimelineMemes(ctx context.Context, req *pb.GetTimelineReques
 	if totalCount%req.PageSize != 0 {
 		totalPages++
 	}
-
+	if len(memes) == 0 {
+		return nil, status.Error(codes.OutOfRange, "no memes found")
+	}
 	return &pb.MemesResponse{
 		Memes:      memes,
 		TotalCount: totalCount,
@@ -324,7 +331,7 @@ func (s *Server) DeleteMeme(ctx context.Context, req *pb.DeleteMemeRequest) (*pb
 	}
 	// delete the image
 	s.log.Debug("Deleting image", "Image", resp)
-	utils.SoftDeleteImage(utils.UploadDir(), filepath.Base(resp.MediaUrl))
+	s.storage.SoftDeleteImage(filepath.Base(resp.MediaUrl))
 	_, err = txn.Exec("DELETE FROM meme_tag WHERE meme_id = $1", req.Id)
 	if err != nil {
 		return &pb.DeleteMemeResponse{Success: false}, s.handleError("error deleting meme_tag", err, codes.Internal)
@@ -474,12 +481,12 @@ func (s *Server) UpdateMeme(ctx context.Context, r *pb.UpdateMemeRequest) (*pb.U
 		}
 
 		// rename the image file name.ext to be name.ext_timestamp to keep old versions
-		err = utils.RenameImage(oldFilename, fmt.Sprintf("%s_%d", oldFilename, time.Now().Unix()))
+		err = s.storage.RenameImage(oldFilename, fmt.Sprintf("%s_%d", oldFilename, time.Now().Unix()))
 		if err != nil {
 			return &pb.UpdateMemeResponse{Success: false}, s.handleError("error renaming image", err, codes.Internal)
 		}
 		// save the image
-		err = utils.SaveImage(utils.UploadDir(), newFilename, r.Image)
+		err = s.storage.SaveImage(newFilename, r.Image)
 		if err != nil {
 			return &pb.UpdateMemeResponse{Success: false}, s.handleError("error saving the image", err, codes.Internal)
 		}

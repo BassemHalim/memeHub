@@ -10,13 +10,14 @@ import (
 	"github.com/BassemHalim/memeDB/memeService/internal/db"
 	"github.com/BassemHalim/memeDB/memeService/internal/server"
 	"github.com/BassemHalim/memeDB/memeService/internal/utils"
+	"github.com/BassemHalim/memeDB/memeService/storage"
 	pb "github.com/BassemHalim/memeDB/proto/memeService"
 
 	"google.golang.org/grpc"
 )
 
 func main() {
-	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level:slog.LevelDebug })).With("Service", "MEME_SERVICE")
+	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug})).With("Service", "MEME_SERVICE")
 	db, err := db.New()
 	if err != nil {
 		log.Error("Failed to connect to the database", "ERROR", err)
@@ -35,7 +36,7 @@ func main() {
 		log.Error("Failed to load server's TLS certificates")
 	}
 	s := grpc.NewServer(grpc.Creds(tlsCreds))
-	pb.RegisterMemeServiceServer(s, server.New(db, log))
+	pb.RegisterMemeServiceServer(s, server.New(db, log, storage.NewLocalStorage()))
 
 	c := make(chan os.Signal, 1)
 	done := make(chan bool, 1)
