@@ -39,7 +39,7 @@ export async function fetchMemes(
     const validate = ajv.compile(memesResponseSchema);
     const valid = validate(data);
     if (!valid) {
-        console.log(validate.errors);
+        console.log(validate.errors, data);
         throw new Error("Invalid response format");
     }
     memeCache.set(pageNum, data);

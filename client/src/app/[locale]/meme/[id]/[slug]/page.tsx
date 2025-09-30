@@ -76,7 +76,7 @@ export default async function Page({
     // TODO: add a recommendations endpoint and use it here
     // we don't currently have a recommendation system so just fetch some memes from the first 10 pages
     const recommendationsResponse = await fetchMemes(
-        Math.floor(Math.random() * 10) + 1,
+        Math.floor(Math.random() * 5) + 1,
         4
     );
     const recommendations = recommendationsResponse.memes;
