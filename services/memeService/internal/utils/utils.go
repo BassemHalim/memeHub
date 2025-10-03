@@ -3,6 +3,7 @@ package utils
 import (
 	"crypto/tls"
 	"fmt"
+	"log"
 	"mime"
 	"os"
 
@@ -17,6 +18,14 @@ func GetEnvOrDefault(key, defaultValue string) string {
 	return defaultValue
 }
 
+func GetEnvOrExit(key string) string {
+	if value, ok := os.LookupEnv(key); ok {
+		return value
+	}
+	log.Println("Environment variable", key, "not set")
+	os.Exit(1)
+	return ""
+}
 
 // returns a random UUID
 func RandomUUID() string {

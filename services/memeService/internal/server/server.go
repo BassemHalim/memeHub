@@ -54,7 +54,7 @@ func (s *Server) UploadMeme(ctx context.Context, req *pb.UploadMemeRequest) (*pb
 		return nil, s.handleError("Error starting transaction", err, codes.Internal)
 	}
 	defer tx.Rollback()
-	mediaURL := fmt.Sprintf("/imgs/%s", filename)
+	mediaURL := s.storage.ImageUrl(filename)
 
 	// save the meme in the database
 	var memeID string
@@ -80,7 +80,8 @@ func (s *Server) UploadMeme(ctx context.Context, req *pb.UploadMemeRequest) (*pb
 		}
 	}
 	// save image
-	if err := s.storage.SaveImage(filename, req.Image); err != nil {
+	_, err = s.storage.SaveImage(filename, req.Image);
+	if err != nil {
 		return nil, s.handleError("Error saving the image", err, codes.Internal)
 	}
 
@@ -463,13 +464,24 @@ func (s *Server) UpdateMeme(ctx context.Context, r *pb.UpdateMemeRequest) (*pb.U
 			return &pb.UpdateMemeResponse{Success: false}, s.handleError("error getting new extension, Bad MediaType", err, codes.InvalidArgument)
 		}
 
+		// rename the image file to keep old versions TODO: should I just soft delete it?
+		_, err = s.storage.RenameImage(oldFilename, fmt.Sprintf("%s_%d", oldFilename, time.Now().Unix()))
+		if err != nil {
+			return &pb.UpdateMemeResponse{Success: false}, s.handleError("error renaming image", err, codes.Internal)
+		}
+		// save the image
+		url, err := s.storage.SaveImage(newFilename, r.Image)
+		if err != nil {
+			return &pb.UpdateMemeResponse{Success: false}, s.handleError("error saving the image", err, codes.Internal)
+		}
+
 		// update the DB
-		mediaURL := fmt.Sprintf("/imgs/%s", newFilename)
+		// mediaURL := fmt.Sprintf("/imgs/%s", newFilename)
 		if _, err = txn.ExecContext(ctx, `UPDATE meme
 		SET media_url = $1, 
 		media_type = $2,
 		dimensions = $3
-		WHERE id = $4`, mediaURL, r.MediaType, pq.Array(r.Dimensions), r.Id); err != nil {
+		WHERE id = $4`, url, r.MediaType, pq.Array(r.Dimensions), r.Id); err != nil {
 			return &pb.UpdateMemeResponse{Success: false}, s.handleError("error updating meme", err, codes.Internal)
 		}
 
@@ -480,16 +492,6 @@ func (s *Server) UpdateMeme(ctx context.Context, r *pb.UpdateMemeRequest) (*pb.U
 			}
 		}
 
-		// rename the image file name.ext to be name.ext_timestamp to keep old versions
-		err = s.storage.RenameImage(oldFilename, fmt.Sprintf("%s_%d", oldFilename, time.Now().Unix()))
-		if err != nil {
-			return &pb.UpdateMemeResponse{Success: false}, s.handleError("error renaming image", err, codes.Internal)
-		}
-		// save the image
-		err = s.storage.SaveImage(newFilename, r.Image)
-		if err != nil {
-			return &pb.UpdateMemeResponse{Success: false}, s.handleError("error saving the image", err, codes.Internal)
-		}
 	}
 	txn.Commit()
 	return &pb.UpdateMemeResponse{

@@ -51,11 +51,11 @@ const nextConfig: NextConfig = {
         return [
             {
                 source: "/api/:path*",
-                destination: "https://qasrelmemez.com/api/:path*",
+                destination: `${process.env.NEXT_PUBLIC_API_HOST}/api/:path*`,
             },
             {
                 source: "/imgs/:path*",
-                destination: "https://qasrelmemez.com/imgs/:path*",
+                destination: `${process.env.NEXT_PUBLIC_API_HOST}/:path*`,
             },
         ];
     },

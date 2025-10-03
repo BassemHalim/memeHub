@@ -213,7 +213,7 @@ func (s *Server) UploadMeme(w http.ResponseWriter, r *http.Request) {
 		SocialMediaUrl: meme.MediaURL,
 	}
 
-	ctx, cancel := context.WithTimeout(r.Context(), time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
 	defer cancel()
 	resp, err := s.memeClient.UploadMeme(ctx, memeUpload)
 	// TODO: resize it
@@ -222,7 +222,7 @@ func (s *Server) UploadMeme(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer func() {
-		time.Sleep(2 * time.Second) 
+		time.Sleep(2 * time.Second)
 		meme := notifications.Meme{
 			Id:       resp.Id,
 			MediaUrl: fmt.Sprintf("https://qasrelmemez.com%s", resp.MediaUrl),
@@ -336,7 +336,7 @@ func (s *Server) DeleteMeme(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.log.Info("Delete Meme", "ID", idString)
-	ctx, cancel := context.WithTimeout(r.Context(), time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
 	defer cancel()
 	_, err := s.memeClient.DeleteMeme(ctx, &pb.DeleteMemeRequest{
 		Id: idString,
@@ -524,7 +524,7 @@ func (s *Server) PatchMeme(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	ctx, cancel := context.WithTimeout(r.Context(), time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
 	defer cancel()
 	resp, err := s.memeClient.UpdateMeme(ctx, updateRequest)
 	if err != nil {

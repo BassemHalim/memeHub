@@ -36,7 +36,7 @@ func main() {
 		log.Error("Failed to load server's TLS certificates")
 	}
 	s := grpc.NewServer(grpc.Creds(tlsCreds))
-	pb.RegisterMemeServiceServer(s, server.New(db, log, storage.NewLocalStorage()))
+	pb.RegisterMemeServiceServer(s, server.New(db, log, storage.NewR2(utils.GetEnvOrExit("R2_BUCKET_NAME"), log)))
 
 	c := make(chan os.Signal, 1)
 	done := make(chan bool, 1)
