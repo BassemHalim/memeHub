@@ -3,7 +3,9 @@ import { Meme } from "@/types/Meme";
 import Image from "next/image";
 import { Card } from "./card";
 export default function RecommendationCard({ meme }: { meme: Meme }) {
-    const memeURL = `${process.env.NEXT_PUBLIC_API_HOST}${meme.media_url}`;
+    const memeURL = meme.media_url.startsWith("http") // crude way to check if it's an external URL, initially I used to store relative paths
+        ? meme.media_url
+        : `${process.env.NEXT_PUBLIC_API_HOST}${meme.media_url}`;
     return (
         <Link
             href={`/meme/${meme.id}/${meme.name}`}

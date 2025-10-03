@@ -28,6 +28,9 @@ export async function generateMetadata({
         tags.add(meme.name.toLowerCase());
 
         const description = `${t("description")} | ` + [...tags].join(" - ");
+        const imageUrl = meme.media_url.startsWith("http")
+            ? meme.media_url
+            : "https://qasrelmemez.com" + meme.media_url;
         return {
             title: `${t("title")} | ${meme.name}`,
             description: description,
@@ -36,7 +39,7 @@ export async function generateMetadata({
                 url: `https://qasrelmemez.com${memePagePath(meme)}`,
                 title: `${t("title")} | ${meme.name}`,
                 description: description,
-                images: ["https://qasrelmemez.com" + meme.media_url],
+                images: [imageUrl],
             },
             alternates: {
                 canonical: `https://qasrelmemez.com${memePagePath(meme)}`,
@@ -62,7 +65,7 @@ export default async function Page({
     // TODO: add a recommendations endpoint and use it here
     // we don't currently have a recommendation system so just fetch some memes from the first 10 pages
     const recommendationsResponse = await fetchMemes(
-        Math.floor(Math.random() * 5) + 1,
+        Math.floor(Math.random() * 1) + 1,
         4
     );
     const recommendations = recommendationsResponse.memes;

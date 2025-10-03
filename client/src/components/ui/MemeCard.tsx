@@ -32,7 +32,9 @@ export default function MemeCard({
     const [shareLogo, setShareLogo] = useState<JSX.Element>(ShareIcon);
     const [showMobilCtrl, setShowMobilCtrl] = useState(true);
     const [isMobile, setIsMobile] = useState(false);
-    const memeURL = `${process.env.NEXT_PUBLIC_API_HOST}${meme.media_url}`;
+    const memeURL = meme.media_url.startsWith("http") // crude way to check if it's an external URL
+        ? meme.media_url
+        : `${process.env.NEXT_PUBLIC_API_HOST}${meme.media_url}`;
     let extraClasses = "";
     if (variant === "timeline") {
         extraClasses = "absolute";
@@ -114,7 +116,7 @@ export default function MemeCard({
                 <div
                     className={cn(
                         "absolute top-1 right-2 m-2 space-x-2 z-10",
-                        extraClasses,
+                        extraClasses
                     )}
                 >
                     <label htmlFor="download-meme-button" className="sr-only">
@@ -148,7 +150,7 @@ export default function MemeCard({
                             <a
                                 className="bg-primary border-transparent text-primary-foreground shadow flex justify-center items-center rounded-full w-9 h-9 md:w-8 md:h-8"
                                 href={`/generator?img=${encodeURIComponent(
-                                    memeURL,
+                                    memeURL
                                 )}`}
                             >
                                 <PencilLine size={20} />
@@ -164,7 +166,7 @@ export default function MemeCard({
                                 ? "text-lg font-bold p-3"
                                 : "text-xs"
                         } `,
-                        extraClasses,
+                        extraClasses
                     )}
                 >
                     <Link

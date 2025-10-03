@@ -56,7 +56,7 @@ export default async function RootLayout({
     const messages = await getMessages();
     return (
         <html lang={locale} dir={locale == "ar" ? "rtl" : "ltr"}>
-            <ReactScan />
+            {/* <ReactScan /> */}
             <body
                 className={cn(
                     "antialiased flex flex-col min-h-screen",

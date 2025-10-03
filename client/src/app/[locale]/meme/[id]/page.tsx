@@ -1,5 +1,4 @@
 import fetchMeme from "@/functions/fetchMeme";
-import { Meme } from "@/types/Meme";
 import { memePagePath } from "@/utils/memeUrl";
 import { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
@@ -11,19 +10,18 @@ export async function generateMetadata({
     params: Promise<{ id: string; locale: string }>;
 }): Promise<Metadata> {
     const { id, locale } = await params;
-    const url = new URL(
-        `/api/meme/${id}`,
-        process.env.NEXT_PUBLIC_API_HOST || ""
-    );
 
     const t = await getTranslations({ locale: locale, namespace: "Metadata" });
     try {
-        const response = await fetch(url);
-        const meme = (await response.json()) as Meme;
+        const meme = await fetchMeme(id);
+        if (!meme) throw new Error("Meme not found");
         const tags = new Set(meme.tags.map((tag) => tag.toLowerCase()));
         tags.add(meme.name.toLowerCase());
 
         const description = `${t("description")} | ` + [...tags].join(" - ");
+        const imageUrl = meme.media_url.startsWith("http")
+            ? meme.media_url
+            : "https://qasrelmemez.com" + meme.media_url;
         return {
             title: `${t("title")} | ${meme.name}`,
             description: description,
@@ -32,7 +30,7 @@ export async function generateMetadata({
                 url: `https://qasrelmemez.com/meme/${id}`,
                 title: t("title"),
                 description: description,
-                images: ["https://qasrelmemez.com" + meme.media_url],
+                images: [imageUrl],
             },
             alternates: {
                 canonical: `https://qasrelmemez.com/meme/${id}`,
@@ -40,9 +38,19 @@ export async function generateMetadata({
         };
     } catch (error) {
         console.log(error);
+        const description = t("description");
         return {
             title: "Qasr El Memez | قصر الميمز",
-            description: "Home of the best egyptian memes",
+            description: description,
+            openGraph: {
+                type: "article",
+                url: `https://qasrelmemez.com/meme/${id}`,
+                title: t("title"),
+                description: description,
+            },
+            alternates: {
+                canonical: `https://qasrelmemez.com/meme/${id}`,
+            },
         };
     }
 }
