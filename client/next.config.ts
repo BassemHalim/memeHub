@@ -38,6 +38,11 @@ const nextConfig: NextConfig = {
                           pathname: "/imgs/**",
                       },
                       {
+                          protocol: "https" as const,
+                          hostname: "imgs.qasrelmemez.com",
+                          pathname: "/imgs/**",
+                      },
+                      {
                           protocol: "http" as const,
                           hostname: "gateway",
                           port: "8080",
@@ -70,7 +75,7 @@ const nextConfig: NextConfig = {
                 source: "/en/:path*",
                 destination: "/:path*",
                 permanent: false,
-            }
+            },
         ];
     },
 };
