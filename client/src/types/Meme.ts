@@ -8,7 +8,6 @@ export interface Meme {
     name: string;
     dimensions: number[];
 }
-
 export interface MemesResponse {
     memes: Meme[];
     total_count: number;

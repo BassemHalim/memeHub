@@ -9,6 +9,7 @@ import { sendEvent } from "@/utils/googleAnalytics";
 import { cn } from "@/utils/tailwind";
 import Image from "next/image";
 import { MouseEventHandler, useEffect, useState } from "react";
+import { getMemeUrl } from "@/functions/memeUrl";
 
 function logDownloadEvent(meme: Meme) {
     sendEvent("meme_download", { meme_id: meme.id });
@@ -32,9 +33,7 @@ export default function MemeCard({
     const [shareLogo, setShareLogo] = useState<JSX.Element>(ShareIcon);
     const [showMobilCtrl, setShowMobilCtrl] = useState(true);
     const [isMobile, setIsMobile] = useState(false);
-    const memeURL = meme.media_url.startsWith("http") // crude way to check if it's an external URL
-        ? meme.media_url
-        : `${process.env.NEXT_PUBLIC_API_HOST}${meme.media_url}`;
+    const memeURL = getMemeUrl(meme);
     let extraClasses = "";
     if (variant === "timeline") {
         extraClasses = "absolute";
