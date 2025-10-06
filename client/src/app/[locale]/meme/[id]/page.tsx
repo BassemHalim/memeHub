@@ -1,4 +1,5 @@
 import fetchMeme from "@/functions/fetchMeme";
+import { getMemeUrl } from "@/functions/memeUrl";
 import { memePagePath } from "@/utils/memeUrl";
 import { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
@@ -19,9 +20,7 @@ export async function generateMetadata({
         tags.add(meme.name.toLowerCase());
 
         const description = `${t("description")} | ` + [...tags].join(" - ");
-        const imageUrl = meme.media_url.startsWith("http")
-            ? meme.media_url
-            : "https://qasrelmemez.com" + meme.media_url;
+        const imageUrl = getMemeUrl(meme);
         return {
             title: `${t("title")} | ${meme.name}`,
             description: description,

@@ -2,6 +2,7 @@ import MemeCard from "@/components/ui/MemeCard";
 import Recommendations from "@/components/ui/Recommendations";
 import fetchMeme from "@/functions/fetchMeme";
 import { fetchMemes } from "@/functions/fetchMemes";
+import { getMemeUrl } from "@/functions/memeUrl";
 import { Meme } from "@/types/Meme";
 import { memePagePath } from "@/utils/memeUrl";
 import { Metadata } from "next";
@@ -28,9 +29,7 @@ export async function generateMetadata({
         tags.add(meme.name.toLowerCase());
 
         const description = `${t("description")} | ` + [...tags].join(" - ");
-        const imageUrl = meme.media_url.startsWith("http")
-            ? meme.media_url
-            : "https://qasrelmemez.com" + meme.media_url;
+        const imageUrl = getMemeUrl(meme);
         return {
             title: `${t("title")} | ${meme.name}`,
             description: description,

@@ -23,6 +23,7 @@ const HeroSearch = () => {
             <section className="relative h-[400px] w-full mb-6 shadow-md shadow-secondary">
                 <div className="absolute inset-0">
                     <Image
+                        fetchPriority="high"
                         priority
                         src="/ali_rabi3.jpg"
                         height={500}

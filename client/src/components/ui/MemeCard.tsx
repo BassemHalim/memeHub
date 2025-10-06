@@ -22,9 +22,11 @@ type variantType = "timeline" | "page";
 export default function MemeCard({
     meme,
     variant = "timeline",
+    loadPriority = false,
 }: {
     meme: Meme;
-    variant?: variantType;
+        variant?: variantType;
+        loadPriority?: boolean;
 }) {
     const ShareIcon = <Share2 size={20} className="mx-auto" />;
     const ClipboardIcon = (
@@ -111,6 +113,9 @@ export default function MemeCard({
                     width={meme.dimensions[0]}
                     className="w-full group-hover:scale-105 transition-transform duration-300 ease-in-out"
                     unoptimized={meme.media_url.endsWith(".gif")}
+                    priority={loadPriority}
+                    loading={loadPriority ? "eager" : "lazy"}
+                    fetchPriority= {loadPriority ? "high" : "auto"}
                 />
                 <div
                     className={cn(

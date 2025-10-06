@@ -13,7 +13,7 @@ import { Button } from "./button";
 
 const Masonry: ComponentType<MasonryProps<Meme>> = dynamic(
     () => import("masonic").then((mod) => mod.Masonry),
-    { ssr: false },
+    { ssr: false }
 );
 
 interface TimelineProps {
@@ -36,7 +36,7 @@ export default function Timeline({
     const lastLoadedIndex = useRef(0);
 
     const MasonryItem = useCallback(
-        ({ data }: { data: Meme; index: number; width: number }) => {
+        ({ data, index }: { data: Meme; index: number; width: number }) => {
             return admin ? (
                 <div className="border-2 border-primary rounded-lg p-2">
                     <div className="flex justify-center gap-2 m-2">
@@ -44,7 +44,7 @@ export default function Timeline({
                             className="text-red-700"
                             onClick={() => {
                                 const response = confirm(
-                                    `Delete meme with id: ${data.id}`,
+                                    `Delete meme with id: ${data.id}`
                                 );
                                 if (response === true) {
                                     Memes.Delete(data.id, auth.token() ?? "");
@@ -71,10 +71,10 @@ export default function Timeline({
                     <MemeCard meme={data} />
                 </div>
             ) : (
-                <MemeCard meme={data} />
+                <MemeCard meme={data} loadPriority={index < 8} />
             );
         },
-        [admin, auth, editMeme],
+        [admin, auth, editMeme]
     );
     const maybeLoadMore = useInfiniteLoader(
         async (_startIndex, stopIndex, _currItems) => {
@@ -97,7 +97,7 @@ export default function Timeline({
             isItemLoaded: (index, items) => !!items[index],
             minimumBatchSize: 20,
             threshold: 1, // new data should be loaded when the user scrolls within 4 items of the end
-        },
+        }
     );
     return (
         <section className="container mx-auto py-4 px-4 grow-2">
