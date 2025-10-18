@@ -4,12 +4,13 @@ import { Meme } from "@/types/Meme";
 import { ClipboardCheck, Download, PencilLine, Share2 } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
+import { getMemeUrl } from "@/functions/memeUrl";
 import { Link } from "@/i18n/navigation";
 import { sendEvent } from "@/utils/googleAnalytics";
 import { cn } from "@/utils/tailwind";
 import Image from "next/image";
 import { MouseEventHandler, useEffect, useState } from "react";
-import { getMemeUrl } from "@/functions/memeUrl";
+import Loader from "./loader";
 
 function logDownloadEvent(meme: Meme) {
     sendEvent("meme_download", { meme_id: meme.id });
@@ -25,9 +26,11 @@ export default function MemeCard({
     loadPriority = false,
 }: {
     meme: Meme;
-        variant?: variantType;
-        loadPriority?: boolean;
+    variant?: variantType;
+    loadPriority?: boolean;
 }) {
+    const [isDownloading, setIsDownloading] = useState(false);
+
     const ShareIcon = <Share2 size={20} className="mx-auto" />;
     const ClipboardIcon = (
         <ClipboardCheck size={20} className="animate-fade-in-scale mx-auto" />
@@ -73,9 +76,12 @@ export default function MemeCard({
         });
     };
     const handleDownload: MouseEventHandler = async (e) => {
+        e.stopPropagation();
+        if (isDownloading) return;
+        setIsDownloading(true);
+
         // send analytics event
         logDownloadEvent(meme);
-        e.stopPropagation();
         try {
             const response = await fetch(memeURL, {
                 method: "GET",
@@ -95,6 +101,10 @@ export default function MemeCard({
             document.body.removeChild(a);
         } catch (error) {
             console.error("Error downloading meme:", error);
+        } finally {
+            setTimeout(() => {
+                setIsDownloading(false);
+            }, 1000);
         }
     };
     return (
@@ -115,7 +125,7 @@ export default function MemeCard({
                     unoptimized={meme.media_url.endsWith(".gif")}
                     priority={loadPriority}
                     loading={loadPriority ? "eager" : "lazy"}
-                    fetchPriority= {loadPriority ? "high" : "auto"}
+                    fetchPriority={loadPriority ? "high" : "auto"}
                 />
                 <div
                     className={cn(
@@ -129,9 +139,14 @@ export default function MemeCard({
                     <button
                         id="download-meme-button"
                         onClick={handleDownload}
+                        disabled={isDownloading}
                         className="bg-primary border-transparent text-primary-foreground shadow  rounded-full w-9 h-9 md:w-8 md:h-8"
                     >
-                        <Download size={20} className="mx-auto" />
+                        {isDownloading ? (
+                            <Loader size={20} className="mx-auto"/>
+                        ) : (
+                            <Download size={20} className="mx-auto" />
+                        )}
                     </button>
                     <label htmlFor="share-meme-button" className="sr-only">
                         share meme
