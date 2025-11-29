@@ -8,6 +8,7 @@ import { Meme } from "@/types/Meme";
 export const memePagePath = (meme: Meme): string => {
     if (!meme) return "/";
     const slug = slugify(meme.name);
+    if (!slug) return `/meme/${meme.id}/${encodeURIComponent(slugify(meme.tags[0] || "meme"))}`;
     return `/meme/${meme.id}/${encodeURIComponent(slug)}`;
 };
 
