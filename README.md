@@ -3,7 +3,7 @@
 A microservice-based meme sharing platform for uploading and searching for relevant memes.
 
 The choice to use a microservice architecture is for learning purposes and is not the most ideal choice.
-The memeService currently stores the memes locally
+The memeService currently stores the memes in R2
 
 ## Architecture:
 
