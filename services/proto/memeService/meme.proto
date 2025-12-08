@@ -12,6 +12,8 @@ service MemeService {
   rpc SearchMemes(SearchMemesRequest) returns(MemesResponse);
   rpc SearchTags(SearchTagsRequest) returns(TagsResponse);
   rpc AddTags(AddTagsRequest) returns (AddTagsResponse);
+  rpc IncrementDownload(IncrementEngagementRequest) returns (IncrementEngagementResponse);
+  rpc IncrementShare(IncrementEngagementRequest) returns (IncrementEngagementResponse);
 }
 
 message UploadMemeRequest {
@@ -76,6 +78,15 @@ message TagsResponse{
   repeated string tags = 1;
 }
 
+message IncrementEngagementRequest {
+  string meme_id = 1;
+}
+
+message IncrementEngagementResponse {
+  bool success = 1;
+  string error = 2;
+}
+
 // Response messages
 message MemeResponse {
   string id = 1;
@@ -84,6 +95,8 @@ message MemeResponse {
   string name = 4;
   repeated string tags = 5;
   repeated int32 dimensions = 6;
+  int32 download_count = 7;
+  int32 share_count = 8;
 }
 
 message DeleteMemeResponse{
@@ -111,4 +124,6 @@ enum SortOrder {
   NEWEST = 0;
   OLDEST = 1;
   MOST_TAGGED = 2;
+  MOST_DOWNLOADED = 3;
+  MOST_SHARED = 4;
 }

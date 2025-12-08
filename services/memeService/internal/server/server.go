@@ -80,7 +80,7 @@ func (s *Server) UploadMeme(ctx context.Context, req *pb.UploadMemeRequest) (*pb
 		}
 	}
 	// save image
-	_, err = s.storage.SaveImage(filename, req.Image);
+	_, err = s.storage.SaveImage(filename, req.Image)
 	if err != nil {
 		return nil, s.handleError("Error saving the image", err, codes.Internal)
 	}
@@ -136,10 +136,10 @@ func (s *Server) GetMeme(ctx context.Context, req *pb.GetMemeRequest) (*pb.MemeR
 	// get meme details
 	var dimensions pq.Int32Array
 	err := s.db.QueryRowContext(ctx, `
-		SELECT media_url, media_type, name, dimensions
+		SELECT media_url, media_type, name, dimensions, download_count, share_count
 		FROM meme
 		WHERE id = $1
-		`, req.Id).Scan(&resp.MediaUrl, &resp.MediaType, &resp.Name, &dimensions)
+		`, req.Id).Scan(&resp.MediaUrl, &resp.MediaType, &resp.Name, &dimensions, &resp.DownloadCount, &resp.ShareCount)
 	if err != nil {
 		return nil, s.handleError("error getting meme", err, codes.Internal)
 	}
@@ -180,16 +180,20 @@ func (s *Server) GetTimelineMemes(ctx context.Context, req *pb.GetTimelineReques
 
 	// Base query without any tag filtering
 	baseQuery := `
-        SELECT m.id, m.media_url, m.media_type, m.name, m.dimensions
+        SELECT m.id, m.media_url, m.media_type, m.name, m.dimensions, m.download_count, m.share_count
         FROM meme m
     `
 
 	// Add timeline-specific sorting
 	switch req.SortOrder {
 	case pb.SortOrder_OLDEST:
-		baseQuery += " ORDER BY m.created_at ASC" // Assuming created_at exists
+		baseQuery += " ORDER BY m.created_at ASC"
+	case pb.SortOrder_MOST_DOWNLOADED:
+		baseQuery += " ORDER BY m.download_count DESC, m.created_at DESC"
+	case pb.SortOrder_MOST_SHARED:
+		baseQuery += " ORDER BY m.share_count DESC, m.created_at DESC"
 	default: // NEWEST
-		baseQuery += " ORDER BY m.created_at DESC" // Fallback to creation time
+		baseQuery += " ORDER BY m.created_at DESC"
 	}
 
 	// Add pagination
@@ -221,6 +225,8 @@ func (s *Server) GetTimelineMemes(ctx context.Context, req *pb.GetTimelineReques
 			&meme.MediaType,
 			&meme.Name,
 			&dimensions,
+			&meme.DownloadCount,
+			&meme.ShareCount,
 		); err != nil {
 			return nil, s.handleError("error scanning meme", err, codes.Internal)
 		}
@@ -498,4 +504,116 @@ func (s *Server) UpdateMeme(ctx context.Context, r *pb.UpdateMemeRequest) (*pb.U
 			Success: true,
 		},
 		nil
+}
+
+// IncrementDownloadCount atomically increments the download count for a meme
+func (s *Server) IncrementDownloadCount(ctx context.Context, memeID string) error {
+	result, err := s.db.ExecContext(ctx, `
+		UPDATE meme 
+		SET download_count = download_count + 1 
+		WHERE id = $1
+	`, memeID)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
+}
+
+// IncrementShareCount atomically increments the share count for a meme
+func (s *Server) IncrementShareCount(ctx context.Context, memeID string) error {
+	result, err := s.db.ExecContext(ctx, `
+		UPDATE meme 
+		SET share_count = share_count + 1 
+		WHERE id = $1
+	`, memeID)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
+}
+
+// IncrementDownload implements the IncrementDownload RPC method
+func (s *Server) IncrementDownload(ctx context.Context, req *pb.IncrementEngagementRequest) (*pb.IncrementEngagementResponse, error) {
+	// Validate meme_id format (UUID)
+	if err := utils.ValidateUUID(req.MemeId); err != nil {
+		return &pb.IncrementEngagementResponse{
+			Success: false,
+			Error:   "Invalid meme ID format",
+		}, status.Error(codes.InvalidArgument, "Invalid meme ID format")
+	}
+
+	// Call database IncrementDownloadCount
+	err := s.IncrementDownloadCount(ctx, req.MemeId)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return &pb.IncrementEngagementResponse{
+				Success: false,
+				Error:   "Meme not found",
+			}, status.Error(codes.NotFound, "Meme not found")
+		}
+		s.log.Error("Error incrementing download count", "Error", err, "MemeID", req.MemeId)
+		return &pb.IncrementEngagementResponse{
+			Success: false,
+			Error:   "Internal server error",
+		}, status.Error(codes.Internal, "Failed to increment download count")
+	}
+
+	// Return success
+	return &pb.IncrementEngagementResponse{
+		Success: true,
+		Error:   "",
+	}, nil
+}
+
+// IncrementShare implements the IncrementShare RPC method
+func (s *Server) IncrementShare(ctx context.Context, req *pb.IncrementEngagementRequest) (*pb.IncrementEngagementResponse, error) {
+	// Validate meme_id format (UUID)
+	if err := utils.ValidateUUID(req.MemeId); err != nil {
+		return &pb.IncrementEngagementResponse{
+			Success: false,
+			Error:   "Invalid meme ID format",
+		}, status.Error(codes.InvalidArgument, "Invalid meme ID format")
+	}
+
+	// Call database IncrementShareCount
+	err := s.IncrementShareCount(ctx, req.MemeId)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return &pb.IncrementEngagementResponse{
+				Success: false,
+				Error:   "Meme not found",
+			}, status.Error(codes.NotFound, "Meme not found")
+		}
+		s.log.Error("Error incrementing share count", "Error", err, "MemeID", req.MemeId)
+		return &pb.IncrementEngagementResponse{
+			Success: false,
+			Error:   "Internal server error",
+		}, status.Error(codes.Internal, "Failed to increment share count")
+	}
+
+	// Return success
+	return &pb.IncrementEngagementResponse{
+		Success: true,
+		Error:   "",
+	}, nil
 }

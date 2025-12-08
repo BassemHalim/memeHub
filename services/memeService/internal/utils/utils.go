@@ -32,6 +32,12 @@ func RandomUUID() string {
 	return uuid.New().String()
 }
 
+// ValidateUUID validates that a string is a valid UUID format
+func ValidateUUID(id string) error {
+	_, err := uuid.Parse(id)
+	return err
+}
+
 // converts a mimetype like image/jpeg to an extension like '.jpg'
 func MimeToExtension(mimeType string) (string, error) {
 	ext, err := mime.ExtensionsByType(mimeType)
