@@ -71,6 +71,8 @@ func run(ctx context.Context) error {
 	updateTagsHandler := http.HandlerFunc(gateway.UpdateTags)
 	patchMemeHandler := http.HandlerFunc(gateway.PatchMeme)
 	flushCache := http.HandlerFunc(gateway.FlushCache)
+	trackDownloadHandler := http.HandlerFunc(gateway.TrackDownload)
+	trackShareHandler := http.HandlerFunc(gateway.TrackShare)
 	apiRouter := http.NewServeMux()
 	apiRouter.HandleFunc("/login", auth.Login)
 	apiRouter.Handle("GET /memes", middleware.GzipMiddleware(middleware.Cache(limiter.RateLimit(getTimelineHandler), 60)))
@@ -78,6 +80,8 @@ func run(ctx context.Context) error {
 	apiRouter.Handle("GET /tags/search", middleware.GzipMiddleware(middleware.Cache(limiter.RateLimit(searchTagsHandler), 2*60)))
 	apiRouter.Handle("GET /meme/{id}", middleware.Cache(limiter.RateLimit(getMemeHandler), 24*60))
 	apiRouter.Handle("POST /meme", limiter.RateLimit(uploadMemeHandler))
+	apiRouter.Handle("POST /memes/{id}/download", middleware.ValidateBrowserRequest(cfg.ApplicationDomains)(limiter.RateLimit(trackDownloadHandler)))
+	apiRouter.Handle("POST /memes/{id}/share", middleware.ValidateBrowserRequest(cfg.ApplicationDomains)(limiter.RateLimit(trackShareHandler)))
 
 	adminRouter := http.NewServeMux()
 	adminRouter.Handle("DELETE /meme/{id}", limiter.RateLimit(middleware.Auth(deleteMemeHandler)))
@@ -85,7 +89,7 @@ func run(ctx context.Context) error {
 	adminRouter.Handle("PATCH /meme/{id}", limiter.RateLimit(middleware.Auth(patchMemeHandler)))
 	adminRouter.Handle("GET /memes", middleware.GzipMiddleware(middleware.Auth(getTimelineHandler))) // same as /api/memes but without caching or rate limiting
 	adminRouter.Handle("DELETE /cache", middleware.Auth(flushCache))
-	
+
 	apiRouter.Handle("/admin/", http.StripPrefix("/admin", adminRouter))
 
 	fileServer, err := fileserver.New(log)

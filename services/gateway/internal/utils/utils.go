@@ -2,8 +2,8 @@ package utils
 
 import (
 	"net/http"
-	"os"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 )
@@ -22,9 +22,14 @@ func GetEnvOrDefault(key, defaultValue string) string {
 func ValidateImageContent(URL string, client *http.Client) (bool, error) {
 
 	// Check MIME type via HEAD
+	parsedURL, err := url.Parse(URL)
+	if err != nil {
+		return false, err
+	}
+
 	req := &http.Request{
 		Method: http.MethodHead,
-		URL:    &url.URL{Path: URL},
+		URL:    parsedURL,
 		Header: http.Header{
 			"Accept": []string{"image/*"},
 		},

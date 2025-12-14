@@ -540,3 +540,81 @@ func (s *Server) FlushCache(w http.ResponseWriter, r *http.Request) {
 	s.cache.Flush()
 	w.WriteHeader(http.StatusOK)
 }
+
+// POST /api/memes/:id/download
+func (s *Server) TrackDownload(w http.ResponseWriter, r *http.Request) {
+	// Parse and validate meme ID
+	idString := r.PathValue("id")
+	if err := uuid.Validate(idString); err != nil {
+		s.handleError(w, err, "Invalid meme ID format", http.StatusBadRequest)
+		return
+	}
+
+	s.log.Info("Track Download", "ID", idString)
+
+	// Call MemeService.IncrementDownload via gRPC
+	ctx, cancel := context.WithTimeout(r.Context(), time.Second)
+	defer cancel()
+	resp, err := s.memeClient.IncrementDownload(ctx, &pb.IncrementEngagementRequest{
+		MemeId: idString,
+	})
+
+	if err != nil {
+		// Check if it's a not found error
+		if strings.Contains(err.Error(), "not found") {
+			s.handleError(w, err, "Meme not found", http.StatusNotFound)
+			return
+		}
+		s.handleError(w, err, "Failed to track download", http.StatusInternalServerError)
+		return
+	}
+
+	if !resp.Success {
+		if resp.Error != "" {
+			s.handleError(w, fmt.Errorf("%s", resp.Error), "Failed to track download", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	// Return success
+	w.WriteHeader(http.StatusOK)
+}
+
+// POST /api/memes/:id/share
+func (s *Server) TrackShare(w http.ResponseWriter, r *http.Request) {
+	// Parse and validate meme ID
+	idString := r.PathValue("id")
+	if err := uuid.Validate(idString); err != nil {
+		s.handleError(w, err, "Invalid meme ID format", http.StatusBadRequest)
+		return
+	}
+
+	s.log.Info("Track Share", "ID", idString)
+
+	// Call MemeService.IncrementShare via gRPC
+	ctx, cancel := context.WithTimeout(r.Context(), time.Second)
+	defer cancel()
+	resp, err := s.memeClient.IncrementShare(ctx, &pb.IncrementEngagementRequest{
+		MemeId: idString,
+	})
+
+	if err != nil {
+		// Check if it's a not found error
+		if strings.Contains(err.Error(), "not found") {
+			s.handleError(w, err, "Meme not found", http.StatusNotFound)
+			return
+		}
+		s.handleError(w, err, "Failed to track share", http.StatusInternalServerError)
+		return
+	}
+
+	if !resp.Success {
+		if resp.Error != "" {
+			s.handleError(w, fmt.Errorf("%s", resp.Error), "Failed to track share", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	// Return success
+	w.WriteHeader(http.StatusOK)
+}

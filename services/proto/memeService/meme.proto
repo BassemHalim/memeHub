@@ -8,7 +8,6 @@ service MemeService {
   rpc GetMeme (GetMemeRequest) returns (MemeResponse);
   rpc DeleteMeme (DeleteMemeRequest) returns (DeleteMemeResponse);
   rpc GetTimelineMemes(GetTimelineRequest) returns (MemesResponse);
-  rpc FilterMemesByTags(FilterMemesByTagsRequest) returns (MemesResponse);
   rpc SearchMemes(SearchMemesRequest) returns(MemesResponse);
   rpc SearchTags(SearchTagsRequest) returns(TagsResponse);
   rpc AddTags(AddTagsRequest) returns (AddTagsResponse);
@@ -46,14 +45,6 @@ message GetTimelineRequest{
   int32 page = 1;
   int32 page_size = 2;
   SortOrder sort_order = 3;
-}
-
-message FilterMemesByTagsRequest {
-  repeated string tags = 1;
-  TagMatchType match_type = 2;
-  int32 page = 3;
-  int32 page_size = 4;
-  SortOrder sort_order = 5;
 }
 
 message SearchMemesRequest{
@@ -114,11 +105,6 @@ message MemesResponse {
   int32 total_pages = 4;
 }
 
-
-enum TagMatchType {
-  ANY = 0;  // Match memes that have any of the specified tags
-  ALL = 1;  // Match memes that have all of the specified tags
-}
 
 enum SortOrder {
   NEWEST = 0;
