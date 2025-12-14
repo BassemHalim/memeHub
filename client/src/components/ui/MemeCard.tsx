@@ -5,6 +5,7 @@ import { ClipboardCheck, Download, PencilLine, Share2 } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
 import { getMemeUrl } from "@/functions/memeUrl";
+import { trackDownload, trackShare } from "@/functions/trackEngagement";
 import { Link } from "@/i18n/navigation";
 import { sendEvent } from "@/utils/googleAnalytics";
 import { cn } from "@/utils/tailwind";
@@ -66,7 +67,17 @@ export default function MemeCard({
     const handleShare: MouseEventHandler = (e) => {
         e.stopPropagation();
         e.preventDefault();
+
+        // Track share engagement (non-blocking)
+        trackShare(meme.id).catch((error) => {
+            // Silently handle tracking errors - don't block share
+            console.warn("Failed to track share:", error);
+        });
+
+        // Send analytics event
         logShareEvent(meme);
+
+        // Perform the actual share action (copy to clipboard)
         const shareLink = `https://qasrelmemez.com/meme/${meme.id}`;
         navigator.clipboard.writeText(shareLink).then(() => {
             setShareLogo(ClipboardIcon);
@@ -79,6 +90,12 @@ export default function MemeCard({
         e.stopPropagation();
         if (isDownloading) return;
         setIsDownloading(true);
+
+        // Track download engagement (non-blocking)
+        trackDownload(meme.id).catch((error) => {
+            // Silently handle tracking errors - don't block download
+            console.warn("Failed to track download:", error);
+        });
 
         // send analytics event
         logDownloadEvent(meme);

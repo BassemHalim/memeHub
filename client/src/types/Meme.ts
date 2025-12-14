@@ -7,6 +7,8 @@ export interface Meme {
     tags: string[];
     name: string;
     dimensions: number[];
+    download_count?: number;
+    share_count?: number;
 }
 export interface MemesResponse {
     memes: Meme[];
@@ -33,6 +35,8 @@ const memeSchema: JSONSchemaType<Meme> = {
             type: "array",
             items: { type: "number" },
         },
+        download_count: { type: "number", nullable: true },
+        share_count: { type: "number", nullable: true },
     },
     required: ["id", "media_url", "media_type", "tags", "name", "dimensions"],
     additionalProperties: false,
