@@ -287,15 +287,15 @@ func (s *Server) SearchMemes(ctx context.Context, req *pb.SearchMemesRequest) (*
 	// Calculate offset
 	offset := (req.Page - 1) * req.PageSize
 
-	// Get total count of search results
+	// Get total count of search results using fuzzy search
 	var totalCount int32
-	err := s.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM search_memes($1)", query).Scan(&totalCount)
+	err := s.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM search_memes_fuzzy($1)", query).Scan(&totalCount)
 	if err != nil {
 		return nil, s.handleError("error counting memes", err, codes.Internal)
 	}
 
-	// Fetch paginated search results
-	rows, err := s.db.Query("SELECT id::text FROM search_memes($1) LIMIT $2 OFFSET $3", query, req.PageSize, offset)
+	// Fetch paginated search results using fuzzy search
+	rows, err := s.db.Query("SELECT id::text FROM search_memes_fuzzy($1) LIMIT $2 OFFSET $3", query, req.PageSize, offset)
 	if err != nil {
 		return nil, s.handleError("search memes error", err, codes.Internal)
 	}
@@ -363,8 +363,8 @@ func (s *Server) SearchTags(ctx context.Context, req *pb.SearchTagsRequest) (*pb
 	}
 
 	var tags []string
-	pattern := "%" + query + "%"
-	rows, err := s.db.QueryContext(ctx, "SELECT name FROM tag WHERE name ILIKE $1 LIMIT $2", pattern, limit)
+	// Use fuzzy search function with default similarity threshold of 0.3
+	rows, err := s.db.QueryContext(ctx, "SELECT name FROM search_tags_fuzzy($1, 0.3, $2)", query, limit)
 	if err != nil {
 		return nil, s.handleError("error searching tags", err, codes.Internal)
 	}
@@ -372,7 +372,8 @@ func (s *Server) SearchTags(ctx context.Context, req *pb.SearchTagsRequest) (*pb
 
 	for rows.Next() {
 		var tag string
-		if err := rows.Scan(&tag); err != nil {
+		var similarity float32 // Ignore similarity score in response for backward compatibility
+		if err := rows.Scan(&tag, &similarity); err != nil {
 			return nil, s.handleError("error scanning tag", err, codes.Internal)
 		}
 		tags = append(tags, tag)
