@@ -364,7 +364,7 @@ func (s *Server) SearchTags(ctx context.Context, req *pb.SearchTagsRequest) (*pb
 
 	var tags []string
 	// Use fuzzy search function with default similarity threshold of 0.3
-	rows, err := s.db.QueryContext(ctx, "SELECT name FROM search_tags_fuzzy($1, 0.3, $2)", query, limit)
+	rows, err := s.db.QueryContext(ctx, "SELECT name, similarity FROM search_tags_fuzzy($1, 0.3, $2)", query, limit)
 	if err != nil {
 		return nil, s.handleError("error searching tags", err, codes.Internal)
 	}
