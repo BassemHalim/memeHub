@@ -1,4 +1,5 @@
 import SearchComponent from "@/components/searchComponent";
+import HeroImage from "@/components/ui/HeroImage";
 import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 
@@ -50,9 +51,12 @@ export default async function Search({
     const t = await getTranslations({ locale: "ar", namespace: "Home" });
     return (
         <Suspense fallback={<div>Loading...</div>}>
-            <h1 className="text-5xl font-bold text-white text-center m-2">
-                {t("title")}
-            </h1>
+            <HeroImage height="h-[300px] md:h-[400px] ">
+                <h1 className="text-5xl font-bold text-white text-center">
+                    {t("title")}
+                </h1>
+                <h2 className="text-2xl text-center">{t("hero")}</h2>
+            </HeroImage>
             <SearchComponent
                 key={[query, ...tags].join("-") || ""}
                 query={query}

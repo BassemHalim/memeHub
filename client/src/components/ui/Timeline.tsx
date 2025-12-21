@@ -60,6 +60,10 @@ export default function Timeline({
                         >
                             <Edit />
                         </Button>
+                        <div className="flex gap-2 text-sm">
+                            <span>↓{data.download_count ?? 0}</span>
+                            <span>{data.share_count ?? 0}</span>
+                        </div>
                     </div>
                     <UpdateMeme
                         meme={data}
