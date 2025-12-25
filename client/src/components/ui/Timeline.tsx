@@ -75,7 +75,7 @@ export default function Timeline({
                     <MemeCard meme={data} />
                 </div>
             ) : (
-                <MemeCard meme={data} loadPriority={index < 8} />
+                <MemeCard meme={data} />
             );
         },
         [admin, auth, editMeme]
