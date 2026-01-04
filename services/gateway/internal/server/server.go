@@ -449,6 +449,20 @@ func (s *Server) PatchMeme(w http.ResponseWriter, r *http.Request) {
 		s.handleError(w, err, "The meme data is invalid or missing required fields", http.StatusBadRequest)
 		return
 	}
+
+	// Validate tag names
+	for _, tag := range meme.Tags {
+		trimmed := strings.TrimSpace(tag)
+		if trimmed == "" {
+			http.Error(w, "Tag name cannot be empty", http.StatusBadRequest)
+			return
+		}
+		if len(trimmed) > 100 {
+			http.Error(w, "Tag name exceeds 100 characters", http.StatusBadRequest)
+			return
+		}
+	}
+
 	// verify if mime type is for an image
 	if strings.Split(meme.MimeType, "/")[0] != "image" {
 		s.log.Debug("Invalid media type", "MimeType", meme.MimeType)

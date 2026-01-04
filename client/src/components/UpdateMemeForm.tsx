@@ -86,11 +86,10 @@ export default function UpdateMeme({
         mode: "onChange",
         defaultValues: {
             name: meme.name,
-            // tags: meme.tags.map((tag) => ({
-            //     label: tag,
-            //     value: tag,
-            // })),
-            tags: [],
+            tags: meme.tags.map((tag) => ({
+                label: tag,
+                value: tag,
+            })),
             imageUrl: "",
             imageFile: undefined,
         },

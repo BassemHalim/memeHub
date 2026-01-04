@@ -449,10 +449,20 @@ func (s *Server) UpdateMeme(ctx context.Context, r *pb.UpdateMemeRequest) (*pb.U
 		}
 	}
 
-	if len(r.Tags) > 0 {
-		err := saveTags(ctx, r.Id, r.Tags, txn)
+	// Replace tags: delete existing associations and add new ones
+	if r.Tags != nil {
+		// Delete all existing meme_tag associations for this meme
+		_, err := txn.ExecContext(ctx, "DELETE FROM meme_tag WHERE meme_id = $1", r.Id)
 		if err != nil {
-			return &pb.UpdateMemeResponse{Success: false}, s.handleError("error saving tags", err, codes.Internal)
+			return &pb.UpdateMemeResponse{Success: false}, s.handleError("error removing existing tags", err, codes.Internal)
+		}
+
+		// Add the new tags (if any)
+		if len(r.Tags) > 0 {
+			err = saveTags(ctx, r.Id, r.Tags, txn)
+			if err != nil {
+				return &pb.UpdateMemeResponse{Success: false}, s.handleError("error saving tags", err, codes.Internal)
+			}
 		}
 	}
 

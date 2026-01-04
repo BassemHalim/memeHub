@@ -61,8 +61,9 @@ export async function Patch(
     if (file) {
         body.append("image", file);
     }
-
-    return fetch(`/api/admin/meme/${id}`, {
+    const apiHost = process.env.NEXT_PUBLIC_API_HOST || window.location.origin;
+    const url = new URL(`/api/admin/meme/${id}`, apiHost)
+    return fetch(url, {
         method: "PATCH",
         headers: {
             Authorization: "Bearer " + token,
