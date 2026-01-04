@@ -28,7 +28,8 @@ export function useAuth() {
                 username: string,
                 password: string
             ): Promise<boolean> => {
-                const url = new URL("/api/login", window.location.origin);
+                const apiHost = process.env.NEXT_PUBLIC_API_HOST || window.location.origin;
+                const url = new URL("/api/login", apiHost);
                 return fetch(url, {
                     method: "POST",
                     headers: {

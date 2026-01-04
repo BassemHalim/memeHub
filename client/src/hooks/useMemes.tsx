@@ -3,25 +3,29 @@ import Ajv from "ajv";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Meme, MemesResponse, memesResponseSchema } from "../types/Meme";
 
-// Cache for storing meme responses
-const memeCache = new Map<number, MemesResponse>();
+export type SortOrder = "newest" | "oldest" | "most_tagged" | "most_downloaded" | "most_shared";
+
+// Cache for storing meme responses, keyed by sort order and page
+const memeCache = new Map<string, MemesResponse>();
 
 const ajv = new Ajv();
 /**
  *
  * @param pageNum the page number to fetch
+ * @param sort the sort order for the memes
  * @param admin the admin token to use for fetching memes (will fetch memes from the admin endpoint)
  * @returns
  */
 async function fetchMemes(
     pageNum: number,
     pageSize: number,
+    sort: SortOrder = "newest",
     adminToken?: string
 ): Promise<MemesResponse> {
-    if (memeCache.has(pageNum)) {
-        return memeCache.get(pageNum)!;
+    const cacheKey = `${sort}_${pageNum}`;
+    if (memeCache.has(cacheKey)) {
+        return memeCache.get(cacheKey)!;
     }
-    // console.log("loading page", pageNum);
 
     let url = new URL("/api/memes", process.env.NEXT_PUBLIC_API_HOST);
     if (adminToken) {
@@ -29,7 +33,7 @@ async function fetchMemes(
     }
     url.searchParams.append("page", pageNum.toString());
     url.searchParams.append("pageSize", String(pageSize));
-    url.searchParams.append("sort", "newest");
+    url.searchParams.append("sort", sort);
     const res = await fetch(url, {
         headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : {},
     });
@@ -44,11 +48,11 @@ async function fetchMemes(
         console.log(validate.errors);
         throw new Error("Invalid response format");
     }
-    memeCache.set(pageNum, data);
+    memeCache.set(cacheKey, data);
     return data;
 }
 
-export function useMemes(adminToken?: string, pageSize = 20) {
+export function useMemes(adminToken?: string, pageSize = 20, sort: SortOrder = "newest") {
     const [memes, setMemes] = useState<Meme[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [hasMore, setHasMore] = useState(true);
@@ -60,7 +64,7 @@ export function useMemes(adminToken?: string, pageSize = 20) {
         const currentPage = page.current;
         setIsLoading(true);
         setError(null);
-        fetchMemes(currentPage + 1, pageSize, adminToken)
+        fetchMemes(currentPage + 1, pageSize, sort, adminToken)
             .then((memesResp) => {
                 const newMemes = memesResp.memes;
                 setMemes((prev) => [...prev, ...newMemes]);
@@ -76,7 +80,7 @@ export function useMemes(adminToken?: string, pageSize = 20) {
             .finally(() => {
                 setIsLoading(false);
             });
-    }, [adminToken]);
+    }, [adminToken, pageSize, sort]);
 
     useEffect(() => {
         if (!initialized.current) {

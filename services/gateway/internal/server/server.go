@@ -79,11 +79,18 @@ func (s *Server) GetTimeline(w http.ResponseWriter, r *http.Request) {
 	// parse sort order
 	sortOrder := pb.SortOrder_NEWEST // default value
 	if order := queryParams.Get("sort"); order != "" {
-		if strings.EqualFold(order, "oldest") {
+		switch strings.ToLower(order) {
+		case "oldest":
 			sortOrder = pb.SortOrder_OLDEST
+		case "most_tagged":
+			sortOrder = pb.SortOrder_MOST_TAGGED
+		case "most_downloaded":
+			sortOrder = pb.SortOrder_MOST_DOWNLOADED
+		case "most_shared":
+			sortOrder = pb.SortOrder_MOST_SHARED
 		}
 	}
-	timelineCacheKey := fmt.Sprintf("timeline_%d_%d", page, pageSize) // TODO: fixme different page sizes will create duplicate entries in the cache
+	timelineCacheKey := fmt.Sprintf("timeline_%d_%d_%d", page, pageSize, sortOrder) // TODO: fixme different page sizes will create duplicate entries in the cache
 	cachedTimeline, found := s.cache.Get(timelineCacheKey)
 	if strings.HasPrefix(r.Pattern, "/api/memes") { // Don't cache the admin endpoint
 		// check if in cache
