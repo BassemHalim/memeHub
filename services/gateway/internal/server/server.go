@@ -545,7 +545,7 @@ func (s *Server) PatchMeme(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 	defer cancel()
 	resp, err := s.memeClient.UpdateMeme(ctx, updateRequest)
 	if err != nil {
