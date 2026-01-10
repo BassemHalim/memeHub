@@ -4,7 +4,7 @@ import Timeline from "@/components/ui/Timeline";
 import { useMemes } from "@/hooks/useMemes";
 
 export default function Page() {
-    const { memes, isLoading, hasMore, next } = useMemes();
+    const { memes, isLoading, hasMore, next } = useMemes(undefined, 20, "most_downloaded");
 
     return (
         <div className="w-full flex flex-col flex-1">
