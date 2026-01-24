@@ -69,12 +69,12 @@ const nextConfig: NextConfig = {
             {
                 source: "/en",
                 destination: "/",
-                permanent: false,
+                permanent: true,
             },
             {
                 source: "/en/:path*",
                 destination: "/:path*",
-                permanent: false,
+                permanent: true,
             },
         ];
     },
