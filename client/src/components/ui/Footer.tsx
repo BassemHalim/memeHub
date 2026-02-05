@@ -6,7 +6,7 @@ export default function Footer() {
                     <strong>قصر الميمز</strong>
                 </p>
                 <p className="">أجمد ميمز في مصر</p>
-                <span> &copy; 2025 </span>
+                <span> &copy; 2026 </span>
                 <a href="https://github.com/BassemHalim"> BassemH </a>
             </div>
         </footer>
