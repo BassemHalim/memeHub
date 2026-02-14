@@ -3,6 +3,7 @@ import Recommendations from "@/components/ui/Recommendations";
 import fetchMeme from "@/functions/fetchMeme";
 import { fetchMemes } from "@/functions/fetchMemes";
 import { getMemeUrl } from "@/functions/memeUrl";
+import { Link } from "@/i18n/navigation";
 import { Meme } from "@/types/Meme";
 import { memePagePath } from "@/utils/memeUrl";
 import { Metadata } from "next";
@@ -72,6 +73,13 @@ export default async function Page({
     if (!meme) notFound();
     return (
         <div className="max-w-full w-[800px] flex flex-col grow p-4">
+            <Link
+                href="/newest"
+                className="sr-only"
+                aria-label="View newest memes"
+            >
+                Newest Memes
+            </Link>
             <Suspense>
                 <div className="flex flex-col gap-4 justify-start">
                     <MemeCard meme={meme} />
