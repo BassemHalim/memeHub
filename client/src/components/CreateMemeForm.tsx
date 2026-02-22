@@ -56,13 +56,13 @@ const formSchema = z
             typeof window === "undefined"
                 ? z.any()
                 : z
-                      .instanceof(File)
-                      .refine((file) => file.size < MAX_FILE_SIZE, {
-                          message: `Image too big, Your image must be less than ${Math.floor(
-                              MAX_FILE_SIZE / 1000000,
-                          )} MB`,
-                      })
-                      .optional(),
+                    .instanceof(File)
+                    .refine((file) => file.size < MAX_FILE_SIZE, {
+                        message: `Image too big, Your image must be less than ${Math.floor(
+                            MAX_FILE_SIZE / 1000000,
+                        )} MB`,
+                    })
+                    .optional(),
     })
     .refine(
         (data) => {
@@ -249,6 +249,9 @@ export default function CreateMeme({
                             <DialogDescription>
                                 {t("description")}
                             </DialogDescription>
+                            <DialogDescription className="font-medium text-blue-600">
+                                {t("duplicate-check")}
+                            </DialogDescription>
                             <DialogDescription className="font-medium text-red-500">
                                 {t("note")}
                             </DialogDescription>
@@ -425,9 +428,8 @@ export default function CreateMeme({
                             "id" in state.data && (
                                 <Button asChild onClick={handleCancel}>
                                     <Link
-                                        href={`/meme/${
-                                            (state.data as unknown as Meme).id
-                                        }`}
+                                        href={`/meme/${(state.data as unknown as Meme).id
+                                            }`}
                                     >
                                         Meme Page
                                     </Link>
