@@ -19,10 +19,10 @@ func GetEnvOrDefault(key, defaultValue string) string {
 }
 
 func GetEnvOrExit(key string) string {
-	if value, ok := os.LookupEnv(key); ok {
+	if value, ok := os.LookupEnv(key); ok && value != "" {
 		return value
 	}
-	log.Println("Environment variable", key, "not set")
+	log.Println("Environment variable", key, "not set or empty")
 	os.Exit(1)
 	return ""
 }

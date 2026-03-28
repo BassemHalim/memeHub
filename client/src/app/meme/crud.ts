@@ -1,23 +1,22 @@
 import { MAX_FILE_SIZE } from "@/const";
 import { validateImage } from "@/utils/img";
 
-export function Delete(id: string, token: string) {
+export async function Delete(id: string, token: string): Promise<boolean> {
     if (!id || !token) {
         console.error("Missing id or token");
-        return;
+        return false;
     }
-    alert(`Delete meme ${id} with token ${token}`);
     const headers = new Headers();
     headers.append("Authorization", "Bearer " + token);
 
-    const requestOptions = {
-        method: "DELETE",
-        headers: headers,
-    };
-
-    fetch(`/api/admin/meme/${id}`, requestOptions)
-        .then(() => console.log("Deleted meme ", id))
-        .catch((error) => console.error(error));
+    try {
+        const res = await fetch(`/api/admin/meme/${id}`, { method: "DELETE", headers });
+        if (!res.ok) console.error("Failed to delete meme", id, res.status);
+        return res.ok;
+    } catch (error) {
+        console.error(error);
+        return false;
+    }
 }
 
 export async function Patch(

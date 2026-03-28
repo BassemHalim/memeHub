@@ -13,6 +13,10 @@ service MemeService {
   rpc AddTags(AddTagsRequest) returns (AddTagsResponse);
   rpc IncrementDownload(IncrementEngagementRequest) returns (IncrementEngagementResponse);
   rpc IncrementShare(IncrementEngagementRequest) returns (IncrementEngagementResponse);
+  rpc GetPendingMemes(GetPendingMemesRequest) returns (MemesResponse);
+  rpc ApproveMeme(ApproveMemeRequest) returns (ApproveMemeResponse);
+  rpc UnapproveMeme(UnapproveMemeRequest) returns (UnapproveMemeResponse);
+
 }
 
 message UploadMemeRequest {
@@ -74,6 +78,29 @@ message IncrementEngagementRequest {
 }
 
 message IncrementEngagementResponse {
+  bool success = 1;
+  string error = 2;
+}
+
+message GetPendingMemesRequest {
+  int32 page = 1;
+  int32 page_size = 2;
+}
+
+message ApproveMemeRequest {
+  string meme_id = 1;
+}
+
+message ApproveMemeResponse {
+  bool success = 1;
+  string error = 2;
+}
+
+message UnapproveMemeRequest {
+  string meme_id = 1;
+}
+
+message UnapproveMemeResponse {
   bool success = 1;
   string error = 2;
 }

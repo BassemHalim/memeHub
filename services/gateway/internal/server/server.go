@@ -77,9 +77,11 @@ func (s *Server) GetTimeline(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	// parse sort order
-	sortOrder := pb.SortOrder_NEWEST // default value
+	sortOrder := pb.SortOrder_MOST_DOWNLOADED // default value changed from NEWEST to MOST_DOWNLOADED
 	if order := queryParams.Get("sort"); order != "" {
 		switch strings.ToLower(order) {
+		case "newest":
+			sortOrder = pb.SortOrder_NEWEST
 		case "oldest":
 			sortOrder = pb.SortOrder_OLDEST
 		case "most_tagged":
@@ -88,8 +90,17 @@ func (s *Server) GetTimeline(w http.ResponseWriter, r *http.Request) {
 			sortOrder = pb.SortOrder_MOST_DOWNLOADED
 		case "most_shared":
 			sortOrder = pb.SortOrder_MOST_SHARED
+		default:
+			// Invalid sort parameter - return HTTP 400
+			s.log.Warn("Invalid sort parameter provided", "sort", order, "IP", r.RemoteAddr)
+			http.Error(w, "Invalid sort parameter. Valid options: newest, oldest, most_tagged, most_downloaded, most_shared", http.StatusBadRequest)
+			return
 		}
 	}
+
+	// Log sort parameter usage for monitoring
+	s.log.Debug("Timeline request", "sort", sortOrder.String(), "page", page, "pageSize", pageSize, "IP", r.RemoteAddr)
+
 	timelineCacheKey := fmt.Sprintf("timeline_%d_%d_%d", page, pageSize, sortOrder) // TODO: fixme different page sizes will create duplicate entries in the cache
 	cachedTimeline, found := s.cache.Get(timelineCacheKey)
 	if strings.HasPrefix(r.Pattern, "/api/memes") { // Don't cache the admin endpoint
@@ -100,7 +111,6 @@ func (s *Server) GetTimeline(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
 			json.NewEncoder(w).Encode(cachedTimeline)
 			return
-
 		}
 	}
 	// get timeline memes
@@ -553,6 +563,56 @@ func (s *Server) PatchMeme(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.log.Debug(resp.String())
+	w.WriteHeader(http.StatusOK)
+}
+
+// GET /api/admin/memes/pending
+func (s *Server) GetPendingMemes(w http.ResponseWriter, r *http.Request) {
+	queryParams := r.URL.Query()
+	page, pageSize := 1, 10
+	if p := queryParams.Get("page"); p != "" {
+		if v, err := strconv.Atoi(p); err == nil && v > 0 {
+			page = v
+		}
+	}
+	if ps := queryParams.Get("pageSize"); ps != "" {
+		if v, err := strconv.Atoi(ps); err == nil && v > 0 {
+			pageSize = v
+		}
+	}
+	ctx, cancel := context.WithTimeout(r.Context(), time.Second)
+	defer cancel()
+	resp, err := s.memeClient.GetPendingMemes(ctx, &pb.GetPendingMemesRequest{
+		Page:     int32(page),
+		PageSize: int32(pageSize),
+	})
+	if err != nil {
+		s.handleError(w, err, "Failed to fetch pending memes", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
+}
+
+// PATCH /api/admin/meme/{id}/approve
+func (s *Server) ApproveMeme(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if err := uuid.Validate(id); err != nil {
+		s.handleError(w, err, "Bad ID", http.StatusBadRequest)
+		return
+	}
+	ctx, cancel := context.WithTimeout(r.Context(), time.Second)
+	defer cancel()
+	resp, err := s.memeClient.ApproveMeme(ctx, &pb.ApproveMemeRequest{MemeId: id})
+	if err != nil {
+		s.handleError(w, err, "Failed to approve meme", http.StatusInternalServerError)
+		return
+	}
+	if !resp.Success {
+		http.Error(w, resp.Error, http.StatusBadRequest)
+		return
+	}
+	s.log.Info("Meme approved", "ID", id)
 	w.WriteHeader(http.StatusOK)
 }
 

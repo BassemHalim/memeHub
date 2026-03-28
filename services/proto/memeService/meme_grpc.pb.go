@@ -29,6 +29,9 @@ const (
 	MemeService_AddTags_FullMethodName           = "/meme.MemeService/AddTags"
 	MemeService_IncrementDownload_FullMethodName = "/meme.MemeService/IncrementDownload"
 	MemeService_IncrementShare_FullMethodName    = "/meme.MemeService/IncrementShare"
+	MemeService_GetPendingMemes_FullMethodName   = "/meme.MemeService/GetPendingMemes"
+	MemeService_ApproveMeme_FullMethodName       = "/meme.MemeService/ApproveMeme"
+	MemeService_UnapproveMeme_FullMethodName     = "/meme.MemeService/UnapproveMeme"
 )
 
 // MemeServiceClient is the client API for MemeService service.
@@ -45,6 +48,9 @@ type MemeServiceClient interface {
 	AddTags(ctx context.Context, in *AddTagsRequest, opts ...grpc.CallOption) (*AddTagsResponse, error)
 	IncrementDownload(ctx context.Context, in *IncrementEngagementRequest, opts ...grpc.CallOption) (*IncrementEngagementResponse, error)
 	IncrementShare(ctx context.Context, in *IncrementEngagementRequest, opts ...grpc.CallOption) (*IncrementEngagementResponse, error)
+	GetPendingMemes(ctx context.Context, in *GetPendingMemesRequest, opts ...grpc.CallOption) (*MemesResponse, error)
+	ApproveMeme(ctx context.Context, in *ApproveMemeRequest, opts ...grpc.CallOption) (*ApproveMemeResponse, error)
+	UnapproveMeme(ctx context.Context, in *UnapproveMemeRequest, opts ...grpc.CallOption) (*UnapproveMemeResponse, error)
 }
 
 type memeServiceClient struct {
@@ -155,6 +161,36 @@ func (c *memeServiceClient) IncrementShare(ctx context.Context, in *IncrementEng
 	return out, nil
 }
 
+func (c *memeServiceClient) GetPendingMemes(ctx context.Context, in *GetPendingMemesRequest, opts ...grpc.CallOption) (*MemesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MemesResponse)
+	err := c.cc.Invoke(ctx, MemeService_GetPendingMemes_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *memeServiceClient) ApproveMeme(ctx context.Context, in *ApproveMemeRequest, opts ...grpc.CallOption) (*ApproveMemeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ApproveMemeResponse)
+	err := c.cc.Invoke(ctx, MemeService_ApproveMeme_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *memeServiceClient) UnapproveMeme(ctx context.Context, in *UnapproveMemeRequest, opts ...grpc.CallOption) (*UnapproveMemeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UnapproveMemeResponse)
+	err := c.cc.Invoke(ctx, MemeService_UnapproveMeme_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // MemeServiceServer is the server API for MemeService service.
 // All implementations must embed UnimplementedMemeServiceServer
 // for forward compatibility.
@@ -169,6 +205,9 @@ type MemeServiceServer interface {
 	AddTags(context.Context, *AddTagsRequest) (*AddTagsResponse, error)
 	IncrementDownload(context.Context, *IncrementEngagementRequest) (*IncrementEngagementResponse, error)
 	IncrementShare(context.Context, *IncrementEngagementRequest) (*IncrementEngagementResponse, error)
+	GetPendingMemes(context.Context, *GetPendingMemesRequest) (*MemesResponse, error)
+	ApproveMeme(context.Context, *ApproveMemeRequest) (*ApproveMemeResponse, error)
+	UnapproveMeme(context.Context, *UnapproveMemeRequest) (*UnapproveMemeResponse, error)
 	mustEmbedUnimplementedMemeServiceServer()
 }
 
@@ -208,6 +247,15 @@ func (UnimplementedMemeServiceServer) IncrementDownload(context.Context, *Increm
 }
 func (UnimplementedMemeServiceServer) IncrementShare(context.Context, *IncrementEngagementRequest) (*IncrementEngagementResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method IncrementShare not implemented")
+}
+func (UnimplementedMemeServiceServer) GetPendingMemes(context.Context, *GetPendingMemesRequest) (*MemesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetPendingMemes not implemented")
+}
+func (UnimplementedMemeServiceServer) ApproveMeme(context.Context, *ApproveMemeRequest) (*ApproveMemeResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ApproveMeme not implemented")
+}
+func (UnimplementedMemeServiceServer) UnapproveMeme(context.Context, *UnapproveMemeRequest) (*UnapproveMemeResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UnapproveMeme not implemented")
 }
 func (UnimplementedMemeServiceServer) mustEmbedUnimplementedMemeServiceServer() {}
 func (UnimplementedMemeServiceServer) testEmbeddedByValue()                     {}
@@ -410,6 +458,60 @@ func _MemeService_IncrementShare_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _MemeService_GetPendingMemes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetPendingMemesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MemeServiceServer).GetPendingMemes(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MemeService_GetPendingMemes_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MemeServiceServer).GetPendingMemes(ctx, req.(*GetPendingMemesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MemeService_ApproveMeme_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ApproveMemeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MemeServiceServer).ApproveMeme(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MemeService_ApproveMeme_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MemeServiceServer).ApproveMeme(ctx, req.(*ApproveMemeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MemeService_UnapproveMeme_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UnapproveMemeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MemeServiceServer).UnapproveMeme(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MemeService_UnapproveMeme_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MemeServiceServer).UnapproveMeme(ctx, req.(*UnapproveMemeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // MemeService_ServiceDesc is the grpc.ServiceDesc for MemeService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -456,6 +558,18 @@ var MemeService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "IncrementShare",
 			Handler:    _MemeService_IncrementShare_Handler,
+		},
+		{
+			MethodName: "GetPendingMemes",
+			Handler:    _MemeService_GetPendingMemes_Handler,
+		},
+		{
+			MethodName: "ApproveMeme",
+			Handler:    _MemeService_ApproveMeme_Handler,
+		},
+		{
+			MethodName: "UnapproveMeme",
+			Handler:    _MemeService_UnapproveMeme_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

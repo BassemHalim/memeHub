@@ -23,6 +23,16 @@ grpcurl -plaintext -proto proto/memeService/meme.proto -d '{"id": 24}' \
 grpcurl -plaintext -proto proto/memeService/meme.proto \
   localhost:50051 meme.MemeService/GetTimelineMemes;
 
+# Get pending memes
+grpcurl -plaintext -proto proto/memeService/meme.proto \
+  -d '{"page": 1, "page_size": 10}' \
+  localhost:50051 meme.MemeService/GetPendingMemes
+
+# Approve meme (replace MEME_ID)
+grpcurl -plaintext -proto proto/memeService/meme.proto \
+  -d '{"meme_id": "MEME_ID"}' \
+  localhost:50051 meme.MemeService/ApproveMeme
+
 
 # add tag to meme
 curl -X PATCH "localhost:8080/api/meme/a37f801b-d3a1-4773-b0b5-d0212315995d/tags" -v \

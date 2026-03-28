@@ -182,6 +182,7 @@ func (s *Server) GetTimelineMemes(ctx context.Context, req *pb.GetTimelineReques
 	baseQuery := `
         SELECT m.id, m.media_url, m.media_type, m.name, m.dimensions, m.download_count, m.share_count
         FROM meme m
+        WHERE m.approval_status = 'approved'
     `
 
 	// Add timeline-specific sorting
@@ -201,7 +202,7 @@ func (s *Server) GetTimelineMemes(ctx context.Context, req *pb.GetTimelineReques
 
 	// Get total count
 	var totalCount int32
-	countQuery := "SELECT COUNT(*) FROM meme"
+	countQuery := "SELECT COUNT(*) FROM meme WHERE approval_status = 'approved'"
 	err := s.db.QueryRow(countQuery).Scan(&totalCount)
 	if err != nil {
 		return nil, s.handleError("error counting memes", err, codes.Internal)
@@ -242,16 +243,17 @@ func (s *Server) GetTimelineMemes(ctx context.Context, req *pb.GetTimelineReques
 		if err != nil {
 			return nil, s.handleError("error querying tags", err, codes.Internal)
 		}
-		defer tagRows.Close()
 
-		var tags []string
+		tags := []string{}
 		for tagRows.Next() {
 			var tag string
 			if err := tagRows.Scan(&tag); err != nil {
+				tagRows.Close()
 				return nil, s.handleError("error scanning tag", err, codes.Internal)
 			}
 			tags = append(tags, tag)
 		}
+		tagRows.Close()
 		meme.Tags = tags
 		memes = append(memes, meme)
 	}
@@ -624,6 +626,143 @@ func (s *Server) IncrementShare(ctx context.Context, req *pb.IncrementEngagement
 
 	// Return success
 	return &pb.IncrementEngagementResponse{
+		Success: true,
+		Error:   "",
+	}, nil
+}
+
+// GetPendingMemes retrieves all memes with approval_status = 'pending'
+func (s *Server) GetPendingMemes(ctx context.Context, req *pb.GetPendingMemesRequest) (*pb.MemesResponse, error) {
+	// Validate pagination parameters
+	if req.Page < 1 {
+		req.Page = 1
+	}
+	if req.PageSize < 1 {
+		req.PageSize = 50
+	}
+
+	offset := (req.Page - 1) * req.PageSize
+
+	// Get pending memes ordered by created_at DESC (newest first)
+	query := `
+		SELECT m.id, m.media_url, m.media_type, m.name, m.dimensions, m.download_count, m.share_count
+		FROM meme m
+		WHERE m.approval_status = 'pending'
+		ORDER BY m.created_at DESC
+		LIMIT $1 OFFSET $2
+	`
+
+	rows, err := s.db.QueryContext(ctx, query, req.PageSize, offset)
+	if err != nil {
+		return nil, s.handleError("error querying pending memes", err, codes.Internal)
+	}
+	defer rows.Close()
+
+	// Get total count
+	var totalCount int32
+	err = s.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM meme WHERE approval_status = 'pending'").Scan(&totalCount)
+	if err != nil {
+		return nil, s.handleError("error counting pending memes", err, codes.Internal)
+	}
+
+	// Process results
+	var memes []*pb.MemeResponse
+	for rows.Next() {
+		meme := &pb.MemeResponse{}
+		var dimensions pq.Int32Array
+		if err := rows.Scan(&meme.Id, &meme.MediaUrl, &meme.MediaType, &meme.Name, &dimensions, &meme.DownloadCount, &meme.ShareCount); err != nil {
+			return nil, s.handleError("error scanning meme", err, codes.Internal)
+		}
+		meme.Dimensions = dimensions
+
+		// Get tags
+		tagRows, err := s.db.QueryContext(ctx, `
+			SELECT t.name FROM tag t
+			JOIN meme_tag mt ON t.id = mt.tag_id
+			WHERE mt.meme_id = $1
+		`, meme.Id)
+		if err != nil {
+			return nil, s.handleError("error querying tags", err, codes.Internal)
+		}
+
+		var tags []string
+		for tagRows.Next() {
+			var tag string
+			if err := tagRows.Scan(&tag); err != nil {
+				tagRows.Close()
+				return nil, s.handleError("error scanning tag", err, codes.Internal)
+			}
+			tags = append(tags, tag)
+		}
+		tagRows.Close()
+		meme.Tags = tags
+		memes = append(memes, meme)
+	}
+
+	totalPages := totalCount / req.PageSize
+	if totalCount%req.PageSize != 0 {
+		totalPages++
+	}
+
+	return &pb.MemesResponse{
+		Memes:      memes,
+		TotalCount: totalCount,
+		Page:       req.Page,
+		TotalPages: totalPages,
+	}, nil
+}
+
+// ApproveMeme approves a pending meme by updating its approval status
+func (s *Server) ApproveMeme(ctx context.Context, req *pb.ApproveMemeRequest) (*pb.ApproveMemeResponse, error) {
+	// Validate meme_id format (UUID)
+	if err := utils.ValidateUUID(req.MemeId); err != nil {
+		s.log.Warn("Invalid meme ID format for approval", "MemeID", req.MemeId)
+		return &pb.ApproveMemeResponse{
+			Success: false,
+			Error:   "Invalid meme ID format",
+		}, status.Error(codes.InvalidArgument, "Invalid meme ID format")
+	}
+
+	// Update approval_status to 'approved', set approved_at to NOW()
+	// currently hardcodes approved_by
+	result, err := s.db.ExecContext(ctx, `
+		UPDATE meme 
+		SET approval_status = 'approved',
+		    approved_at = NOW(),
+		    approved_by = 'admin'
+		WHERE id = $1 AND approval_status = 'pending'
+	`, req.MemeId)
+
+	if err != nil {
+		s.log.Error("Error approving meme", "Error", err, "MemeID", req.MemeId)
+		return &pb.ApproveMemeResponse{
+			Success: false,
+			Error:   "Internal server error",
+		}, status.Error(codes.Internal, "Failed to approve meme")
+	}
+
+	// Check rows affected
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		s.log.Error("Error checking rows affected", "Error", err, "MemeID", req.MemeId)
+		return &pb.ApproveMemeResponse{
+			Success: false,
+			Error:   "Internal server error",
+		}, status.Error(codes.Internal, "Failed to verify approval")
+	}
+
+	if rowsAffected == 0 {
+		s.log.Warn("Meme not found or already approved", "MemeID", req.MemeId)
+		return &pb.ApproveMemeResponse{
+			Success: false,
+			Error:   "Meme not found or already approved",
+		}, status.Error(codes.NotFound, "Meme not found or already approved")
+	}
+
+	// Log successful approval
+	s.log.Info("Meme approved successfully", "MemeID", req.MemeId)
+
+	return &pb.ApproveMemeResponse{
 		Success: true,
 		Error:   "",
 	}, nil
