@@ -1,41 +1,60 @@
 #!/bin/bash
 
-IMAGE_B64=$(base64 -w 0 tests/test-image.jpg)
-# Upload meme
-grpcurl -plaintext \                                                                        
-  -proto proto/memeService/meme.proto \
-  -d "{\"image\": \"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=\", \"media_type\": \"image/jpeg\", \"tags\": [\"funny\", \"test\"], \"name\": \"test\", \"dimensions\": [10, 10]}" \
-  localhost:50051 \
-  meme.MemeService/UploadMeme
+# Test script for meme service gRPC endpoints with TLS
+# Usage: ./test-script.sh
 
-# Get meme
-grpcurl -plaintext -proto proto/memeService/meme.proto -d '{"id": 23}' \
-  localhost:50051 meme.MemeService/GetMeme
+GRPC_HOST="localhost:50051"
+PROTO_PATH="proto/memeService/meme.proto"
+CA_CERT="cert/ca-cert.pem"
+SERVER_NAME="meme-service"
 
-# Get memes by tag
-grpcurl -plaintext -proto proto/memeService/meme.proto -d '{"tags":["funny", "test"], "match_type":"ANY", "page":1, "page_size":10, "sort_order":"NEWEST"}' localhost:50051 meme.MemeService/FilterMemesByTags 
+# Common grpcurl flags
+GRPC_FLAGS="-cacert $CA_CERT -servername $SERVER_NAME -proto $PROTO_PATH"
 
-// Delete meme
-grpcurl -plaintext -proto proto/memeService/meme.proto -d '{"id": 24}' \
-  localhost:50051 meme.MemeService/DeleteMeme
-
-# Timeline 
-grpcurl -plaintext -proto proto/memeService/meme.proto \
-  localhost:50051 meme.MemeService/GetTimelineMemes;
+echo "Testing meme service gRPC endpoints with TLS..."
+echo "================================================"
 
 # Get pending memes
-grpcurl -plaintext -proto proto/memeService/meme.proto \
+echo -e "\n1. Get pending memes:"
+grpcurl $GRPC_FLAGS \
   -d '{"page": 1, "page_size": 10}' \
-  localhost:50051 meme.MemeService/GetPendingMemes
+  $GRPC_HOST meme.MemeService/GetPendingMemes
+
+# Get timeline memes
+echo -e "\n2. Get timeline memes:"
+grpcurl $GRPC_FLAGS \
+  $GRPC_HOST meme.MemeService/GetTimelineMemes
+
+# Get memes by tag
+echo -e "\n3. Search memes:"
+grpcurl $GRPC_FLAGS \
+  -d '{"query":"test", "page":1, "page_size":10}' \
+  $GRPC_HOST meme.MemeService/SearchMemes
+
+# Upload meme (uncomment to test)
+# IMAGE_B64=$(base64 -w 0 tests/test-image.jpg)
+# echo -e "\n4. Upload meme:"
+# grpcurl $GRPC_FLAGS \
+#   -d "{\"image\": \"$IMAGE_B64\", \"media_type\": \"image/jpeg\", \"tags\": [\"funny\", \"test\"], \"name\": \"test\", \"dimensions\": [10, 10]}" \
+#   $GRPC_HOST meme.MemeService/UploadMeme
+
+# Get specific meme (replace ID)
+# echo -e "\n5. Get meme by ID:"
+# grpcurl $GRPC_FLAGS \
+#   -d '{"id": "MEME_ID"}' \
+#   $GRPC_HOST meme.MemeService/GetMeme
 
 # Approve meme (replace MEME_ID)
-grpcurl -plaintext -proto proto/memeService/meme.proto \
-  -d '{"meme_id": "MEME_ID"}' \
-  localhost:50051 meme.MemeService/ApproveMeme
+# echo -e "\n6. Approve meme:"
+# grpcurl $GRPC_FLAGS \
+#   -d '{"meme_id": "MEME_ID"}' \
+#   $GRPC_HOST meme.MemeService/ApproveMeme
 
+# Delete meme (replace ID)
+# echo -e "\n7. Delete meme:"
+# grpcurl $GRPC_FLAGS \
+#   -d '{"id": "MEME_ID"}' \
+#   $GRPC_HOST meme.MemeService/DeleteMeme
 
-# add tag to meme
-curl -X PATCH "localhost:8080/api/meme/a37f801b-d3a1-4773-b0b5-d0212315995d/tags" -v \
--H "Content-Type: application/json" \
--d '{"Tags": ["motivation"]}'
-
+echo -e "\n================================================"
+echo "Tests completed!"
