@@ -157,12 +157,6 @@ func (s *Server) UploadMeme(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.log.Debug("Parsed Meme", "Meme", meme)
-	// verify if mime type is for an image
-	if strings.Split(meme.MimeType, "/")[0] != "image" {
-		s.log.Debug("Invalid media type", "MimeType", meme.MimeType)
-		http.Error(w, "Invalid media type", http.StatusBadRequest)
-		return
-	}
 
 	var imgBuf bytes.Buffer
 
@@ -211,7 +205,14 @@ func (s *Server) UploadMeme(w http.ResponseWriter, r *http.Request) {
 	// get the image dimensions from imgBuf
 	imgBytes := imgBuf.Bytes()
 	if len(imgBytes) > int(s.config.MaxUploadSize) {
-		s.handleError(w, err, fmt.Sprintf("Uploaded file is too big it must be <= %d", s.config.MaxUploadSize), http.StatusRequestEntityTooLarge)
+		s.handleError(w, nil, fmt.Sprintf("Uploaded file is too big it must be <= %d", s.config.MaxUploadSize), http.StatusRequestEntityTooLarge)
+		return
+	}
+
+	// detect the real MIME type from the bytes, ignoring client and image extension
+	detectedMimeType := http.DetectContentType(imgBytes)
+	if strings.Split(detectedMimeType, "/")[0] != "image" {
+		http.Error(w, "Invalid media type: uploaded file is not an image", http.StatusBadRequest)
 		return
 	}
 	imgReader := bytes.NewReader(imgBytes)
@@ -222,7 +223,7 @@ func (s *Server) UploadMeme(w http.ResponseWriter, r *http.Request) {
 	}
 	// call the memeService to upload the meme
 	memeUpload := &pb.UploadMemeRequest{
-		MediaType:      meme.MimeType,
+		MediaType:      detectedMimeType,
 		Image:          imgBytes,
 		Tags:           meme.Tags,
 		Name:           meme.Name,
