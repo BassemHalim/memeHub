@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"os"
 
 	"log/slog"
@@ -51,11 +52,15 @@ func NewR2(bucket string, log *slog.Logger) *R2 {
 func (r *R2) SaveImage(filename string, image []byte) (string, error) {
 	// return unimplemented exception
 	key := fmt.Sprintf("imgs/%s", filename)
+	contentType := http.DetectContentType(image)
+	if len(contentType) < 6 || contentType[:6] != "image/" {
+		contentType = "image/png"
+	}
 	response, err := r.s3Client.PutObject(context.TODO(), &s3.PutObjectInput{
 		Bucket:      r.Bucket,
 		Key:         aws.String(key),
 		Body:        bytes.NewReader(image),
-		ContentType: aws.String("image/png"),
+		ContentType: aws.String(contentType),
 	})
 	if err != nil {
 		return "", errors.New("failed to upload image to R2: " + err.Error())
@@ -67,7 +72,7 @@ func (r *R2) SaveImage(filename string, image []byte) (string, error) {
 
 // Move the image to a different bucket and deletes the original
 func (r *R2) SoftDeleteImage(filename string) error {
-	// move the file to the  trash bucket 
+	// move the file to the  trash bucket
 	key := fmt.Sprintf("imgs/%s", filename)
 	resp, err := r.s3Client.CopyObject(context.TODO(), &s3.CopyObjectInput{
 		Bucket:     aws.String(*r.Bucket + "-trash"),
