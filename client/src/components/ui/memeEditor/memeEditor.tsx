@@ -1,6 +1,7 @@
 "use client";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { sendEvent } from "@/utils/googleAnalytics";
 import { CheckedState } from "@radix-ui/react-checkbox";
 import { Download, Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -163,11 +164,15 @@ export default function MemeEditor() {
             link.download =
                 textElements.length > 0
                     ? "qasr_el_memez_" +
-                      textElements[0].text.replace(" ", "_") +
-                      ".png"
+                    textElements[0].text.replace(" ", "_") +
+                    ".png"
                     : "qasr_el_memez.png";
             link.href = URL.createObjectURL(blob);
             link.click();
+            sendEvent("meme_generated", {
+                text_elements: textElements.length,
+                ...(imgParam && { source_url: imgParam }),
+            });
         }, "image/png");
     };
 
@@ -198,8 +203,8 @@ export default function MemeEditor() {
                     topPadding ? padding : 0,
                     canvas.width,
                     canvas.height -
-                        (topPadding ? padding : 0) -
-                        (bottomPadding ? padding : 0),
+                    (topPadding ? padding : 0) -
+                    (bottomPadding ? padding : 0),
                 );
 
                 // draw each text box
@@ -248,7 +253,7 @@ export default function MemeEditor() {
         }
         if (!imageURL) return;
         drawFrame();
-        return () => {};
+        return () => { };
     }, [imageURL, textElements, imageWidth, topPadding, bottomPadding]);
 
     const onElementChange = useCallback((i: number) => {
