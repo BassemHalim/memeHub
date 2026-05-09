@@ -2,6 +2,7 @@
 import { Delete } from "@/app/meme/crud";
 import { useAuth } from "@/auth/authProvider";
 import AdminLogin from "@/components/ui/adminLogin";
+import Banner from "@/components/ui/Banner";
 import { Button } from "@/components/ui/button";
 import Timeline from "@/components/ui/Timeline";
 import fetchMeme from "@/functions/fetchMeme";
@@ -10,6 +11,78 @@ import { Meme, MemesResponse } from "@/types/Meme";
 import { SearchIcon } from "lucide-react";
 import Image from "next/image";
 import { FormEvent, useCallback, useEffect, useState } from "react";
+
+function BannerEditor({ token }: { token: string }) {
+    const [text, setText] = useState("");
+    const [bgColor, setBgColor] = useState("#1d4ed8");
+    const [fgColor, setFgColor] = useState("#ffffff");
+    const [saving, setSaving] = useState(false);
+
+    useEffect(() => {
+        const apiHost = process.env.NEXT_PUBLIC_API_HOST || window.location.origin;
+        fetch(new URL("/api/banner", apiHost))
+            .then((r) => r.json())
+            .then((d) => {
+                if (d.text) setText(d.text);
+                if (d.bgColor) setBgColor(d.bgColor);
+                if (d.fgColor) setFgColor(d.fgColor);
+            })
+            .catch(() => { });
+    }, []);
+
+    const save = async () => {
+        setSaving(true);
+        const apiHost = process.env.NEXT_PUBLIC_API_HOST || window.location.origin;
+        await fetch(new URL("/api/admin/banner", apiHost), {
+            method: "PUT",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ text, bgColor, fgColor }),
+        });
+        setSaving(false);
+    };
+
+    const clear = async () => {
+        setText("");
+        setSaving(true);
+        const apiHost = process.env.NEXT_PUBLIC_API_HOST || window.location.origin;
+        await fetch(new URL("/api/admin/banner", apiHost), {
+            method: "PUT",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ text: "", bgColor, fgColor }),
+        });
+        setSaving(false);
+    };
+
+    return (
+        <div className="w-full max-w-5xl px-4">
+            <h2 className="text-xl font-semibold mb-3">Site Banner</h2>
+            {text && <Banner banner={{ text, bgColor, fgColor }} />}
+            <div className="flex flex-col gap-3 border rounded-lg p-4 bg-black text-white shadow-sm">
+                <textarea
+                    className="w-full border rounded p-2 text-sm bg-slate-500 resize-none"
+                    rows={2}
+                    placeholder="Banner text (leave empty to hide)"
+                    value={text}
+                    onChange={(e) => setText(e.target.value)}
+                />
+                <div className="flex gap-4 items-center">
+                    <label className="text-sm flex items-center gap-2">
+                        Background
+                        <input type="color" value={bgColor} onChange={(e) => setBgColor(e.target.value)} className="w-8 h-8 cursor-pointer rounded" />
+                    </label>
+                    <label className="text-sm flex items-center gap-2">
+                        Text color
+                        <input type="color" value={fgColor} onChange={(e) => setFgColor(e.target.value)} className="w-8 h-8 cursor-pointer rounded" />
+                    </label>
+                </div>
+                <div className="flex gap-2">
+                    <Button size="sm" onClick={save} disabled={saving}>{saving ? "Saving..." : "Save"}</Button>
+                    <Button size="sm" variant="destructive" onClick={clear} disabled={saving}>Clear banner</Button>
+                </div>
+            </div>
+        </div>
+    );
+}
 
 function usePendingMemes(token: string | undefined) {
     const [memes, setMemes] = useState<Meme[]>([]);
@@ -110,6 +183,8 @@ export default function Home() {
                 <h1 className="text-3xl font-bold">Admin Panel</h1>
                 <Button onClick={() => auth.logout()}>Logout</Button>
             </div>
+
+            <BannerEditor token={auth.token()!} />
 
             {/* Pending Approvals */}
             <div className="w-full max-w-5xl px-4">

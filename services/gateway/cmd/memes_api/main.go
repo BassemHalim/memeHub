@@ -75,7 +75,9 @@ func run(ctx context.Context) error {
 	trackShareHandler := http.HandlerFunc(gateway.TrackShare)
 	getPendingMemesHandler := http.HandlerFunc(gateway.GetPendingMemes)
 	approveMemeHandler := http.HandlerFunc(gateway.ApproveMeme)
-	
+	getBannerHandler := http.HandlerFunc(gateway.GetBanner)
+	updateBannerHandler := http.HandlerFunc(gateway.UpdateBanner)
+
 	apiRouter := http.NewServeMux()
 	apiRouter.HandleFunc("/login", auth.Login)
 	apiRouter.Handle("GET /memes", middleware.GzipMiddleware(middleware.Cache(limiter.RateLimit(getTimelineHandler), 60)))
@@ -85,6 +87,7 @@ func run(ctx context.Context) error {
 	apiRouter.Handle("POST /meme", limiter.RateLimit(uploadMemeHandler))
 	apiRouter.Handle("POST /memes/{id}/download", middleware.ValidateBrowserRequest(cfg.ApplicationDomains)(limiter.RateLimit(trackDownloadHandler)))
 	apiRouter.Handle("POST /memes/{id}/share", middleware.ValidateBrowserRequest(cfg.ApplicationDomains)(limiter.RateLimit(trackShareHandler)))
+	apiRouter.Handle("GET /banner", getBannerHandler)
 
 	adminRouter := http.NewServeMux()
 	adminRouter.Handle("DELETE /meme/{id}", limiter.RateLimit(middleware.Auth(deleteMemeHandler)))
@@ -94,6 +97,7 @@ func run(ctx context.Context) error {
 	adminRouter.Handle("DELETE /cache", middleware.Auth(flushCache))
 	adminRouter.Handle("GET /memes/pending", middleware.Auth(getPendingMemesHandler))
 	adminRouter.Handle("PATCH /meme/{id}/approve", middleware.Auth(approveMemeHandler))
+	adminRouter.Handle("PUT /banner", middleware.Auth(updateBannerHandler))
 
 	apiRouter.Handle("/admin/", http.StripPrefix("/admin", adminRouter))
 

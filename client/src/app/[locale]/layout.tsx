@@ -9,6 +9,7 @@ import NavigationDrawer from "@/components/ui/bottomNavigationDrawer";
 import Footer from "@/components/ui/Footer";
 import { cn } from "@/utils/tailwind";
 import "./globals.css";
+import Banner, { fetchBanner } from "@/components/ui/Banner";
 
 export async function generateMetadata({
     params,
@@ -52,6 +53,7 @@ export default async function RootLayout({
 }>) {
     const locale = await getLocale();
     const messages = await getMessages();
+    const banner = await fetchBanner();
     return (
         <html lang={locale} dir={locale == "ar" ? "rtl" : "ltr"}>
             <body
@@ -62,6 +64,7 @@ export default async function RootLayout({
             >
                 <NextIntlClientProvider messages={messages} locale={locale}>
                     <Header />
+                    {banner && <Banner banner={banner}  />}
                     <main className="grow flex flex-col items-center justify-center w-full pb-[10vh]">
                         {children}
                     </main>
