@@ -1,14 +1,32 @@
+# Editor
+.vscode/
+
+# Environment files (service-level .env only, not .env.* variants)
+**/.env
+
+# Images (local dev storage)
 **/images/*
 
+# Database files
 **/*.db
-.vscode/** 
-/*.jpeg
-**/*.env
+**/*.sql
 
-Docker/VPS
+# Archives / backups
 **/*.tar
-development.docker-compose.yml
 
-**/*.py
-scripts
-*.sql
+# Python
+.venv/
+**/__pycache__/
+
+# Directories excluded from repo
+backups/
+server-configs/
+scripts/
+dumps/
+postmortem/
+notes/
+
+# Misc
+**/*.jpeg
+**/*.jpg
+**/*.png
