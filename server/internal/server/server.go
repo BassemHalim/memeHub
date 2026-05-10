@@ -1,0 +1,717 @@
+package server
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"fmt"
+	"image"
+	_ "image/gif"
+	_ "image/jpeg"
+	_ "image/png"
+	"os"
+
+	// _ "code.google.com/p/vp8-go/webp" using a webp image isn't great outside of browsers so I will not accept webp for now (will convert to jpeg later)
+
+	"log/slog"
+	"net/http"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/patrickmn/go-cache"
+
+	"github.com/BassemHalim/memesHub/internal/config"
+	"github.com/BassemHalim/memesHub/internal/db"
+	"github.com/BassemHalim/memesHub/internal/meme"
+	"github.com/BassemHalim/memesHub/internal/storage"
+
+	pb "github.com/BassemHalim/memesHub/internal/proto/memeService"
+	rateLimiter "github.com/BassemHalim/memesHub/internal/rate-limiter/IP_ratelimiter"
+	"github.com/go-playground/validator/v10"
+)
+
+type MemeServiceClient interface {
+	UploadMeme(ctx context.Context, in *pb.UploadMemeRequest) (*pb.MemeResponse, error)
+	GetMeme(ctx context.Context, in *pb.GetMemeRequest) (*pb.MemeResponse, error)
+	DeleteMeme(ctx context.Context, in *pb.DeleteMemeRequest) (*pb.DeleteMemeResponse, error)
+	GetTimelineMemes(ctx context.Context, in *pb.GetTimelineRequest) (*pb.MemesResponse, error)
+	SearchMemes(ctx context.Context, in *pb.SearchMemesRequest) (*pb.MemesResponse, error)
+	SearchTags(ctx context.Context, in *pb.SearchTagsRequest) (*pb.TagsResponse, error)
+	AddTags(ctx context.Context, in *pb.AddTagsRequest) (*pb.AddTagsResponse, error)
+	UpdateMeme(ctx context.Context, in *pb.UpdateMemeRequest) (*pb.UpdateMemeResponse, error)
+	GetPendingMemes(ctx context.Context, in *pb.GetPendingMemesRequest) (*pb.MemesResponse, error)
+	ApproveMeme(ctx context.Context, in *pb.ApproveMemeRequest) (*pb.ApproveMemeResponse, error)
+	IncrementDownload(ctx context.Context, in *pb.IncrementEngagementRequest) (*pb.IncrementEngagementResponse, error)
+	IncrementShare(ctx context.Context, in *pb.IncrementEngagementRequest) (*pb.IncrementEngagementResponse, error)
+}
+
+type Server struct {
+	memeService     MemeServiceClient
+	config          *config.Config
+	RateLimiter     *rateLimiter.RateLimiter
+	structValidator *validator.Validate
+	log             *slog.Logger
+	client          *http.Client
+	cache           *cache.Cache
+}
+
+func New(config *config.Config, rateLimiter *rateLimiter.RateLimiter, log *slog.Logger, client *http.Client, cache *cache.Cache) (*Server, error) {
+	db, err := db.New()
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to database: %w", err)
+	}
+	storage := storage.NewR2(os.Getenv("R2_BUCKET_NAME"), log)
+	memeService := NewMemeService(db, log, storage)
+	return newWithMemeService(memeService, config, rateLimiter, log, client, cache)
+}
+
+// newWithMemeService is used in tests to inject a mock MemeServiceClient.
+func newWithMemeService(memeService MemeServiceClient, config *config.Config, rateLimiter *rateLimiter.RateLimiter, log *slog.Logger, client *http.Client, cache *cache.Cache) (*Server, error) {
+	return &Server{
+		memeService:     memeService,
+		config:          config,
+		RateLimiter:     rateLimiter,
+		structValidator: validator.New(validator.WithRequiredStructEnabled()),
+		log:             log,
+		client:          client,
+		cache:           cache,
+	}, nil
+}
+
+func (s *Server) handleError(w http.ResponseWriter, err error, message string, statusCode int) {
+	s.log.Error(message, "ERROR", err)
+	http.Error(w, message, statusCode)
+}
+
+// GET /api/memes
+// Endpoint to get memes for timeline and provide sort order
+func (s *Server) GetTimeline(w http.ResponseWriter, r *http.Request) {
+
+	// parse query parameters
+	queryParams := r.URL.Query()
+
+	pageSize := 10
+	if size := queryParams.Get("pageSize"); size != "" {
+		if parsedSize, err := strconv.Atoi(size); err == nil && parsedSize > 0 {
+			pageSize = parsedSize
+		}
+	}
+	page := 1
+	if p := queryParams.Get("page"); p != "" {
+		if parsedPage, err := strconv.Atoi(p); err == nil && parsedPage > 0 {
+			page = parsedPage
+		}
+	}
+	// parse sort order
+	sortOrder := pb.SortOrder_MOST_DOWNLOADED // default value changed from NEWEST to MOST_DOWNLOADED
+	if order := queryParams.Get("sort"); order != "" {
+		switch strings.ToLower(order) {
+		case "newest":
+			sortOrder = pb.SortOrder_NEWEST
+		case "oldest":
+			sortOrder = pb.SortOrder_OLDEST
+		case "most_tagged":
+			sortOrder = pb.SortOrder_MOST_TAGGED
+		case "most_downloaded":
+			sortOrder = pb.SortOrder_MOST_DOWNLOADED
+		case "most_shared":
+			sortOrder = pb.SortOrder_MOST_SHARED
+		default:
+			// Invalid sort parameter - return HTTP 400
+			s.log.Warn("Invalid sort parameter provided", "sort", order, "IP", r.RemoteAddr)
+			http.Error(w, "Invalid sort parameter. Valid options: newest, oldest, most_tagged, most_downloaded, most_shared", http.StatusBadRequest)
+			return
+		}
+	}
+
+	// Log sort parameter usage for monitoring
+	s.log.Debug("Timeline request", "sort", sortOrder.String(), "page", page, "pageSize", pageSize, "IP", r.RemoteAddr)
+
+	timelineCacheKey := fmt.Sprintf("timeline_%d_%d_%d", page, pageSize, sortOrder) // TODO: fixme different page sizes will create duplicate entries in the cache
+	cachedTimeline, found := s.cache.Get(timelineCacheKey)
+	if strings.HasPrefix(r.Pattern, "/api/memes") { // Don't cache the admin endpoint
+		// check if in cache
+		if found {
+			s.log.Debug("Cache hit for timeline")
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(cachedTimeline)
+			return
+		}
+	}
+	// get timeline memes
+	ctx, cancel := context.WithTimeout(r.Context(), time.Second)
+	defer cancel()
+	resp, err := s.memeService.GetTimelineMemes(ctx, &pb.GetTimelineRequest{
+		Page:      int32(page),
+		PageSize:  int32(pageSize),
+		SortOrder: sortOrder,
+	})
+	if err != nil {
+		s.handleError(w, err, "Failed to fetch memes", http.StatusInternalServerError)
+		return
+	}
+	// store in cache
+	if !found {
+		s.cache.Set(timelineCacheKey, resp, cache.DefaultExpiration)
+	}
+	// return all the sampleMemes as JSON
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(resp)
+
+}
+
+// POST /api/meme
+func (s *Server) UploadMeme(w http.ResponseWriter, r *http.Request) {
+	// Multipart form data
+	r.ParseMultipartForm(s.config.MaxUploadSize) // limit your max input length to 2MB
+
+	// get the json metadata
+	jsonData := r.FormValue("meme")
+	var meme meme.UploadRequest
+	if err := json.Unmarshal([]byte(jsonData), &meme); err != nil {
+		s.log.Debug("Error parsing the json", "JSON", jsonData, "ERROR", err)
+		s.handleError(w, err, "Error parsing the meme data", http.StatusBadRequest)
+		return
+	}
+	s.log.Debug("Uploaded meme metadata", "JSON", jsonData)
+
+	err := s.structValidator.Struct(meme)
+	if err != nil {
+		s.handleError(w, err, "The meme data is invalid or missing required fields", http.StatusBadRequest)
+		return
+	}
+	s.log.Debug("Parsed Meme", "Meme", meme)
+
+	var imgBuf bytes.Buffer
+
+	// if no MediaURL is provided, then it's a file upload
+	if meme.MediaURL == "" {
+		s.log.Info("File upload")
+		file, _, err := r.FormFile("image")
+		if err != nil {
+			s.handleError(w, err, "Couldn't find image in the multipart request", http.StatusBadRequest)
+			return
+		}
+		defer file.Close()
+		if _, err := imgBuf.ReadFrom(file); err != nil {
+			s.handleError(w, err, "Failed to read the image / invalid image", http.StatusBadRequest)
+			return
+		}
+	} else {
+		// if MediaURL is provided, then it's a URL upload
+		// download the image from the URL
+
+		memeURL := meme.MediaURL
+		if !s.ValidateUploadURL(memeURL) {
+			s.log.Error("Invalid meme url or too big", "URL", memeURL, "IP", r.RemoteAddr)
+			http.Error(w, "Invalid media URL or file is too big files should be <2MB", http.StatusBadRequest)
+			return
+		}
+
+		req, err := http.NewRequest("GET", meme.MediaURL, nil)
+		if err != nil {
+			s.handleError(w, err, "Error creating the request to download the image", http.StatusBadRequest)
+			return
+		}
+		req.Header.Set("Accept", "image/*")
+
+		resp, err := s.client.Do(req)
+		if err != nil {
+			s.handleError(w, err, "Error downloading the image from the provided URL", http.StatusBadRequest)
+			return
+		}
+		defer resp.Body.Close()
+		if _, err := imgBuf.ReadFrom(http.MaxBytesReader(w, resp.Body, s.config.MaxUploadSize)); err != nil {
+			s.handleError(w, err, "Error reading the downloaded image", http.StatusInternalServerError)
+			return
+		}
+	}
+	// get the image dimensions from imgBuf
+	imgBytes := imgBuf.Bytes()
+	if len(imgBytes) > int(s.config.MaxUploadSize) {
+		s.handleError(w, nil, fmt.Sprintf("Uploaded file is too big it must be <= %d", s.config.MaxUploadSize), http.StatusRequestEntityTooLarge)
+		return
+	}
+
+	// detect the real MIME type from the bytes, ignoring client and image extension
+	detectedMimeType := http.DetectContentType(imgBytes)
+	if strings.Split(detectedMimeType, "/")[0] != "image" {
+		http.Error(w, "Invalid media type: uploaded file is not an image", http.StatusBadRequest)
+		return
+	}
+	imgReader := bytes.NewReader(imgBytes)
+	imgConfig, _, err := image.DecodeConfig(imgReader)
+	if err != nil {
+		s.handleError(w, err, "Failed to decode image config Likely not an image", http.StatusBadRequest)
+		return
+	}
+	// call the memeService to upload the meme
+	memeUpload := &pb.UploadMemeRequest{
+		MediaType:      detectedMimeType,
+		Image:          imgBytes,
+		Tags:           meme.Tags,
+		Name:           meme.Name,
+		Dimensions:     []int32{int32(imgConfig.Width), int32(imgConfig.Height)},
+		SocialMediaUrl: meme.MediaURL,
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+	defer cancel()
+	resp, err := s.memeService.UploadMeme(ctx, memeUpload)
+	// TODO: resize it
+	if err != nil {
+		s.handleError(w, err, "Error uploading the meme", http.StatusInternalServerError)
+		return
+	}
+	
+	// return the meme ID
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(resp)
+
+}
+
+// api/memes/search?query=query&page=num&pageSize=num
+func (s *Server) SearchMemes(w http.ResponseWriter, r *http.Request) {
+	// parse query parameters
+	queryParams := r.URL.Query()
+	// tags := queryParams["tags"]
+	query := queryParams["query"]
+	page, err := strconv.Atoi(queryParams.Get("page"))
+	if err != nil {
+		s.log.Debug("Failed to parse page query param")
+		page = 1
+	}
+	pageSize, err := strconv.Atoi(queryParams.Get("pageSize"))
+	if err != nil {
+		s.log.Debug("Failed to parse pageSize query param")
+		pageSize = 10
+	}
+	s.log.Debug("Search Query", "Query", query, "page", page, "pageSize", pageSize)
+	ctx, cancel := context.WithTimeout(r.Context(), time.Second)
+	defer cancel()
+	resp, err := s.memeService.SearchMemes(ctx, &pb.SearchMemesRequest{
+		Query:    query[0],
+		Page:     int32(page),
+		PageSize: int32(pageSize),
+	})
+	if err != nil {
+		s.handleError(w, err, "Failed to fetch memes", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(resp)
+
+}
+
+// GET /api/tags/search?query=tagname&limit=num
+func (s *Server) SearchTags(w http.ResponseWriter, r *http.Request) {
+
+	// parse query parameters
+	queryParams := r.URL.Query()
+	query := queryParams.Get("query")
+	limit := queryParams.Get("limit")
+	if len(query) < 3 {
+		http.Error(w, "Invalid query parameters", http.StatusBadRequest)
+		return
+	}
+	if len(limit) == 0 {
+		limit = "5"
+	}
+	limitVal, err := strconv.Atoi(limit)
+	if err != nil {
+		s.handleError(w, err, "Invalid limit", http.StatusBadRequest)
+		return
+	}
+
+	searchTagsCacheKey := fmt.Sprintf("tags_%s_%d", query, limitVal)
+	// check if in cache
+	if cachedTags, found := s.cache.Get(searchTagsCacheKey); found {
+		s.log.Debug("Cache hit for tags", "Query", query, "Limit", limit)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(cachedTags)
+		return
+	}
+	s.log.Debug("Search Tags", "Query", query, "Limit", limit)
+	ctx, cancel := context.WithTimeout(r.Context(), time.Second)
+	defer cancel()
+	resp, err := s.memeService.SearchTags(ctx, &pb.SearchTagsRequest{
+		Query: query,
+		Limit: int32(limitVal),
+	})
+	if err != nil {
+		s.handleError(w, err, "Failed to fetch tags", http.StatusInternalServerError)
+		return
+	}
+	// store in cache
+	s.cache.Set(searchTagsCacheKey, resp, cache.DefaultExpiration)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(resp)
+}
+
+// DELETE /api/meme/{id}
+func (s *Server) DeleteMeme(w http.ResponseWriter, r *http.Request) {
+
+	// parse query parameters
+	idString := r.PathValue("id")
+	if err := uuid.Validate(idString); err != nil {
+		s.handleError(w, err, "Bad ID", http.StatusBadRequest)
+		return
+	}
+
+	s.log.Info("Delete Meme", "ID", idString)
+	ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+	defer cancel()
+	_, err := s.memeService.DeleteMeme(ctx, &pb.DeleteMemeRequest{
+		Id: idString,
+	})
+	if err != nil {
+		s.handleError(w, err, "Failed to delete meme", http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
+// GET /api/meme/{id}
+func (s *Server) GetMeme(w http.ResponseWriter, r *http.Request) {
+
+	// parse query parameters
+	idString := r.PathValue("id")
+	if err := uuid.Validate(idString); err != nil {
+		s.handleError(w, err, "Bad ID", http.StatusBadRequest)
+		return
+	}
+	memeCacheKey := fmt.Sprintf("meme_%s", idString)
+	if cachedMeme, found := s.cache.Get(memeCacheKey); found {
+		s.log.Debug("Cache hit for meme", "ID", idString)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(cachedMeme)
+		return
+	}
+
+	s.log.Info("Get Meme", "ID", idString)
+	ctx, cancel := context.WithTimeout(r.Context(), time.Second)
+	defer cancel()
+	resp, err := s.memeService.GetMeme(ctx, &pb.GetMemeRequest{
+		Id: idString,
+	})
+	if err != nil {
+		s.handleError(w, err, "Failed to fetch meme", http.StatusInternalServerError)
+		return
+	}
+	// store in cache
+	s.cache.Set(memeCacheKey, resp, cache.DefaultExpiration)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(resp)
+}
+
+// /api/admin/meme/{id}/tags
+func (s *Server) UpdateTags(w http.ResponseWriter, r *http.Request) {
+
+	id := r.PathValue("id")
+	if err := uuid.Validate(id); err != nil {
+		s.handleError(w, err, "Bad ID", http.StatusBadRequest)
+		return
+	}
+	dec := json.NewDecoder(r.Body)
+	var tagsRequest = meme.AddTagsRequest{}
+	err := dec.Decode(&tagsRequest)
+	if err != nil {
+		s.handleError(w, err, "Error parsing the json", http.StatusBadRequest)
+		return
+	}
+	err = s.structValidator.Struct(tagsRequest)
+	if err != nil {
+		s.handleError(w, err, "The meme data is invalid or missing required fields", http.StatusBadRequest)
+		return
+	}
+	ctx, cancel := context.WithTimeout(r.Context(), time.Second)
+	defer cancel()
+	s.log.Info("Adding tags to meme", "ID", id, "Tags", tagsRequest.Tags)
+	resp, err := s.memeService.AddTags(ctx, &pb.AddTagsRequest{
+		MemeId: id,
+		Tags:   tagsRequest.Tags,
+	})
+	if err != nil {
+		s.handleError(w, err, "Failed to add tags", http.StatusInternalServerError)
+		return
+	}
+	if resp.Success != int32(200) {
+		w.WriteHeader(int(resp.Success))
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+
+}
+
+// PATCH /api/admin/meme/{id}
+func (s *Server) PatchMeme(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	// Multipart form data
+	r.ParseMultipartForm(s.config.MaxUploadSize) // limit your max input length to 2MB
+
+	// get the json metadata
+	jsonData := r.FormValue("meme")
+	var meme meme.PatchRequest
+	if err := json.Unmarshal([]byte(jsonData), &meme); err != nil {
+		s.handleError(w, err, "Error parsing the json", http.StatusBadRequest)
+		return
+	}
+	err := s.structValidator.Struct(meme)
+	if err != nil {
+		s.handleError(w, err, "The meme data is invalid or missing required fields", http.StatusBadRequest)
+		return
+	}
+
+	// Validate tag names
+	for _, tag := range meme.Tags {
+		trimmed := strings.TrimSpace(tag)
+		if trimmed == "" {
+			http.Error(w, "Tag name cannot be empty", http.StatusBadRequest)
+			return
+		}
+		if len(trimmed) > 100 {
+			http.Error(w, "Tag name exceeds 100 characters", http.StatusBadRequest)
+			return
+		}
+	}
+
+	// verify if mime type is for an image
+	if strings.Split(meme.MimeType, "/")[0] != "image" {
+		s.log.Debug("Invalid media type", "MimeType", meme.MimeType)
+		http.Error(w, "Invalid media type", http.StatusBadRequest)
+		return
+	}
+
+	var updateRequest *pb.UpdateMemeRequest
+	_, fileExists := r.MultipartForm.File["image"]
+	if meme.MediaURL != "" || fileExists {
+		// Update image
+		var imgBuf bytes.Buffer
+
+		// if no MediaURL is provided, then it's a file upload
+		if meme.MediaURL == "" {
+			s.log.Info("File upload")
+			file, _, err := r.FormFile("image")
+			if err != nil {
+				s.handleError(w, err, "Couldn't find image in the multipart request", http.StatusBadRequest)
+				return
+			}
+			defer file.Close()
+			if _, err := imgBuf.ReadFrom(file); err != nil {
+				s.log.Error("Error reading the image into butter", "ERROR", err)
+				http.Error(w, "Error reading the image", http.StatusBadRequest)
+				return
+			}
+		} else {
+			// if MediaURL is provided, then it's a URL upload
+			// download the image from the URL
+
+			memeURL := meme.MediaURL
+			if !s.ValidateUploadURL(memeURL) {
+				s.log.Error("Invalid meme url or too big", "URL", memeURL, "IP", r.RemoteAddr)
+				http.Error(w, "Invalid media URL or file is too big files should be <2MB", http.StatusBadRequest)
+				return
+			}
+
+			resp, err := http.Get(meme.MediaURL)
+			if err != nil {
+				s.handleError(w, err, "Error downloading the image from the provided URL", http.StatusBadRequest)
+				return
+			}
+			defer resp.Body.Close()
+			if _, err := imgBuf.ReadFrom(http.MaxBytesReader(w, resp.Body, s.config.MaxUploadSize)); err != nil {
+				s.log.Error("Error reading the image", "Error", err)
+				http.Error(w, "Error reading the image", http.StatusBadRequest)
+				return
+			}
+		}
+		// // get the image dimensions from imgBuf
+		imgBytes := imgBuf.Bytes()
+		if len(imgBytes) > int(s.config.MaxUploadSize) {
+			s.log.Error("Uploaded file is too big", "Size", len(imgBytes))
+			http.Error(w, "Uploaded image is too big", http.StatusRequestEntityTooLarge)
+			return
+		}
+		imgReader := bytes.NewReader(imgBytes)
+		imgConfig, _, err := image.DecodeConfig(imgReader)
+		if err != nil {
+			s.handleError(w, err, "Failed to decode image config Likely not an image", http.StatusBadRequest)
+			return
+		}
+
+		// create upload request
+		updateRequest = &pb.UpdateMemeRequest{
+			Id:             id,
+			MediaType:      meme.MimeType,
+			Image:          imgBytes,
+			Tags:           meme.Tags,
+			Name:           meme.Name,
+			Dimensions:     []int32{int32(imgConfig.Width), int32(imgConfig.Height)},
+			SocialMediaUrl: meme.MediaURL,
+		}
+	} else {
+		updateRequest = &pb.UpdateMemeRequest{
+			Id:   id,
+			Tags: meme.Tags,
+			Name: meme.Name,
+		}
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+	defer cancel()
+	resp, err := s.memeService.UpdateMeme(ctx, updateRequest)
+	if err != nil {
+		s.handleError(w, err, "Failed to update meme", http.StatusInternalServerError)
+		return
+	}
+	s.log.Debug(resp.String())
+	w.WriteHeader(http.StatusOK)
+}
+
+// GET /api/admin/memes/pending
+func (s *Server) GetPendingMemes(w http.ResponseWriter, r *http.Request) {
+	queryParams := r.URL.Query()
+	page, pageSize := 1, 10
+	if p := queryParams.Get("page"); p != "" {
+		if v, err := strconv.Atoi(p); err == nil && v > 0 {
+			page = v
+		}
+	}
+	if ps := queryParams.Get("pageSize"); ps != "" {
+		if v, err := strconv.Atoi(ps); err == nil && v > 0 {
+			pageSize = v
+		}
+	}
+	ctx, cancel := context.WithTimeout(r.Context(), time.Second)
+	defer cancel()
+	resp, err := s.memeService.GetPendingMemes(ctx, &pb.GetPendingMemesRequest{
+		Page:     int32(page),
+		PageSize: int32(pageSize),
+	})
+	if err != nil {
+		s.handleError(w, err, "Failed to fetch pending memes", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
+}
+
+// PATCH /api/admin/meme/{id}/approve
+func (s *Server) ApproveMeme(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if err := uuid.Validate(id); err != nil {
+		s.handleError(w, err, "Bad ID", http.StatusBadRequest)
+		return
+	}
+	ctx, cancel := context.WithTimeout(r.Context(), time.Second)
+	defer cancel()
+	resp, err := s.memeService.ApproveMeme(ctx, &pb.ApproveMemeRequest{MemeId: id})
+	if err != nil {
+		s.handleError(w, err, "Failed to approve meme", http.StatusInternalServerError)
+		return
+	}
+	if !resp.Success {
+		http.Error(w, resp.Error, http.StatusBadRequest)
+		return
+	}
+	s.log.Info("Meme approved", "ID", id)
+	w.WriteHeader(http.StatusOK)
+}
+
+func (s *Server) FlushCache(w http.ResponseWriter, r *http.Request) {
+	s.log.Info("Clearing cache")
+	s.cache.Flush()
+	w.WriteHeader(http.StatusOK)
+}
+
+// POST /api/memes/:id/download
+func (s *Server) TrackDownload(w http.ResponseWriter, r *http.Request) {
+	// Parse and validate meme ID
+	idString := r.PathValue("id")
+	if err := uuid.Validate(idString); err != nil {
+		s.handleError(w, err, "Invalid meme ID format", http.StatusBadRequest)
+		return
+	}
+
+	s.log.Info("Track Download", "ID", idString)
+
+	// Call MemeService.IncrementDownload via gRPC
+	ctx, cancel := context.WithTimeout(r.Context(), time.Second)
+	defer cancel()
+	resp, err := s.memeService.IncrementDownload(ctx, &pb.IncrementEngagementRequest{
+		MemeId: idString,
+	})
+
+	if err != nil {
+		// Check if it's a not found error
+		if strings.Contains(err.Error(), "not found") {
+			s.handleError(w, err, "Meme not found", http.StatusNotFound)
+			return
+		}
+		s.handleError(w, err, "Failed to track download", http.StatusInternalServerError)
+		return
+	}
+
+	if !resp.Success {
+		if resp.Error != "" {
+			s.handleError(w, fmt.Errorf("%s", resp.Error), "Failed to track download", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	// Return success
+	w.WriteHeader(http.StatusOK)
+}
+
+// POST /api/memes/:id/share
+func (s *Server) TrackShare(w http.ResponseWriter, r *http.Request) {
+	// Parse and validate meme ID
+	idString := r.PathValue("id")
+	if err := uuid.Validate(idString); err != nil {
+		s.handleError(w, err, "Invalid meme ID format", http.StatusBadRequest)
+		return
+	}
+
+	s.log.Info("Track Share", "ID", idString)
+
+	// Call MemeService.IncrementShare via gRPC
+	ctx, cancel := context.WithTimeout(r.Context(), time.Second)
+	defer cancel()
+	resp, err := s.memeService.IncrementShare(ctx, &pb.IncrementEngagementRequest{
+		MemeId: idString,
+	})
+
+	if err != nil {
+		// Check if it's a not found error
+		if strings.Contains(err.Error(), "not found") {
+			s.handleError(w, err, "Meme not found", http.StatusNotFound)
+			return
+		}
+		s.handleError(w, err, "Failed to track share", http.StatusInternalServerError)
+		return
+	}
+
+	if !resp.Success {
+		if resp.Error != "" {
+			s.handleError(w, fmt.Errorf("%s", resp.Error), "Failed to track share", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	// Return success
+	w.WriteHeader(http.StatusOK)
+}

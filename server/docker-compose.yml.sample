@@ -1,0 +1,81 @@
+services:
+    postgres:
+        build:
+            context: .
+            dockerfile: postgres.Dockerfile
+        container_name: memesHub-postgres
+        command:
+            [
+                "postgres",
+                "-c",
+                "logging_collector=on",
+                "-c",
+                "log_destination=jsonlog",
+            ]
+        environment:
+            POSTGRES_USER: <username>
+            POSTGRES_PASSWORD: <password>
+            POSTGRES_DB: memesHub
+            PGDATA: /var/lib/postgresql/data/pgdata
+        networks:
+            - memesHub_network
+        ports:
+            - "127.0.0.1:1234:1234"
+        volumes:
+            - postgres_data:/var/lib/postgresql/data
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U postgres"]
+            interval: 5s
+            timeout: 5s
+            retries: 5
+
+    backend:
+        image: memesHub/backend
+        build:
+            context: .
+            dockerfile: backend.Dockerfile
+        container_name: memesHub-backend
+        env_file:
+            - .env
+        environment:
+            ADMIN_USER: "<username>"
+            DB_HOST: postgres
+            DB_PORT: 1234
+            DB_USER: <db_username>
+            DB_PASSWORD: <db_password>
+            DB_NAME: memesHub
+            R2_ACCOUNT_ID: "<r2-account-id>"
+            R2_BUCKET_NAME: <r2-bucket-name>
+            R2_ACCESS_KEY_ID: "<r2-access-key-id>"
+            R2_ACCESS_KEY_SECRET: "<r2-secret>"
+            R2_TOKEN_VALUE: "<r2-token>"
+            STORAGE_BASE_URL: "example.com"
+        networks:
+            - memesHub_network
+        ports:
+            - "127.0.0.1:8080:8080"
+        depends_on:
+            postgres:
+                condition: service_healthy
+        volumes:
+            - ./images:/app/images
+            - ./config/config.yaml:/app/config.yaml
+            - ./config/banner.json:/app/banner.json
+
+    client:
+        image: memesHub/client
+        build:
+            context: ../client
+            dockerfile: Dockerfile
+        container_name: memes-client
+        ports:
+            - "127.0.0.1:3000:3000"
+        networks:
+            - memesHub_network
+
+volumes:
+    postgres_data:
+
+networks:
+    memesHub_network:
+        driver: bridge

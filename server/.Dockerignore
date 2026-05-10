@@ -1,0 +1,34 @@
+# Version control
+.git
+.gitignore
+.github
+
+# Docker
+.dockerignore
+*.Dockerfile
+docker-compose*.yml
+
+# Environment & secrets
+.env
+.env.*
+
+# Dev tooling
+Makefile
+.vscode
+.idea
+
+# Test & local-only dirs
+tests
+migrations
+
+# Local storage (not needed in image)
+images
+
+# Go build artifacts
+*.exe
+*.test
+*.out
+
+# OS artifacts
+.DS_Store
+Thumbs.db
