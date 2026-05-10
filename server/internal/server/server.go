@@ -246,7 +246,7 @@ func (s *Server) UploadMeme(w http.ResponseWriter, r *http.Request) {
 	imgReader := bytes.NewReader(imgBytes)
 	imgConfig, _, err := image.DecodeConfig(imgReader)
 	if err != nil {
-		s.handleError(w, err, "Failed to decode image config Likely not an image", http.StatusBadRequest)
+		s.handleError(w, err, "Unsupported image format. Supported formats are: JPEG, PNG, GIF", http.StatusBadRequest)
 		return
 	}
 	// call the memeService to upload the meme
@@ -267,7 +267,7 @@ func (s *Server) UploadMeme(w http.ResponseWriter, r *http.Request) {
 		s.handleError(w, err, "Error uploading the meme", http.StatusInternalServerError)
 		return
 	}
-	
+
 	// return the meme ID
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
