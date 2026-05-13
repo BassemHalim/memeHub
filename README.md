@@ -7,12 +7,13 @@ The memeService currently stores the memes in R2
 
 ## Architecture:
 
-![system designs](https://github.com/BassemHalim/memeDB/blob/master/docs/System_Design.png?raw=true)
+![system designs](https://github.com/BassemHalim/memeDB/blob/master/docs/architecture_v1.excalidraw.png?raw=true)
 
 The backend is made of 2 services:
 
 -   **MemeService**: which handles storing and retrieving the memes
 -   **Gateway**: acts as a REST client to **MemeService** and handles rate limiting, request validations, serving the images and as a caching layer (not yet implemented)
+
 
 
 
