@@ -1,0 +1,10 @@
+whitelisted_domains:
+    - example.com
+application_domains:
+    - localhost
+    - example.com
+max_upload_size: 1000000
+port: 8080
+rate_limit: 100
+burst_rate: 10
+log_level: -4
