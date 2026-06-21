@@ -111,7 +111,10 @@ export default function MemeCard({
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
-            a.download = `${meme.name.replaceAll(" ", "_")}.${extension}`;
+            const sanitize = (s: string) => s.trim().replace(/\s+/g, "_").replace(/[^\p{L}\p{N}_]/gu, "");
+            const namePart = sanitize(meme.name);
+            const tagsPart = meme.tags.map((t) => sanitize(t.toLowerCase())).filter(Boolean).join("_");
+            a.download = `qasrelmemez_${namePart}${tagsPart ? "_" + tagsPart : ""}.${extension}`;
             document.body.appendChild(a);
             a.click();
             window.URL.revokeObjectURL(url);

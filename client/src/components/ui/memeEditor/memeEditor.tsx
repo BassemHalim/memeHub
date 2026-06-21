@@ -161,12 +161,9 @@ export default function MemeEditor() {
         canvas.toBlob((blob) => {
             if (!blob) return;
             const link = document.createElement("a");
-            link.download =
-                textElements.length > 0
-                    ? "qasr_el_memez_" +
-                    textElements[0].text.replace(" ", "_") +
-                    ".png"
-                    : "qasr_el_memez.png";
+            const sanitize = (s: string) => s.trim().replace(/\s+/g, "_").replace(/[^\p{L}\p{N}_]/gu, "");
+            const textPart = textElements.map((t) => sanitize(t.text)).filter(Boolean).join("_");
+            link.download = textPart ? `qasrelmemez_${textPart}.png` : "qasrelmemez.png";
             link.href = URL.createObjectURL(blob);
             link.click();
             sendEvent("meme_generated", {
