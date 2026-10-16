@@ -2,6 +2,7 @@
 import { Link } from "@/i18n/navigation";
 import { sendEvent } from "@/utils/googleAnalytics";
 import { Home, Search, SquarePlus, Upload } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { usePathname } from "next/navigation";
 import { Suspense, useState } from "react";
 import CreateMeme from "../CreateMemeForm";
@@ -9,6 +10,7 @@ import CreateMeme from "../CreateMemeForm";
 export default function NavigationDrawer() {
     const pathname = usePathname();
     const [isOpen, setIsOpen] = useState(false);
+    const t = useTranslations("Home");
     const showModal = () => {
         setIsOpen(true);
         sendEvent("open_upload_form");
@@ -24,7 +26,7 @@ export default function NavigationDrawer() {
                         className="text-primary rounded-full flex flex-col justify-center items-center gap-2"
                     >
                         <Home />
-                        <p className="">Home</p>
+                        <p className="">{t("home")}</p>
                     </Link>
                 )}
                 {!isSearchPage && (
@@ -33,7 +35,7 @@ export default function NavigationDrawer() {
                         className="text-primary rounded-full flex flex-col justify-center items-center gap-2"
                     >
                         <Search />
-                        <p className="">Search</p>
+                        <p className="">{t("search")}</p>
                     </Link>
                 )}
                 {!isGeneratorPage && (
@@ -42,12 +44,12 @@ export default function NavigationDrawer() {
                         className="text-primary rounded-full flex flex-col justify-center items-center gap-2"
                     >
                         <SquarePlus />
-                        <p className="">Create</p>
+                        <p className="">{t("nav-create")}</p>
                     </Link>
                 )}
                 <div className="text-primary rounded-full flex flex-col justify-center items-center gap-2" onClick={showModal}>
                     <Upload />
-                    <p>Upload</p>
+                    <p>{t("nav-upload")}</p>
                 </div>
             </div>
             <Suspense>

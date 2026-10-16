@@ -12,7 +12,11 @@
         "hero": "Discover, Share, and Create Memes Effortlessly",
         "meme-search": "search memes...",
         "upload": "Upload",
-        "create": "Create"
+        "create": "Create",
+        "search": "Search",
+        "home": "Home",
+        "nav-upload": "Upload",
+        "nav-create": "Create"
     },
     "uploadMeme": {
         "title": "Upload a Meme",
