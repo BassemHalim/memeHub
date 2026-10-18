@@ -171,7 +171,7 @@ export default function SearchComponent({
                         id="searchBar"
                         type="text"
                         placeholder={t("meme-search")}
-                        className={`w-full px-6 py-4 rounded-lg text-lg shadow-lg pr-14`}
+                        className={`w-full px-6 py-4 rounded-lg text-lg shadow-lg pr-14 [scroll-margin-bottom:calc(10vh+24px)]`}
                         onFocus={scrollInputIntoView}
                     />
                     <button type="submit">

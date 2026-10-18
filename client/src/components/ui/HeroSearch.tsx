@@ -32,7 +32,7 @@ const HeroSearch = () => {
                         name="query"
                         type="text"
                         placeholder={t("meme-search")}
-                        className={`w-full px-6 py-4 rounded-lg text-lg shadow-lg pr-14 font-medium bg-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring`}
+                        className={`w-full px-6 py-4 rounded-lg text-lg shadow-lg pr-14 font-medium bg-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring [scroll-margin-bottom:calc(10vh+24px)]`}
                         onFocus={scrollInputIntoView}
                     />
                     <button type="submit">
