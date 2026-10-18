@@ -2,6 +2,7 @@ import { useRouter } from "@/i18n/navigation";
 import { Search } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { FormEvent } from "react";
+import { scrollInputIntoView } from "@/utils/scrollIntoView";
 import HeroImage from "./HeroImage";
 
 const HeroSearch = () => {
@@ -32,6 +33,7 @@ const HeroSearch = () => {
                         type="text"
                         placeholder={t("meme-search")}
                         className={`w-full px-6 py-4 rounded-lg text-lg shadow-lg pr-14 font-medium bg-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring`}
+                        onFocus={scrollInputIntoView}
                     />
                     <button type="submit">
                         <Search className="absolute right-4 top-0 mt-4 text-gray-400 h-6 w-6" />

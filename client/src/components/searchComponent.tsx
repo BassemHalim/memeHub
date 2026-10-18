@@ -8,6 +8,7 @@ import { ChevronLeft, ChevronRight, Search as SearchIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { cn } from "../utils/tailwind";
+import { scrollInputIntoView } from "../utils/scrollIntoView";
 import { Button } from "./ui/button";
 import { Toggle } from "./ui/toggle";
 
@@ -171,6 +172,7 @@ export default function SearchComponent({
                         type="text"
                         placeholder={t("meme-search")}
                         className={`w-full px-6 py-4 rounded-lg text-lg shadow-lg pr-14`}
+                        onFocus={scrollInputIntoView}
                     />
                     <button type="submit">
                         <SearchIcon className="absolute right-4 top-0 mt-4 text-gray-400 h-6 w-6" />
